@@ -30,9 +30,17 @@ const groups: Group[] = [
       { label: 'Examinations', icon: 'checkbox-outline', href: '/examinations' },
       { label: 'Syllabus', icon: 'list-outline', href: '/syllabus' },
       { label: 'Grading Scales', icon: 'scale-outline', href: '/grading-scales' },
-      { label: 'Attendance', icon: 'checkmark-done-outline' },
-      { label: 'Timetable', icon: 'calendar-outline' },
+      { label: 'Attendance', icon: 'checkmark-done-outline', href: '/attendance' },
+      { label: 'Timetable', icon: 'calendar-outline', href: '/timetable' },
     ],
+  },
+  {
+    title: 'FINANCE',
+    items: [{ label: 'Ledgers', icon: 'business-outline', href: '/ledgers' }],
+  },
+  {
+    title: 'HR',
+    items: [{ label: 'Certificates', icon: 'shield-checkmark-outline', href: '/certificates' }],
   },
   {
     title: 'COMMUNICATION',
@@ -40,6 +48,16 @@ const groups: Group[] = [
       { label: 'Notice Board', icon: 'megaphone-outline', href: '/notices' },
       { label: 'Events', icon: 'ribbon-outline', href: '/events' },
       { label: 'Messages', icon: 'chatbubbles-outline', href: '/messages' },
+    ],
+  },
+  {
+    title: 'SETTINGS',
+    items: [
+      { label: 'Members', icon: 'people-circle-outline', href: '/members' },
+      { label: 'Documents', icon: 'folder-open-outline', href: '/documents' },
+      { label: 'School Documents', icon: 'archive-outline', href: '/school-documents' },
+      { label: 'Reports', icon: 'bar-chart-outline', href: '/reports' },
+      { label: 'Audit Logs', icon: 'time-outline', href: '/audit-logs' },
     ],
   },
 ];
