@@ -1,0 +1,1 @@
+export { CertificatesScreen } from './CertificatesScreen';
