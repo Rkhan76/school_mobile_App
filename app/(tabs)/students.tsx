@@ -1,13 +1,5 @@
-import { Text, View } from 'react-native';
-import { ScreenBackground } from '../../src/components/ui/Screen';
-import { fonts, colors } from '../../src/theme/tokens';
+import { StudentListScreen } from '../../src/features/students/list';
 
 export default function StudentsScreen() {
-  return (
-    <ScreenBackground>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontFamily: fonts.heading, fontSize: 18, color: colors.textSecondary }}>Students (coming soon)</Text>
-      </View>
-    </ScreenBackground>
-  );
+  return <StudentListScreen />;
 }

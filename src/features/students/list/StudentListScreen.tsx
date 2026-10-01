@@ -1,0 +1,210 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScreenBackground } from '../../../components/ui/Screen';
+import { SearchBar } from '../../../components/ui/SearchBar';
+import { AppBar } from '../../dashboard/AppBar';
+import { colors, fonts, radius } from '../../../theme/tokens';
+import { useStudents, type Student } from '../mockStudents';
+import { Pagination } from './Pagination';
+import { StatsGrid } from './StatsGrid';
+import { StudentCard } from './StudentCard';
+import { StudentFilterSheet, type StudentFilters } from './StudentFilterSheet';
+
+const PAGE_SIZE = 20;
+const TAB_BAR_SPACE = 120;
+
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
+}
+
+function SkeletonCard() {
+  return (
+    <View style={styles.skel}>
+      <View style={[styles.bar, { width: 120, height: 20 }]} />
+      <View style={styles.skelRow}>
+        <View style={styles.skelAvatar} />
+        <View style={{ flex: 1, gap: 8 }}>
+          <View style={[styles.bar, { width: '60%', height: 14 }]} />
+          <View style={[styles.bar, { width: '85%', height: 10 }]} />
+        </View>
+      </View>
+      <View style={[styles.bar, { width: '70%', height: 10 }]} />
+    </View>
+  );
+}
+
+function Separator() {
+  return <View style={{ height: 12 }} />;
+}
+
+export function StudentListScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [searchText, setSearchText] = useState('');
+  const search = useDebounced(searchText, 300);
+  const [filters, setFilters] = useState<StudentFilters>({});
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data, total, stats, isLoading, refetch, setStatus, remove } = useStudents({
+    search, ...filters, page, pageSize: PAGE_SIZE,
+  });
+
+  useEffect(() => setPage(1), [search, filters]);
+  useEffect(() => {
+    if (!isLoading) setRefreshing(false);
+  }, [isLoading]);
+
+  const filterCount = useMemo(() => Object.values(filters).filter(Boolean).length, [filters]);
+
+  const onView = useCallback(
+    (id: string) => router.push({ pathname: '/student/[id]', params: { id } }),
+    [router],
+  );
+  const onToggle = useCallback(
+    (id: string, active: boolean) => setStatus(id, active ? 'Active' : 'Inactive'),
+    [setStatus],
+  );
+  const onDelete = useCallback(
+    (id: string) => {
+      Alert.alert('Delete student', 'This student will be removed. Continue?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => remove(id) },
+      ]);
+    },
+    [remove],
+  );
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    refetch();
+  }, [refetch]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: Student }) => (
+      <StudentCard student={item} onView={onView} onToggleStatus={onToggle} onDelete={onDelete} />
+    ),
+    [onView, onToggle, onDelete],
+  );
+
+  const showSkeleton = isLoading && !refreshing;
+
+  const header = (
+    <View style={styles.header}>
+      <AppBar academicYear="2026-2027" hasUnread={false} />
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Student List</Text>
+        <Pressable style={styles.refresh} onPress={onRefresh} accessibilityLabel="Refresh">
+          <Ionicons name="refresh-outline" size={16} color={colors.primaryDeep} />
+          <Text style={styles.refreshText}>Refresh</Text>
+        </Pressable>
+      </View>
+      <StatsGrid stats={stats} />
+      <View style={styles.searchRow}>
+        <View style={{ flex: 1 }}>
+          <SearchBar
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Search students..."
+            onFilterPress={() => setSheetOpen(true)}
+            filterCount={filterCount}
+          />
+        </View>
+        <Pressable
+          style={styles.export}
+          onPress={() => Alert.alert('Export', 'Export coming soon')}
+          accessibilityLabel="Export"
+        >
+          <Ionicons name="download-outline" size={20} color={colors.primaryDeep} />
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  return (
+    <ScreenBackground>
+      <FlatList<Student>
+        data={showSkeleton ? [] : data}
+        keyExtractor={(s) => s.id}
+        renderItem={renderItem}
+        ListHeaderComponent={header}
+        ItemSeparatorComponent={Separator}
+        ListEmptyComponent={
+          showSkeleton ? (
+            <View style={{ gap: 12 }}>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Ionicons name="school-outline" size={40} color={colors.textHint} />
+              <Text style={styles.emptyText}>No students found</Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          showSkeleton ? null : (
+            <View style={{ marginTop: 16 }}>
+              <Pagination page={page} pageSize={PAGE_SIZE} total={total} shown={data.length} onChange={setPage} />
+            </View>
+          )
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
+        }
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingHorizontal: 16,
+          paddingBottom: TAB_BAR_SPACE + insets.bottom,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={6}
+        windowSize={7}
+      />
+      <StudentFilterSheet
+        visible={sheetOpen}
+        value={filters}
+        onClose={() => setSheetOpen(false)}
+        onApply={(f) => {
+          setFilters(f);
+          setSheetOpen(false);
+        }}
+      />
+    </ScreenBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { gap: 14, marginBottom: 14 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  title: { fontFamily: fonts.heading, fontSize: 24, color: colors.text },
+  refresh: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12,
+    borderRadius: radius.pill, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
+  },
+  refreshText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  export: {
+    width: 48, height: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
+  },
+  empty: { alignItems: 'center', gap: 10, paddingVertical: 48 },
+  emptyText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.textSecondary },
+  skel: {
+    backgroundColor: colors.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border,
+    padding: 14, gap: 14,
+  },
+  skelRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  skelAvatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.mint },
+  bar: { borderRadius: 6, backgroundColor: colors.mint },
+});
