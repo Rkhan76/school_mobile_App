@@ -11,8 +11,9 @@ import { SCHOOL_INSTANCE, emailError, fakeSignIn, isValidEmail } from './validat
 export function LoginForm() {
   const router = useRouter();
   const signIn = useSession((s) => s.signIn);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Dev-only prefill of the dummy credentials; stripped from production builds.
+  const [email, setEmail] = useState(__DEV__ ? 'admin@verdant.test' : '');
+  const [password, setPassword] = useState(__DEV__ ? 'admin123' : '');
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
