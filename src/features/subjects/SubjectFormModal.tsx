@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { Subject, SubjectInput } from './mockSubjects';
+import type { SubjectInput, SubjectWithAssignments } from './types';
 
 type Props = {
   visible: boolean;
   /** null = add mode */
-  subject: Subject | null;
+  subject: SubjectWithAssignments | null;
   /** codes already used by other subjects (uppercase) */
   takenCodes: string[];
   onSubmit: (input: SubjectInput) => void;

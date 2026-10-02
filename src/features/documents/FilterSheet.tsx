@@ -2,21 +2,22 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { Chip } from './parts';
-import { ROLES, type DocumentType, type PersonRole, type StatusFilter } from './mockDocuments';
+import { ENTITY_LABELS, ENTITY_TYPES, type DocumentType, type EntityType, type RequestStatusFilter } from './types';
 
-export type RequestFilters = { status: StatusFilter; role: PersonRole | ''; typeId: string };
-export const EMPTY_FILTERS: RequestFilters = { status: '', role: '', typeId: '' };
+export type RequestFilters = { status: RequestStatusFilter; entityType: EntityType | ''; documentTypeId: string };
+export const EMPTY_FILTERS: RequestFilters = { status: '', entityType: '', documentTypeId: '' };
 
-const STATUSES: { value: StatusFilter; label: string }[] = [
+const STATUSES: { value: RequestStatusFilter; label: string }[] = [
   { value: '', label: 'All statuses' },
   { value: 'OPEN', label: 'Open' },
+  { value: 'SUBMITTED', label: 'Submitted' },
   { value: 'FULFILLED', label: 'Fulfilled' },
   { value: 'CANCELLED', label: 'Cancelled' },
   { value: 'OVERDUE', label: 'Overdue' },
 ];
 
 export function countFilters(f: RequestFilters): number {
-  return (f.status ? 1 : 0) + (f.role ? 1 : 0) + (f.typeId ? 1 : 0);
+  return (f.status ? 1 : 0) + (f.entityType ? 1 : 0) + (f.documentTypeId ? 1 : 0);
 }
 
 type Props = {
@@ -44,16 +45,16 @@ export function FilterSheet({ visible, filters, types, onChange, onClose }: Prop
           </View>
           <Text style={styles.label}>People</Text>
           <View style={styles.wrap}>
-            <Chip label="All people" on={filters.role === ''} onPress={() => onChange({ ...filters, role: '' })} />
-            {ROLES.map((r) => (
-              <Chip key={r} label={`${r}s`} on={filters.role === r} onPress={() => onChange({ ...filters, role: r })} />
+            <Chip label="All people" on={filters.entityType === ''} onPress={() => onChange({ ...filters, entityType: '' })} />
+            {ENTITY_TYPES.map((r) => (
+              <Chip key={r} label={`${ENTITY_LABELS[r]}s`} on={filters.entityType === r} onPress={() => onChange({ ...filters, entityType: r })} />
             ))}
           </View>
           <Text style={styles.label}>Document type</Text>
           <View style={styles.wrap}>
-            <Chip label="All document types" on={filters.typeId === ''} onPress={() => onChange({ ...filters, typeId: '' })} />
+            <Chip label="All document types" on={filters.documentTypeId === ''} onPress={() => onChange({ ...filters, documentTypeId: '' })} />
             {types.map((t) => (
-              <Chip key={t.id} label={t.name} on={filters.typeId === t.id} onPress={() => onChange({ ...filters, typeId: t.id })} />
+              <Chip key={t.id} label={t.name} on={filters.documentTypeId === t.id} onPress={() => onChange({ ...filters, documentTypeId: t.id })} />
             ))}
           </View>
         </ScrollView>

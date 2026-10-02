@@ -64,7 +64,22 @@ export function EmptyState() {
   return <Notice icon="bar-chart-outline" tint={colors.textHint} title="No data" message="Nothing to report for the selected filters. Try widening the date range or clearing the class filter." />;
 }
 
+/** The school's subscription plan doesn't include the "reports" feature — show an upgrade CTA, not a generic error. */
+export function UpgradePrompt({ error }: { error: ReportError }) {
+  return (
+    <Notice
+      icon="rocket-outline"
+      tint={colors.primary}
+      title="Upgrade to unlock reports"
+      message={error.message || 'Reports are not included in your school’s current plan. Ask an administrator to upgrade to view this.'}
+    />
+  );
+}
+
 export function ErrorState({ error, onRetry }: { error: ReportError; onRetry: () => void }) {
+  if (error.code === 'FEATURE_NOT_IN_PLAN') {
+    return <UpgradePrompt error={error} />;
+  }
   if (error.status === 403) {
     return <Notice icon="lock-closed-outline" tint={colors.warning} title="No permission" message="You do not have access to this report. Ask an administrator to grant the reports permission." />;
   }

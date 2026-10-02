@@ -1,15 +1,15 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { AdmissionStats, AdmissionStatus } from './mockAdmissions';
+import type { AdmissionStats, AdmissionStatus } from './types';
 
 export type StatusFilter = AdmissionStatus | 'all';
 
-const CHIPS: { key: StatusFilter; label: string; count: (s: AdmissionStats) => number }[] = [
-  { key: 'all', label: 'All', count: (s) => s.total },
+const CHIPS: { key: StatusFilter; label: string; count: (s: AdmissionStats) => number | null }[] = [
+  { key: 'all', label: 'All', count: (s) => s.totalApplications },
   { key: 'pending', label: 'Pending', count: (s) => s.pending },
   { key: 'enrolled', label: 'Enrolled', count: (s) => s.enrolled },
   { key: 'rejected', label: 'Rejected', count: (s) => s.rejected },
-  { key: 'cancelled', label: 'Cancelled', count: (s) => s.cancelled },
+  { key: 'cancelled', label: 'Cancelled', count: () => null },
 ];
 
 export function StatusChips({ value, onChange, stats }: { value: StatusFilter; onChange: (v: StatusFilter) => void; stats: AdmissionStats }) {
@@ -17,9 +17,10 @@ export function StatusChips({ value, onChange, stats }: { value: StatusFilter; o
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {CHIPS.map((c) => {
         const active = c.key === value;
+        const count = c.count(stats);
         return (
           <Pressable key={c.key} onPress={() => onChange(c.key)} style={[styles.chip, active && styles.active]}>
-            <Text style={[styles.text, active && styles.activeText]}>{c.label} ({c.count(stats)})</Text>
+            <Text style={[styles.text, active && styles.activeText]}>{c.label}{count !== null ? ` (${count})` : ''}</Text>
           </Pressable>
         );
       })}

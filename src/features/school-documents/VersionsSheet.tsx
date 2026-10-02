@@ -1,20 +1,28 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatDate, type DocumentVersion, type SchoolDocument } from './mockSchoolDocuments';
+import type { DocumentVersion, SchoolDocument } from './types';
+import { formatBytes, formatDate } from './utils';
 
 type Props = {
   document: SchoolDocument | null;
-  onRestore: (d: SchoolDocument, v: DocumentVersion) => void;
-  onDownload: (d: SchoolDocument, v: DocumentVersion) => void;
+  versions: DocumentVersion[];
+  isLoading: boolean;
+  /**
+   * There's no "restore an old version as current" endpoint — uploading a NEW
+   * version is the only way to change what's current. This instead opens the
+   * upload-new-version flow pre-filled from the chosen old version's metadata.
+   */
+  onUseAsNewVersion: (d: SchoolDocument, v: DocumentVersion) => void;
+  onDownloadCurrent: (d: SchoolDocument) => void;
   onClose: () => void;
 };
 
 /** Bottom sheet listing every version of a document (newest first). */
-export function VersionsSheet({ document: doc, onRestore, onDownload, onClose }: Props) {
+export function VersionsSheet({ document: doc, versions, isLoading, onUseAsNewVersion, onDownloadCurrent, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const versions = doc ? [...doc.versions].sort((a, b) => b.version - a.version) : [];
+  const sorted = [...versions].sort((a, b) => b.version - a.version);
   return (
     <Modal visible={doc !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
@@ -22,32 +30,45 @@ export function VersionsSheet({ document: doc, onRestore, onDownload, onClose }:
         <View style={styles.handle} />
         <Text style={styles.title}>Versions</Text>
         {doc ? <Text style={styles.sub} numberOfLines={1}>{doc.title}</Text> : null}
-        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-          {doc && versions.map((v) => {
-            const current = v.version === doc.version;
-            return (
-              <View key={v.version} style={styles.row}>
-                <View style={styles.pill}>
-                  <Text style={styles.pillText}>v{v.version}</Text>
+        {isLoading ? (
+          <ActivityIndicator color={colors.primary} style={styles.loading} />
+        ) : (
+          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+            {doc && sorted.map((v) => {
+              const current = v.version === doc.version;
+              return (
+                <View key={v.version} style={styles.row}>
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>v{v.version}</Text>
+                  </View>
+                  <View style={styles.info}>
+                    <Text style={styles.file} numberOfLines={1}>{v.fileName}</Text>
+                    <Text style={styles.meta}>
+                      {formatBytes(v.fileBytes)} · {formatDate(v.createdAt.slice(0, 10))}{current ? ' · Current' : ''}
+                    </Text>
+                  </View>
+                  {!current ? (
+                    <Pressable
+                      style={styles.btn}
+                      onPress={() => onUseAsNewVersion(doc, v)}
+                      accessibilityLabel={`Use v${v.version} as a new version`}
+                    >
+                      <Ionicons name="refresh-outline" size={16} color={colors.primaryDeep} />
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      style={styles.btn}
+                      onPress={() => onDownloadCurrent(doc)}
+                      accessibilityLabel="Download current version"
+                    >
+                      <Ionicons name="download-outline" size={16} color={colors.primaryDeep} />
+                    </Pressable>
+                  )}
                 </View>
-                <View style={styles.info}>
-                  <Text style={styles.file} numberOfLines={1}>{v.fileName}</Text>
-                  <Text style={styles.meta}>
-                    {v.sizeLabel} · {formatDate(v.uploadedAt)}{current ? ' · Current' : ''}
-                  </Text>
-                </View>
-                {!current ? (
-                  <Pressable style={styles.btn} onPress={() => onRestore(doc, v)} accessibilityLabel={`Restore v${v.version}`}>
-                    <Ionicons name="refresh-outline" size={16} color={colors.primaryDeep} />
-                  </Pressable>
-                ) : null}
-                <Pressable style={styles.btn} onPress={() => onDownload(doc, v)} accessibilityLabel={`Download v${v.version}`}>
-                  <Ionicons name="download-outline" size={16} color={colors.primaryDeep} />
-                </Pressable>
-              </View>
-            );
-          })}
-        </ScrollView>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
     </Modal>
   );
@@ -62,6 +83,7 @@ const styles = StyleSheet.create({
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 12 },
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
   sub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, marginBottom: 8 },
+  loading: { paddingVertical: 24 },
   scroll: { flexGrow: 0 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10,

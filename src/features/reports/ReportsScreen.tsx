@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { Card } from '../../components/ui/Card';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { exportReport } from './api';
 import { activeFilterCount, FilterSheet } from './FilterSheet';
 import { isEmptyReport, ReportView } from './ReportView';
 import { EmptyState, ErrorState, ReportSkeleton } from './ReportStates';
 import { DOMAINS, findDomain, findReport } from './registry';
-import { DEFAULT_FILTERS, type DomainKey, type MockMode, type ReportFilters } from './types';
+import { DEFAULT_FILTERS, ReportError, type DomainKey, type MockMode, type ReportFilters } from './types';
 import { useReport } from './useReport';
 
 const MOCK_CYCLE: MockMode[] = ['none', 'empty', 'error', 'forbidden', 'ratelimit'];
@@ -29,6 +32,7 @@ export function ReportsScreen() {
   const [sheet, setSheet] = useState(false);
   const [info, setInfo] = useState(false);
   const [mock, setMock] = useState<MockMode>('none');
+  const [exporting, setExporting] = useState<'Excel' | 'PDF' | null>(null);
 
   const dom = findDomain(domain);
   const report = findReport(domain, reportKey);
@@ -46,7 +50,30 @@ export function ReportsScreen() {
     setFilters(DEFAULT_FILTERS);
     setInfo(false);
   };
-  const exportAs = (): void => Alert.alert('Export', 'Export coming soon');
+
+  const exportAs = async (label: 'Excel' | 'PDF'): Promise<void> => {
+    if (exporting) return;
+    setExporting(label);
+    try {
+      const format = label === 'Excel' ? 'xlsx' : 'pdf';
+      const { blob, fileName, mimeType } = await exportReport(domain, report.key, filters, format);
+      const file = new File(Paths.cache, fileName);
+      if (file.exists) file.delete();
+      file.write(new Uint8Array(blob));
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, { mimeType, dialogTitle: fileName });
+      } else {
+        Alert.alert('Report saved', `Saved to ${file.uri}`);
+      }
+    } catch (err) {
+      const message = err instanceof ReportError && err.code === 'FEATURE_NOT_IN_PLAN'
+        ? 'Exporting reports is not included in your school’s current plan. Ask an administrator to upgrade.'
+        : err instanceof Error ? err.message : 'Could not export the report. Please try again.';
+      Alert.alert('Export failed', message);
+    } finally {
+      setExporting(null);
+    }
+  };
 
   return (
     <ScreenBackground>
@@ -101,10 +128,18 @@ export function ReportsScreen() {
 
         <View style={styles.exports}>
           {(['Excel', 'PDF'] as const).map((t) => (
-            <Pressable key={t} onPress={exportAs} style={styles.exportBtn} accessibilityRole="button">
-              <Ionicons name={t === 'Excel' ? 'document-text-outline' : 'document-outline'} size={16} color={colors.text} />
+            <Pressable
+              key={t}
+              onPress={() => exportAs(t)}
+              disabled={exporting !== null}
+              style={[styles.exportBtn, exporting !== null && exporting !== t && { opacity: 0.5 }]}
+              accessibilityRole="button"
+            >
+              {exporting === t
+                ? <ActivityIndicator size="small" color={colors.textSecondary} />
+                : <Ionicons name={t === 'Excel' ? 'document-text-outline' : 'document-outline'} size={16} color={colors.text} />}
               <Text style={styles.exportText}>{t}</Text>
-              <Ionicons name="download-outline" size={15} color={colors.textSecondary} />
+              {exporting === t ? null : <Ionicons name="download-outline" size={15} color={colors.textSecondary} />}
             </Pressable>
           ))}
         </View>

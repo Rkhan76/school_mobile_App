@@ -1,5 +1,11 @@
 import { addDays, weekdayIndex } from './dateUtils';
 
+/**
+ * Mock-only status union (staff attendance has no real backend yet — see
+ * MOBILE_API_DOCS.md §9's note that staff attendance is a separate,
+ * undocumented module). Kept distinct from the real student
+ * `AttendanceStatus` (`./types`), which has no `'LEAVE'` value.
+ */
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | 'LEAVE';
 export type StaffCategory = 'Teaching' | 'Admin' | 'Support' | 'Transport';
 
@@ -13,19 +19,9 @@ export type StaffMember = {
   remarks: string;
 };
 
-export type StudentRecord = {
-  id: string;
-  rollNo: number;
-  name: string;
-  admissionNo: string;
-  status: AttendanceStatus | null;
-  remarks: string;
-};
-
 export type HistoryEntry = { date: string; status: AttendanceStatus | null };
 
 export const STAFF_STATUSES: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
-export const STUDENT_STATUSES: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LATE', 'LEAVE'];
 export const STAFF_CATEGORIES: StaffCategory[] = ['Teaching', 'Admin', 'Support', 'Transport'];
 
 type StaffSeed = [code: string, name: string, role: string, category: StaffCategory];
@@ -67,27 +63,7 @@ export function buildStaff(): StaffMember[] {
   })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/* ------------------------------ students ------------------------------ */
-
-export type ClassOption = { id: string; name: string };
-export type SectionOption = { id: string; name: string };
-
-export const CLASSES: ClassOption[] = Array.from({ length: 8 }, (_, i) => ({ id: `c${i + 1}`, name: `Class ${i + 1}` }));
-export const SECTIONS: SectionOption[] = [
-  { id: 'A', name: 'Section A' },
-  { id: 'B', name: 'Section B' },
-  { id: 'C', name: 'Section C' },
-];
-
-const FIRST = [
-  'Aadhya', 'Advik', 'Anaya', 'Arnav', 'Avni', 'Dhruv', 'Eshaan', 'Fatima', 'Gauri', 'Harsh',
-  'Inaya', 'Jiya', 'Kavya', 'Krish', 'Myra', 'Nikhil', 'Omar', 'Pranav', 'Riya', 'Rudra',
-  'Saanvi', 'Tanvi', 'Uday', 'Vedant', 'Zoya', 'Yash', 'Aarohi', 'Veer', 'Navya', 'Samar',
-];
-const LAST = [
-  'Sharma', 'Patel', 'Khan', 'Reddy', 'Nair', 'Gupta', 'Iyer', 'Singh', 'Das', 'Mehta',
-  'Joshi', 'Verma', 'Bose', 'Kapoor', 'Rao', 'Pillai',
-];
+/* ------------------------------ history (shared mock helpers) ------------------------------ */
 
 function lcg(seed: number): () => number {
   let s = seed >>> 0;
@@ -102,29 +78,6 @@ function hash(str: string): number {
   for (let i = 0; i < str.length; i += 1) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
   return h >>> 0;
 }
-
-export function buildStudents(classId: string, sectionId: string): StudentRecord[] {
-  const rnd = lcg(hash(`${classId}-${sectionId}`));
-  const classNo = Number(classId.slice(1));
-  const sec = SECTIONS.findIndex((s) => s.id === sectionId) + 1;
-  const count = 24 + Math.floor(rnd() * 3);
-  const names = new Set<string>();
-  while (names.size < count) {
-    names.add(`${FIRST[Math.floor(rnd() * FIRST.length)]} ${LAST[Math.floor(rnd() * LAST.length)]}`);
-  }
-  return [...names]
-    .sort((a, b) => a.localeCompare(b))
-    .map((name, i) => ({
-      id: `stu-${classId}-${sectionId}-${i + 1}`,
-      rollNo: i + 1,
-      name,
-      admissionNo: `ADM-26-${classNo}${sec}${String(i + 1).padStart(2, '0')}`,
-      status: null,
-      remarks: '',
-    }));
-}
-
-/* ------------------------------ history ------------------------------ */
 
 function statusFromRoll(r: number, student: boolean): AttendanceStatus {
   if (r < 0.78) return 'PRESENT';

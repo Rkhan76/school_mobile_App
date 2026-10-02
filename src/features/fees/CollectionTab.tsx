@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
@@ -10,7 +10,7 @@ import { InvoiceCard } from './InvoiceCard';
 import { InvoiceDetailSheet } from './InvoiceDetailSheet';
 import { EMPTY_FILTERS, InvoiceFilterSheet, type InvoiceFilters } from './InvoiceFilterSheet';
 import { ReceiptSheet } from './ReceiptSheet';
-import { EmptyState, Pagination, SkeletonCard } from './parts';
+import { EmptyState, SkeletonCard } from './parts';
 import { parseDMY, useInvoices, type Invoice, type Receipt } from './mockFees';
 
 const PAGE_SIZE = 10;
@@ -52,7 +52,7 @@ export function CollectionTab({ top }: { top: ReactElement }) {
     [filters],
   );
 
-  const onRefresh = useCallback(() => { setRefreshing(true); refetch(); }, [refetch]);
+  const onRefresh = useCallback(() => { setRefreshing(true); setPage(1); refetch(); }, [refetch]);
   const openDetail = useCallback((id: string) => setDetailId(id), []);
   const renderItem = useCallback(
     ({ item }: { item: Invoice }) => <InvoiceCard invoice={item} onPress={openDetail} />,
@@ -66,6 +66,11 @@ export function CollectionTab({ top }: { top: ReactElement }) {
   };
 
   const showSkeleton = isLoading && !refreshing;
+  const hasMore = data.length < total;
+  const loadMore = useCallback(() => {
+    if (isLoading || !hasMore) return;
+    setPage((p) => p + 1);
+  }, [isLoading, hasMore]);
 
   const header = (
     <View style={styles.header}>
@@ -111,7 +116,15 @@ export function CollectionTab({ top }: { top: ReactElement }) {
             <EmptyState icon="receipt-outline" title="No invoices found" sub="Try changing the search or filters." />
           )
         }
-        ListFooterComponent={showSkeleton ? null : <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />}
+        ListFooterComponent={
+          showSkeleton ? null : isLoading && page > 1 ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
+          ) : !hasMore && data.length > 0 ? (
+            <Text style={styles.endText}>You've reached the end</Text>
+          ) : null
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
         contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: TAB_BAR_SPACE + insets.bottom }}
         showsVerticalScrollIndicator={false}
@@ -156,6 +169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   collectText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.white },
+  endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
   export: {
     width: 48, height: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,

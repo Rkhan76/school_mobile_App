@@ -16,10 +16,15 @@ export function whatsappGuardian(g: StudentGuardian) {
 }
 
 /** Guardian profile block; `full` adds the card chrome and the Call / WhatsApp buttons. */
+function capitalize(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 export function GuardianCard({ g, title = 'Primary Guardian' }: { g: StudentGuardian; title?: string }) {
-  const nick = g.relation === 'Father' ? 'Dad' : g.relation === 'Mother' ? 'Mom' : g.name.split(' ')[0];
+  const relation = g.relation?.toLowerCase();
+  const nick = relation === 'father' ? 'Dad' : relation === 'mother' ? 'Mom' : g.name.split(' ')[0];
   return (
-    <SectionCard icon="people-outline" title={title} right={<Badge label={g.relation} tone="neutral" />}>
+    <SectionCard icon="people-outline" title={title} right={<Badge label={capitalize(g.relation)} tone="neutral" />}>
       <View style={styles.profile}>
         <Avatar name={g.name} size={52} />
         <View style={{ flex: 1, gap: 2 }}>

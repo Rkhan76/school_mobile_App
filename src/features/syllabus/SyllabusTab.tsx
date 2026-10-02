@@ -3,23 +3,36 @@ import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
+import type { SectionLite } from '../common/types';
 import { ChapterEditorModal } from './ChapterEditorModal';
+import { CopySectionsSheet } from './CopySectionsSheet';
 import { SubjectAccordion } from './SubjectAccordion';
-import { useSyllabus, type Chapter, type SubjectSyllabus } from './mockSyllabus';
+import { useChapterReviewed, useSyllabus } from './useSyllabus';
+import type { ChapterInput, SubjectEntry } from './types';
 
-type Props = { classId: string; sectionId: string; caption: string };
+type Props = {
+  sectionId: string;
+  academicYearId: string;
+  otherSections: SectionLite[];
+  caption: string;
+  canEdit: boolean;
+};
 
-export function SyllabusTab({ classId, sectionId, caption }: Props) {
+export function SyllabusTab({ sectionId, academicYearId, otherSections, caption, canEdit }: Props) {
   const insets = useSafeAreaInsets();
-  const { data, isLoading, refetch, updateChapters, doneIds, toggleChapter, copyToOtherSections } =
-    useSyllabus(classId, sectionId);
+  const { data, isLoading, error, refetch, updateChapters, copyToOtherSections } = useSyllabus(sectionId, academicYearId);
+  const { reviewedIds, toggleReviewed } = useChapterReviewed();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  const [editing, setEditing] = useState<SubjectSyllabus | null>(null);
+  const [editing, setEditing] = useState<SubjectEntry | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
+
+  const subjects = data?.subjects ?? [];
 
   const onToggleExpand = useCallback((id: string) => {
     setExpanded((prev) => {
@@ -35,22 +48,25 @@ export function SyllabusTab({ classId, sectionId, caption }: Props) {
     refetch();
   }, [refetch]);
 
-  const onCopy = useCallback(() => {
-    Alert.alert(
-      'Copy to other sections',
-      `Copy this syllabus plan to all other sections of the class? Their existing plans will be replaced.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Copy',
-          onPress: () => {
-            const targets = copyToOtherSections();
-            Alert.alert('Copied', `Syllabus copied to section ${targets.join(', ')}.`);
-          },
-        },
-      ],
-    );
-  }, [copyToOtherSections]);
+  const onCopyConfirm = useCallback(
+    async (targetIds: string[], overwrite: boolean) => {
+      setCopyOpen(false);
+      try {
+        const result = await copyToOtherSections(targetIds, { overwrite });
+        const copiedCount = result.copied.length;
+        const skippedCount = result.skipped.length;
+        Alert.alert(
+          'Copy complete',
+          skippedCount > 0
+            ? `${copiedCount} plan(s) copied, ${skippedCount} skipped (already had a plan).`
+            : `${copiedCount} plan(s) copied.`,
+        );
+      } catch {
+        Alert.alert('Copy failed', 'Could not copy the syllabus plan. Please try again.');
+      }
+    },
+    [copyToOtherSections],
+  );
 
   const showSkeleton = isLoading && !refreshing;
 
@@ -58,14 +74,17 @@ export function SyllabusTab({ classId, sectionId, caption }: Props) {
     <View style={styles.header}>
       <Text style={styles.caption}>{caption}</Text>
       <View style={styles.actions}>
-        <Pressable style={styles.copyBtn} onPress={onCopy} accessibilityLabel="Copy to other sections">
-          <Ionicons name="copy-outline" size={15} color={colors.primaryDeep} />
-          <Text style={styles.copyText}>Copy to other sections</Text>
-        </Pressable>
+        {canEdit ? (
+          <Pressable style={styles.copyBtn} onPress={() => setCopyOpen(true)} accessibilityLabel="Copy to other sections">
+            <Ionicons name="copy-outline" size={15} color={colors.primaryDeep} />
+            <Text style={styles.copyText}>Copy to other sections</Text>
+          </Pressable>
+        ) : null}
         <Pressable style={styles.iconBtn} onPress={doRefresh} accessibilityLabel="Refresh">
           <Ionicons name="refresh" size={18} color={colors.textSecondary} />
         </Pressable>
       </View>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {showSkeleton ? (
         <View style={styles.skeletons}>
           {[0, 1, 2, 3, 4, 5].map((i) => <View key={i} style={styles.skeleton} />)}
@@ -77,18 +96,18 @@ export function SyllabusTab({ classId, sectionId, caption }: Props) {
   return (
     <>
       <FlatList
-        data={showSkeleton ? [] : data}
-        keyExtractor={(s) => s.id}
+        data={showSkeleton ? [] : subjects}
+        keyExtractor={(s) => s.subject.id}
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View style={styles.itemWrap}>
             <SubjectAccordion
               item={item}
-              expanded={expanded.has(item.id)}
-              doneIds={doneIds}
+              expanded={expanded.has(item.subject.id)}
+              reviewedIds={reviewedIds}
               onToggleExpand={onToggleExpand}
-              onToggleChapter={toggleChapter}
-              onEdit={setEditing}
+              onToggleChapter={toggleReviewed}
+              onEdit={canEdit ? setEditing : undefined}
             />
           </View>
         )}
@@ -111,14 +130,29 @@ export function SyllabusTab({ classId, sectionId, caption }: Props) {
       />
       <ChapterEditorModal
         visible={editing !== null}
-        title={editing ? `${editing.name} plan` : ''}
+        title={editing ? `${editing.subject.name} plan` : ''}
         subtitle={caption}
         chapters={editing?.chapters ?? []}
+        saving={saving}
         onClose={() => setEditing(null)}
-        onSave={(chapters: Chapter[]) => {
-          if (editing) updateChapters(editing.id, chapters);
-          setEditing(null);
+        onSave={async (chapters: ChapterInput[]) => {
+          if (!editing) return;
+          setSaving(true);
+          try {
+            await updateChapters(editing.subject.id, chapters);
+            setEditing(null);
+          } catch {
+            Alert.alert('Save failed', 'Could not save the chapter plan. Please try again.');
+          } finally {
+            setSaving(false);
+          }
         }}
+      />
+      <CopySectionsSheet
+        visible={copyOpen}
+        sections={otherSections}
+        onClose={() => setCopyOpen(false)}
+        onConfirm={onCopyConfirm}
       />
     </>
   );
@@ -137,6 +171,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
   },
+  errorText: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
   itemWrap: { paddingHorizontal: 16 },
   skeletons: { gap: 10 },
   skeleton: { height: 58, borderRadius: radius.xl, backgroundColor: colors.mint, opacity: 0.7 },

@@ -60,16 +60,18 @@ export function formatDate(iso: string): string {
 
 const LATENCY = 450;
 
-export function useClasses({ search = '', page, pageSize }: ClassesParams) {
+export function useClasses({ search = '', pageSize }: Omit<ClassesParams, 'page'>) {
   const [items, setItems] = useState<AcademicClass[]>(buildMock);
   const [isLoading, setIsLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(pageSize);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refetch = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     setIsLoading(true);
+    setVisibleCount(pageSize);
     timer.current = setTimeout(() => setIsLoading(false), LATENCY);
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => {
     refetch();
@@ -77,6 +79,11 @@ export function useClasses({ search = '', page, pageSize }: ClassesParams) {
       if (timer.current) clearTimeout(timer.current);
     };
   }, [refetch]);
+
+  // Reset to the first page of results whenever the search term changes.
+  useEffect(() => {
+    setVisibleCount(pageSize);
+  }, [search, pageSize]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -90,10 +97,19 @@ export function useClasses({ search = '', page, pageSize }: ClassesParams) {
     );
   }, [items, search]);
 
-  const data = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page, pageSize],
-  );
+  const data = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const loadMore = useCallback(() => {
+    if (isLoadingMore || isLoading) return;
+    setVisibleCount((prev) => {
+      const next = prev + pageSize;
+      return next >= filtered.length ? filtered.length : next;
+    });
+    setIsLoadingMore(true);
+    setTimeout(() => setIsLoadingMore(false), 300);
+  }, [isLoadingMore, isLoading, pageSize, filtered.length]);
 
   const stats = useMemo<ClassStats>(
     () => ({
@@ -133,5 +149,5 @@ export function useClasses({ search = '', page, pageSize }: ClassesParams) {
     setItems((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
-  return { data, total: filtered.length, stats, isLoading, refetch, add, update, remove };
+  return { data, total: filtered.length, hasMore, isLoadingMore, loadMore, stats, isLoading, refetch, add, update, remove };
 }

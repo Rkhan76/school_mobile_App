@@ -5,7 +5,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { CONFIGS } from './config';
 import { MasterTab } from './MasterTab';
 import { MasterTabChips } from './MasterTabChips';
-import type { TabKey } from './mockMaster';
+import type { TabKey } from './types';
 
 export function MasterTableScreen() {
   const [tab, setTab] = useState<TabKey>('academicYears');

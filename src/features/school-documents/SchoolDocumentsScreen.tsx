@@ -1,38 +1,55 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Linking, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { AddCategoryModal } from './AddCategoryModal';
+import { useSession } from '../auth/session';
+import { getDownloadLink } from './api';
 import { CategoryChips } from './CategoryChips';
 import { DocumentCard } from './DocumentCard';
-import { DocumentFormModal } from './DocumentFormModal';
+import { DocumentFormModal, type FormMode, type FormResult } from './DocumentFormModal';
 import { DEFAULT_FILTERS, FilterSheet, type DocFilters } from './FilterSheet';
+import type { DocumentVersion, SchoolDocument } from './types';
+import { SCHOOL_DOC_PERMISSIONS } from './types';
+import { ALL_CATEGORY_ID, schoolDocumentsErrorMessage, useSchoolDocuments } from './useSchoolDocuments';
 import { VersionsSheet } from './VersionsSheet';
-import { ALL_CATEGORY_ID, useSchoolDocuments, type DocumentVersion, type SchoolDocument } from './mockSchoolDocuments';
 
 export function SchoolDocumentsScreen() {
   const insets = useSafeAreaInsets();
+  const { permissions } = useSession();
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [categoryId, setCategoryId] = useState(ALL_CATEGORY_ID);
   const [filters, setFilters] = useState<DocFilters>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [formMode, setFormMode] = useState<FormMode>('upload');
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<SchoolDocument | null>(null);
-  const [versionsId, setVersionsId] = useState<string | null>(null);
-  const [catOpen, setCatOpen] = useState(false);
+  const [activeDoc, setActiveDoc] = useState<SchoolDocument | null>(null);
+  const [versionPrefill, setVersionPrefill] = useState<{ description?: string; expiryDate?: string | null } | null>(null);
+
+  const [versionsDoc, setVersionsDoc] = useState<SchoolDocument | null>(null);
+  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data, total, categories, isLoading, refetch, add, update, remove, restore, addCategory } = useSchoolDocuments({
+  const canCreate = permissions.includes(SCHOOL_DOC_PERMISSIONS.create);
+  const canUpdate = permissions.includes(SCHOOL_DOC_PERMISSIONS.update);
+  const canDelete = permissions.includes(SCHOOL_DOC_PERMISSIONS.delete);
+  const canSetClassified = permissions.includes(SCHOOL_DOC_PERMISSIONS.classifiedRead);
+
+  const {
+    data, total, categories, isLoading, planLocked, planMessage,
+    refetch, add, update, addVersion, remove, getVersions,
+  } = useSchoolDocuments({
     search: debounced, categoryId, confidentiality: filters.confidentiality, expiry: filters.expiry,
   });
 
@@ -47,9 +64,6 @@ export function SchoolDocumentsScreen() {
   }, [categories]);
   const realCategories = useMemo(() => categories.filter((c) => c.id !== ALL_CATEGORY_ID), [categories]);
 
-  // Versions sheet reads the live document so restore shows immediately.
-  const versionsDoc = useMemo(() => data.find((d) => d.id === versionsId) ?? null, [data, versionsId]);
-
   const filterCount = (filters.confidentiality !== 'all' ? 1 : 0) + (filters.expiry !== 'any' ? 1 : 0);
 
   const doRefresh = useCallback(() => {
@@ -57,29 +71,89 @@ export function SchoolDocumentsScreen() {
     refetch();
   }, [refetch]);
 
-  const openUpload = useCallback(() => { setEditing(null); setFormOpen(true); }, []);
-  const onEdit = useCallback((d: SchoolDocument) => { setEditing(d); setFormOpen(true); }, []);
-  const onVersions = useCallback((d: SchoolDocument) => setVersionsId(d.id), []);
-  const onDownload = useCallback((d: SchoolDocument) => {
-    Alert.alert('Download', `Downloading "${d.fileName}" (${d.fileType} · ${d.sizeLabel}) is coming soon.`);
+  const openUpload = useCallback(() => {
+    setActiveDoc(null);
+    setVersionPrefill(null);
+    setFormMode('upload');
+    setFormOpen(true);
   }, []);
-  const onDownloadVersion = useCallback((d: SchoolDocument, v: DocumentVersion) => {
-    Alert.alert('Download', `Downloading "${v.fileName}" (v${v.version} of "${d.title}") is coming soon.`);
+
+  const onEdit = useCallback((d: SchoolDocument) => {
+    setActiveDoc(d);
+    setVersionPrefill(null);
+    setFormMode('edit');
+    setFormOpen(true);
   }, []);
-  const onRestore = useCallback((d: SchoolDocument, v: DocumentVersion) => {
-    Alert.alert('Restore version', `Restore v${v.version} of "${d.title}" as the current version?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Restore', onPress: () => restore(d.id, v.version) },
-    ]);
-  }, [restore]);
-  const onDelete = useCallback((d: SchoolDocument) => {
-    Alert.alert('Delete document', `Delete "${d.title}" and all its versions? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => remove(d.id) },
-    ]);
-  }, [remove]);
+
+  const openVersionUpload = useCallback((d: SchoolDocument, prefill: { description?: string; expiryDate?: string | null } | null) => {
+    setActiveDoc(d);
+    setVersionPrefill(prefill);
+    setFormMode('version');
+    setFormOpen(true);
+  }, []);
+
+  const onVersions = useCallback(
+    (d: SchoolDocument) => {
+      setVersionsDoc(d);
+      setVersions([]);
+      setVersionsLoading(true);
+      getVersions(d.id)
+        .then(setVersions)
+        .finally(() => setVersionsLoading(false));
+    },
+    [getVersions]
+  );
+
+  const download = useCallback(async (d: SchoolDocument) => {
+    try {
+      const link = await getDownloadLink(d.id);
+      await Linking.openURL(link.url);
+    } catch (err) {
+      Alert.alert('Error', schoolDocumentsErrorMessage(err));
+    }
+  }, []);
+
+  const onDelete = useCallback(
+    (d: SchoolDocument) => {
+      Alert.alert('Delete document', `Delete "${d.title}" and all its versions? This cannot be undone.`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => remove(d.id) },
+      ]);
+    },
+    [remove]
+  );
+
+  const handleFormSubmit = useCallback(
+    async (result: FormResult) => {
+      if (result.mode === 'upload') {
+        await add(result.payload, result.file);
+      } else if (result.mode === 'edit' && activeDoc) {
+        await update(activeDoc.id, result.payload);
+      } else if (result.mode === 'version' && activeDoc) {
+        await addVersion(activeDoc.id, result.payload, result.file);
+      }
+      setFormOpen(false);
+      if (versionsDoc) setVersionsDoc(null);
+    },
+    [activeDoc, add, update, addVersion, versionsDoc]
+  );
 
   const showSkeleton = isLoading && !refreshing;
+
+  if (planLocked) {
+    return (
+      <ScreenBackground>
+        <ScreenHeader title="School Documents" back />
+        <View style={styles.locked}>
+          <Ionicons name="lock-closed-outline" size={44} color={colors.textHint} />
+          <Text style={styles.lockedTitle}>Not available on your plan</Text>
+          <Text style={styles.lockedSub}>
+            {planMessage ?? "School Documents isn't included in your school's current plan. Contact your administrator to upgrade."}
+          </Text>
+        </View>
+      </ScreenBackground>
+    );
+  }
 
   const header = (
     <View style={styles.headerWrap}>
@@ -90,12 +164,7 @@ export function SchoolDocumentsScreen() {
         onFilterPress={() => setFilterOpen(true)}
         filterCount={filterCount}
       />
-      <CategoryChips
-        categories={categories}
-        selectedId={categoryId}
-        onSelect={setCategoryId}
-        onAdd={() => setCatOpen(true)}
-      />
+      <CategoryChips categories={categories} selectedId={categoryId} onSelect={setCategoryId} />
       {showSkeleton ? (
         <View style={styles.skeletons}>
           {[0, 1, 2].map((i) => <View key={i} style={styles.skeleton} />)}
@@ -114,10 +183,12 @@ export function SchoolDocumentsScreen() {
             <Pressable style={styles.iconBtn} onPress={doRefresh} accessibilityLabel="Refresh">
               <Ionicons name="refresh" size={20} color={colors.textSecondary} />
             </Pressable>
-            <Pressable style={styles.newBtn} onPress={openUpload} accessibilityLabel="Upload document">
-              <Ionicons name="add" size={18} color={colors.white} />
-              <Text style={styles.newText}>Upload</Text>
-            </Pressable>
+            {canCreate ? (
+              <Pressable style={styles.newBtn} onPress={openUpload} accessibilityLabel="Upload document">
+                <Ionicons name="add" size={18} color={colors.white} />
+                <Text style={styles.newText}>Upload</Text>
+              </Pressable>
+            ) : null}
           </>
         }
       />
@@ -130,7 +201,9 @@ export function SchoolDocumentsScreen() {
             <DocumentCard
               item={item}
               categoryName={categoryNames.get(item.categoryId) ?? 'Uncategorised'}
-              onDownload={onDownload}
+              canEdit={canUpdate}
+              canDelete={canDelete}
+              onDownload={download}
               onVersions={onVersions}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -166,32 +239,25 @@ export function SchoolDocumentsScreen() {
       <FilterSheet visible={filterOpen} value={filters} onApply={setFilters} onClose={() => setFilterOpen(false)} />
       <VersionsSheet
         document={versionsDoc}
-        onRestore={onRestore}
-        onDownload={onDownloadVersion}
-        onClose={() => setVersionsId(null)}
+        versions={versions}
+        isLoading={versionsLoading}
+        onDownloadCurrent={(d) => { setVersionsDoc(null); download(d); }}
+        onUseAsNewVersion={(d, v) => {
+          setVersionsDoc(null);
+          openVersionUpload(d, { description: v.description ?? undefined, expiryDate: v.expiryDate ?? null });
+        }}
+        onClose={() => setVersionsDoc(null)}
       />
       <DocumentFormModal
         visible={formOpen}
-        document={editing}
+        mode={formMode}
+        document={activeDoc}
+        prefill={versionPrefill}
         categories={realCategories}
         defaultCategoryId={categoryId}
+        canSetClassified={canSetClassified}
+        onSubmit={handleFormSubmit}
         onClose={() => setFormOpen(false)}
-        onSubmit={(input) => {
-          if (editing) update(editing.id, input);
-          else add(input);
-          setFormOpen(false);
-        }}
-      />
-      <AddCategoryModal
-        visible={catOpen}
-        onClose={() => setCatOpen(false)}
-        onSubmit={(name) => {
-          if (!name.trim()) return 'Category name is required.';
-          const id = addCategory(name);
-          if (!id) return 'A category with this name already exists.';
-          setCatOpen(false);
-          return null;
-        }}
       />
     </ScreenBackground>
   );
@@ -206,6 +272,9 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   footer: { textAlign: 'center', fontFamily: fonts.mono, fontSize: 12, color: colors.textSecondary, paddingTop: 4 },
+  locked: { alignItems: 'center', gap: 8, paddingVertical: 48, paddingHorizontal: 24 },
+  lockedTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
+  lockedSub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
   iconBtn: {
     width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,

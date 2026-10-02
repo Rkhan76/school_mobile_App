@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius } from '../../../theme/tokens';
 import type { IconName } from './ui';
 
-export type TabKey = 'overview' | 'guardians' | 'attendance' | 'fees' | 'bank' | 'hostel' | 'documents' | 'reports';
+export type TabKey = 'overview' | 'guardians' | 'attendance' | 'fees' | 'bank' | 'hostel' | 'documents' | 'reports' | 'history';
 
 export const TABS: { key: TabKey; label: string; icon: IconName }[] = [
   { key: 'overview', label: 'Overview', icon: 'information-circle-outline' },
@@ -14,6 +14,7 @@ export const TABS: { key: TabKey; label: string; icon: IconName }[] = [
   { key: 'hostel', label: 'Hostel', icon: 'bed-outline' },
   { key: 'documents', label: 'Documents', icon: 'document-text-outline' },
   { key: 'reports', label: 'Reports', icon: 'bar-chart-outline' },
+  { key: 'history', label: 'History', icon: 'time-outline' },
 ];
 
 export function TabChips({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,13 +7,12 @@ import { ScreenBackground } from '../../../components/ui/Screen';
 import { SearchBar } from '../../../components/ui/SearchBar';
 import { AppBar } from '../../dashboard/AppBar';
 import { colors, fonts, radius } from '../../../theme/tokens';
-import { useStudents, type Student } from '../mockStudents';
-import { Pagination } from './Pagination';
+import { useSession } from '../../auth/session';
+import { useStudents, type StudentRow } from '../useStudents';
 import { StatsGrid } from './StatsGrid';
 import { StudentCard } from './StudentCard';
 import { StudentFilterSheet, type StudentFilters } from './StudentFilterSheet';
 
-const PAGE_SIZE = 20;
 const TAB_BAR_SPACE = 120;
 
 function useDebounced<T>(value: T, ms: number): T {
@@ -48,18 +47,20 @@ function Separator() {
 export function StudentListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const permissions = useSession((s) => s.permissions);
+  const canToggleStatus = permissions.includes('student.status.update');
+  const canToggleBlock = permissions.includes('student.profile.delete');
+
   const [searchText, setSearchText] = useState('');
   const search = useDebounced(searchText, 300);
   const [filters, setFilters] = useState<StudentFilters>({});
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, total, stats, isLoading, refetch, setStatus, remove } = useStudents({
-    search, ...filters, page, pageSize: PAGE_SIZE,
+  const { data, isLoading, isLoadingMore, hasMore, loadMore, refetch, stats, toggleStatus, toggleBlock } = useStudents({
+    search, classId: filters.classId, sectionId: filters.sectionId,
   });
 
-  useEffect(() => setPage(1), [search, filters]);
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
@@ -71,17 +72,36 @@ export function StudentListScreen() {
     [router],
   );
   const onToggle = useCallback(
-    (id: string, active: boolean) => setStatus(id, active ? 'Active' : 'Inactive'),
-    [setStatus],
-  );
-  const onDelete = useCallback(
-    (id: string) => {
-      Alert.alert('Delete student', 'This student will be removed. Continue?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => remove(id) },
-      ]);
+    async (id: string) => {
+      const ok = await toggleStatus(id);
+      if (!ok) {
+        Alert.alert(
+          'Cannot change status',
+          'This student’s enrollment status is graduated, transferred or withdrawn, so active/inactive cannot be toggled.',
+        );
+      }
     },
-    [remove],
+    [toggleStatus],
+  );
+  const onBlock = useCallback(
+    (id: string) => {
+      Alert.alert(
+        'Block student',
+        'This will deactivate the student record and revoke their portal login (and their guardians’ access to it). Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Block',
+            style: 'destructive',
+            onPress: async () => {
+              const ok = await toggleBlock(id);
+              if (!ok) Alert.alert('Something went wrong', 'Could not block this student. Please try again.');
+            },
+          },
+        ],
+      );
+    },
+    [toggleBlock],
   );
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -89,10 +109,17 @@ export function StudentListScreen() {
   }, [refetch]);
 
   const renderItem = useCallback(
-    ({ item }: { item: Student }) => (
-      <StudentCard student={item} onView={onView} onToggleStatus={onToggle} onDelete={onDelete} />
+    ({ item }: { item: StudentRow }) => (
+      <StudentCard
+        student={item}
+        onView={onView}
+        onToggleStatus={onToggle}
+        onToggleBlock={onBlock}
+        canToggleStatus={canToggleStatus}
+        canToggleBlock={canToggleBlock}
+      />
     ),
-    [onView, onToggle, onDelete],
+    [onView, onToggle, onBlock, canToggleStatus, canToggleBlock],
   );
 
   const showSkeleton = isLoading && !refreshing;
@@ -131,12 +158,14 @@ export function StudentListScreen() {
 
   return (
     <ScreenBackground>
-      <FlatList<Student>
+      <FlatList<StudentRow>
         data={showSkeleton ? [] : data}
         keyExtractor={(s) => s.id}
         renderItem={renderItem}
         ListHeaderComponent={header}
         ItemSeparatorComponent={Separator}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
           showSkeleton ? (
             <View style={{ gap: 12 }}>
@@ -152,11 +181,11 @@ export function StudentListScreen() {
           )
         }
         ListFooterComponent={
-          showSkeleton ? null : (
-            <View style={{ marginTop: 16 }}>
-              <Pagination page={page} pageSize={PAGE_SIZE} total={total} shown={data.length} onChange={setPage} />
+          !showSkeleton && isLoadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator color={colors.primary} />
             </View>
-          )
+          ) : null
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
@@ -200,6 +229,7 @@ const styles = StyleSheet.create({
   },
   empty: { alignItems: 'center', gap: 10, paddingVertical: 48 },
   emptyText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.textSecondary },
+  footerLoader: { paddingVertical: 20 },
   skel: {
     backgroundColor: colors.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border,
     padding: 14, gap: 14,

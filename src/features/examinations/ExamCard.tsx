@@ -3,10 +3,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatDateLong, type ExamSchedule } from './mockExams';
+import { formatDateLong } from './types';
+import type { ExamSchedule } from './types';
 
 type Props = {
   item: ExamSchedule;
+  canEdit: boolean;
+  canDelete: boolean;
   onEdit: (e: ExamSchedule) => void;
   onDelete: (e: ExamSchedule) => void;
 };
@@ -20,7 +23,7 @@ function Meta({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>['nam
   );
 }
 
-function ExamCardBase({ item, onEdit, onDelete }: Props) {
+function ExamCardBase({ item, canEdit, canDelete, onEdit, onDelete }: Props) {
   const done = item.status === 'completed';
   const tone = done ? colors.warning : colors.success;
   const toneBg = done ? colors.warningBg : colors.successBg;
@@ -46,16 +49,22 @@ function ExamCardBase({ item, onEdit, onDelete }: Props) {
         <Text style={styles.dateLabel}>Exam date</Text>
         <Text style={styles.dateValue}>{formatDateLong(item.examDate)}</Text>
       </View>
-      <View style={styles.actions}>
-        <Pressable style={styles.btn} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.title}`}>
-          <Ionicons name="create-outline" size={15} color={colors.textSecondary} />
-          <Text style={styles.btnText}>Edit</Text>
-        </Pressable>
-        <Pressable style={[styles.btn, styles.del]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.title}`}>
-          <Ionicons name="trash-outline" size={15} color={colors.danger} />
-          <Text style={[styles.btnText, { color: colors.danger }]}>Delete</Text>
-        </Pressable>
-      </View>
+      {canEdit || canDelete ? (
+        <View style={styles.actions}>
+          {canEdit ? (
+            <Pressable style={styles.btn} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.title}`}>
+              <Ionicons name="create-outline" size={15} color={colors.textSecondary} />
+              <Text style={styles.btnText}>Edit</Text>
+            </Pressable>
+          ) : null}
+          {canDelete ? (
+            <Pressable style={[styles.btn, styles.del]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.title}`}>
+              <Ionicons name="trash-outline" size={15} color={colors.danger} />
+              <Text style={[styles.btnText, { color: colors.danger }]}>Delete</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
     </Card>
   );
 }

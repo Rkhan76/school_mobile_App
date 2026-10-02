@@ -7,8 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { audienceTone } from './AudiencePill';
 import {
-  AUDIENCES, TODAY_ISO, inputToIso, isoToInput, type Audience, type Notice, type NoticeInput,
-} from './mockNotices';
+  AUDIENCES, inputToIso, isoToInput, type Audience, type Notice, type NoticeInput,
+} from './types';
 
 type Props = {
   visible: boolean;
@@ -19,6 +19,11 @@ type Props = {
 };
 
 type Errors = Partial<Record<'title' | 'content' | 'publishedAt' | 'expiresAt', string>>;
+
+function todayInput(): string {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
 
 export function NoticeFormModal({ visible, notice, onSubmit, onClose }: Props) {
   const insets = useSafeAreaInsets();
@@ -34,10 +39,10 @@ export function NoticeFormModal({ visible, notice, onSubmit, onClose }: Props) {
     if (visible) {
       setTitle(notice?.title ?? '');
       setContent(notice?.content ?? '');
-      setAudience(notice?.audience ?? 'ALL');
-      setPublished(isoToInput(notice?.publishedAt ?? TODAY_ISO));
+      setAudience(notice?.targetAudience ?? 'ALL');
+      setPublished(notice?.publishedAt ? isoToInput(notice.publishedAt) : todayInput());
       setExpires(notice?.expiresAt ? isoToInput(notice.expiresAt) : '');
-      setPinned(notice?.pinned ?? false);
+      setPinned(notice?.isPinned ?? false);
       setErrors({});
     }
   }, [visible, notice]);
@@ -56,7 +61,14 @@ export function NoticeFormModal({ visible, notice, onSubmit, onClose }: Props) {
     }
     setErrors(e);
     if (Object.keys(e).length === 0 && pubIso) {
-      onSubmit({ title: title.trim(), content: content.trim(), audience, publishedAt: pubIso, expiresAt: expIso, pinned });
+      onSubmit({
+        title: title.trim(),
+        content: content.trim(),
+        targetAudience: audience,
+        publishedAt: pubIso,
+        expiresAt: expIso,
+        isPinned: pinned,
+      });
     }
   };
 

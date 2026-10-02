@@ -1,21 +1,41 @@
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatDate, type Certificate } from './mockCertificates';
+import { shareCertificate, verificationUrl } from './certificateExport';
+import { RECIPIENT_TYPE_LABEL, formatDate, type Certificate } from './types';
 
 type Props = { certificate: Certificate | null; onClose: () => void };
 
 const GOLD = '#b8893b';
 
 function body(c: Certificate): string {
-  const who = c.recipientType === 'Student' ? 'student' : c.recipientType === 'Teacher' ? 'teacher' : 'staff member';
+  if (c.description?.trim()) return c.description.trim();
+  const who = RECIPIENT_TYPE_LABEL[c.recipientType].toLowerCase();
   return `has been awarded this ${c.title} in recognition of their standing as a ${who} of the school, and is hereby certified as per the records of the institution.`;
 }
 
-/** Full-screen formal certificate preview with Share / Download stubs. */
+/** Full-screen formal certificate preview, rendered from the real Certificate shape, with Share / Download. */
 export function CertificatePreview({ certificate: c, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const [exporting, setExporting] = useState<'share' | 'download' | null>(null);
+
+  const doExport = async (kind: 'share' | 'download') => {
+    if (!c || exporting) return;
+    setExporting(kind);
+    try {
+      await shareCertificate(c);
+    } catch (err) {
+      Alert.alert(
+        kind === 'share' ? 'Share failed' : 'Download failed',
+        err instanceof Error ? err.message : 'Something went wrong. Please try again.',
+      );
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
     <Modal visible={c !== null} animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
@@ -29,15 +49,22 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.outer}>
               <View style={styles.inner}>
-                <Ionicons name="ribbon-outline" size={36} color={GOLD} />
-                <Text style={styles.school}>Verdant Academy</Text>
-                <Text style={styles.tagline}>Excellence in education</Text>
+                {c.schoolLogo ? (
+                  <Image source={{ uri: c.schoolLogo }} style={styles.logo} resizeMode="contain" />
+                ) : (
+                  <Ionicons name="ribbon-outline" size={36} color={GOLD} />
+                )}
+                <Text style={styles.school}>{c.schoolName}</Text>
+                {c.schoolAddress ? <Text style={styles.tagline}>{c.schoolAddress}</Text> : null}
+                {c.schoolPhone || c.schoolEmail ? (
+                  <Text style={styles.tagline}>{[c.schoolPhone, c.schoolEmail].filter(Boolean).join('  ·  ')}</Text>
+                ) : null}
                 <View style={styles.rule} />
                 <Text style={styles.certTitle}>{c.title}</Text>
                 <Text style={styles.certify}>This is to certify that</Text>
                 <Text style={styles.recipient}>{c.recipientName}</Text>
+                <Text style={styles.sub}>{RECIPIENT_TYPE_LABEL[c.recipientType]}</Text>
                 <Text style={styles.text}>{body(c)}</Text>
-                {c.remarks ? <Text style={styles.remarks}>{c.remarks}</Text> : null}
 
                 <View style={styles.metaRow}>
                   <View style={styles.metaCol}>
@@ -52,17 +79,26 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
 
                 <View style={styles.sign}>
                   <View style={styles.signLine} />
-                  <Text style={styles.signLabel}>Principal</Text>
+                  <Text style={styles.signLabel}>
+                    {[c.signatoryName, c.signatoryTitle].filter(Boolean).join(', ') || 'Principal'}
+                  </Text>
                 </View>
 
-                {c.status === 'Revoked' && (
+                {c.status === 'REVOKED' && (
                   <View style={styles.stamp}>
                     <Text style={styles.stampText}>REVOKED</Text>
                   </View>
                 )}
+
+                <View style={styles.verifyBox}>
+                  <Text style={styles.verifyLabel}>Verify this certificate at</Text>
+                  <Text style={styles.verifyLink} selectable numberOfLines={2}>
+                    {verificationUrl(c)}
+                  </Text>
+                </View>
               </View>
             </View>
-            {c.status === 'Revoked' && (
+            {c.status === 'REVOKED' && (
               <Text style={styles.revokedNote}>
                 Revoked{c.revokedAt ? ` on ${formatDate(c.revokedAt)}` : ''}{c.revokeReason ? `: ${c.revokeReason}` : ''}
               </Text>
@@ -70,13 +106,25 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
           </ScrollView>
         )}
         <View style={[styles.actions, { paddingBottom: insets.bottom + 12 }]}>
-          <Pressable style={[styles.btn, styles.share]} onPress={() => Alert.alert('Share', 'Sharing certificates is coming soon.')}>
-            <Ionicons name="share-outline" size={18} color={colors.primaryDeep} />
-            <Text style={styles.shareText}>Share</Text>
+          <Pressable style={[styles.btn, styles.share, !!exporting && styles.off]} disabled={!!exporting} onPress={() => doExport('share')}>
+            {exporting === 'share' ? (
+              <ActivityIndicator color={colors.primaryDeep} />
+            ) : (
+              <>
+                <Ionicons name="share-outline" size={18} color={colors.primaryDeep} />
+                <Text style={styles.shareText}>Share</Text>
+              </>
+            )}
           </Pressable>
-          <Pressable style={[styles.btn, styles.download]} onPress={() => Alert.alert('Download', 'Downloading certificates as PDF is coming soon.')}>
-            <Ionicons name="download-outline" size={18} color={colors.white} />
-            <Text style={styles.downloadText}>Download</Text>
+          <Pressable style={[styles.btn, styles.download, !!exporting && styles.off]} disabled={!!exporting} onPress={() => doExport('download')}>
+            {exporting === 'download' ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={18} color={colors.white} />
+                <Text style={styles.downloadText}>Download</Text>
+              </>
+            )}
           </Pressable>
         </View>
       </View>
@@ -94,28 +142,32 @@ const styles = StyleSheet.create({
   inner: {
     borderWidth: 1, borderColor: GOLD, paddingVertical: 28, paddingHorizontal: 18, alignItems: 'center', gap: 8, overflow: 'hidden',
   },
+  logo: { width: 56, height: 56 },
   school: { fontFamily: fonts.headingExtra, fontSize: 24, color: colors.primaryDeep, textAlign: 'center' },
-  tagline: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary, letterSpacing: 1.5, textTransform: 'uppercase' },
+  tagline: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary, textAlign: 'center' },
   rule: { width: 80, height: 2, backgroundColor: GOLD, marginVertical: 6 },
   certTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.text, textAlign: 'center' },
   certify: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, marginTop: 10 },
   recipient: { fontFamily: fonts.headingExtra, fontSize: 26, color: colors.primaryDeep, textAlign: 'center' },
-  text: { fontFamily: fonts.body, fontSize: 13, lineHeight: 21, color: colors.text, textAlign: 'center' },
-  remarks: { fontFamily: fonts.body, fontSize: 12, fontStyle: 'italic', color: colors.textSecondary, textAlign: 'center' },
+  sub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
+  text: { fontFamily: fonts.body, fontSize: 13, lineHeight: 21, color: colors.text, textAlign: 'center', marginTop: 6 },
   metaRow: { flexDirection: 'row', alignSelf: 'stretch', justifyContent: 'space-between', marginTop: 20 },
   metaCol: { gap: 2 },
   right: { alignItems: 'flex-end' },
   metaLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.textHint, textTransform: 'uppercase' },
   metaMono: { fontFamily: fonts.monoMedium, fontSize: 12, color: colors.text },
   metaVal: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.text },
-  sign: { alignSelf: 'flex-end', alignItems: 'center', marginTop: 28, width: 130 },
+  sign: { alignSelf: 'flex-end', alignItems: 'center', marginTop: 28, width: 160 },
   signLine: { height: 1, alignSelf: 'stretch', backgroundColor: colors.text },
-  signLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+  signLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
   stamp: {
     position: 'absolute', top: '45%', alignSelf: 'center', borderWidth: 4, borderColor: colors.danger,
     paddingHorizontal: 14, paddingVertical: 4, borderRadius: 8, transform: [{ rotate: '-20deg' }], opacity: 0.6,
   },
   stampText: { fontFamily: fonts.headingExtra, fontSize: 32, color: colors.danger, letterSpacing: 4 },
+  verifyBox: { marginTop: 20, alignItems: 'center', gap: 2, alignSelf: 'stretch' },
+  verifyLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.textHint, textTransform: 'uppercase' },
+  verifyLink: { fontFamily: fonts.monoMedium, fontSize: 11, color: colors.primaryDeep, textAlign: 'center' },
   revokedNote: { fontFamily: fonts.body, fontSize: 12, color: colors.danger, textAlign: 'center' },
   actions: {
     flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10,
@@ -126,4 +178,5 @@ const styles = StyleSheet.create({
   shareText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   download: { backgroundColor: colors.primary },
   downloadText: { fontFamily: fonts.bodySemi, color: colors.white },
+  off: { opacity: 0.6 },
 });

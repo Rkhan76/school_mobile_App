@@ -5,30 +5,31 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatDate, type Certificate } from './mockCertificates';
+import { RECIPIENT_TYPE_LABEL, formatDate, type Certificate } from './types';
 
 type Props = {
   item: Certificate;
+  canRevoke: boolean;
   onView: (c: Certificate) => void;
   onRevoke: (c: Certificate) => void;
 };
 
-function CertificateCardBase({ item, onView, onRevoke }: Props) {
-  const revoked = item.status === 'Revoked';
+function CertificateCardBase({ item, canRevoke, onView, onRevoke }: Props) {
+  const revoked = item.status === 'REVOKED';
   return (
     <Card style={styles.card}>
       <View style={styles.top}>
         <View style={styles.refPill}>
           <Text style={styles.refText}>{item.referenceNo}</Text>
         </View>
-        <Badge label={item.status} tone={revoked ? 'danger' : 'success'} />
+        <Badge label={revoked ? 'Revoked' : 'Active'} tone={revoked ? 'danger' : 'success'} />
       </View>
 
       <View style={styles.person}>
         <Avatar name={item.recipientName} size={40} />
         <View style={styles.personText}>
           <Text style={styles.name} numberOfLines={1}>{item.recipientName}</Text>
-          <Text style={styles.sub}>{item.recipientType}</Text>
+          <Text style={styles.sub}>{RECIPIENT_TYPE_LABEL[item.recipientType]}</Text>
         </View>
       </View>
 
@@ -52,15 +53,17 @@ function CertificateCardBase({ item, onView, onRevoke }: Props) {
           <Ionicons name="eye-outline" size={16} color={colors.primaryDeep} />
           <Text style={styles.viewText}>View</Text>
         </Pressable>
-        <Pressable
-          style={[styles.btn, styles.revoke, revoked && styles.off]}
-          disabled={revoked}
-          onPress={() => onRevoke(item)}
-          accessibilityLabel="Revoke certificate"
-        >
-          <Ionicons name="shield-outline" size={16} color={colors.danger} />
-          <Text style={styles.revokeText}>Revoke</Text>
-        </Pressable>
+        {canRevoke ? (
+          <Pressable
+            style={[styles.btn, styles.revoke, revoked && styles.off]}
+            disabled={revoked}
+            onPress={() => onRevoke(item)}
+            accessibilityLabel="Revoke certificate"
+          >
+            <Ionicons name="shield-outline" size={16} color={colors.danger} />
+            <Text style={styles.revokeText}>Revoke</Text>
+          </Pressable>
+        ) : null}
       </View>
     </Card>
   );

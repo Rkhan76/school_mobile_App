@@ -1,39 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, fonts } from '../../theme/tokens';
 import { ErrorBanner } from './ErrorBanner';
 import { FormField } from './FormField';
+import { SchoolPickerSheet } from './SchoolPickerSheet';
 import { useSession } from './session';
-import { SCHOOL_INSTANCE, emailError, fakeSignIn, isValidEmail } from './validation';
+import { emailError, isValidEmail } from './validation';
 
 export function LoginForm() {
   const router = useRouter();
-  const signIn = useSession((s) => s.signIn);
-  // Dev-only prefill of the dummy credentials; stripped from production builds.
-  const [email, setEmail] = useState(__DEV__ ? 'admin@verdant.test' : '');
-  const [password, setPassword] = useState(__DEV__ ? 'admin123' : '');
+  const { login, loading, error, pendingSchools, clearPendingSchools, clearError, status } = useSession();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
 
   const valid = isValidEmail(email) && password.length > 0;
   const disabled = !valid || loading;
 
+  useEffect(() => {
+    if (status === 'authed') {
+      router.replace('/(tabs)');
+    }
+  }, [status, router]);
+
   const submit = async () => {
     if (disabled) return;
-    setFailed(false);
-    setLoading(true);
-    const ok = await fakeSignIn(email, password);
-    setLoading(false);
-    if (ok) {
-      signIn('Admin');
-      router.replace('/(tabs)');
-    } else {
-      setFailed(true);
-    }
+    await login(email, password);
   };
 
   return (
@@ -43,15 +38,7 @@ export function LoginForm() {
         <Text style={styles.sub}>Sign in to access your administrative workspace</Text>
       </View>
 
-      {failed ? <ErrorBanner onDismiss={() => setFailed(false)} /> : null}
-
-      <FormField
-        label="SCHOOL INSTANCE"
-        icon="business-outline"
-        value={SCHOOL_INSTANCE}
-        readOnlyField
-        right={<Ionicons name="checkmark-circle" size={20} color={colors.success} />}
-      />
+      {error ? <ErrorBanner message={error} onDismiss={clearError} /> : null}
 
       <FormField
         label="ADMINISTRATIVE EMAIL"
@@ -62,8 +49,9 @@ export function LoginForm() {
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
-        autoComplete="email"
-        textContentType="emailAddress"
+        autoComplete="username"
+        textContentType="username"
+        importantForAutofill="yes"
         returnKeyType="next"
         error={emailError(email)}
         right={
@@ -86,6 +74,7 @@ export function LoginForm() {
         autoCorrect={false}
         autoComplete="password"
         textContentType="password"
+        importantForAutofill="yes"
         returnKeyType="go"
         onSubmitEditing={submit}
         right={
@@ -140,6 +129,14 @@ export function LoginForm() {
           </>
         )}
       </Pressable>
+
+      <SchoolPickerSheet
+        visible={!!pendingSchools}
+        schools={pendingSchools ?? []}
+        loading={loading}
+        onClose={clearPendingSchools}
+        onSelect={(schoolId) => login(email, password, schoolId)}
+      />
     </View>
   );
 }

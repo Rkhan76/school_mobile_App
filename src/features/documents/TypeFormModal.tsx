@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { Chip } from './parts';
-import { ROLES, type DocumentType, type DocumentTypeInput, type PersonRole } from './mockDocuments';
+import { ENTITY_LABELS, ENTITY_TYPES, type DocumentType, type DocumentTypeInput, type EntityType } from './types';
 
 type Props = {
   visible: boolean;
@@ -20,35 +20,39 @@ type Props = {
 export function TypeFormModal({ visible, type, existingNames, onSubmit, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [mandatory, setMandatory] = useState(false);
   const [expiry, setExpiry] = useState(false);
-  const [applies, setApplies] = useState<PersonRole[]>(['Student']);
-  const [errors, setErrors] = useState<{ name?: string; applies?: string }>({});
+  const [appliesTo, setAppliesTo] = useState<EntityType>('STUDENT');
+  const [errors, setErrors] = useState<{ name?: string }>({});
 
   useEffect(() => {
     if (visible) {
       setName(type?.name ?? '');
-      setMandatory(type?.mandatory ?? false);
-      setExpiry(type?.expiryRequired ?? false);
-      setApplies(type?.appliesTo ?? ['Student']);
+      setDescription(type?.description ?? '');
+      setMandatory(type?.isMandatory ?? false);
+      setExpiry(type?.hasExpiry ?? false);
+      setAppliesTo(type?.appliesTo ?? 'STUDENT');
       setErrors({});
     }
   }, [visible, type]);
 
-  const toggleRole = (r: PersonRole) =>
-    setApplies((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
-
   const submit = () => {
-    const e: { name?: string; applies?: string } = {};
+    const e: { name?: string } = {};
     const trimmed = name.trim();
     if (!trimmed) e.name = 'Name is required.';
     else if (existingNames.some((n) => n.toLowerCase() === trimmed.toLowerCase() && n !== type?.name)) {
       e.name = 'A document type with this name already exists.';
     }
-    if (applies.length === 0) e.applies = 'Choose at least one group.';
     setErrors(e);
     if (Object.keys(e).length === 0) {
-      onSubmit({ name: trimmed, mandatory, expiryRequired: expiry, appliesTo: ROLES.filter((r) => applies.includes(r)) });
+      onSubmit({
+        name: trimmed,
+        description: description.trim() || undefined,
+        appliesTo,
+        isMandatory: mandatory,
+        hasExpiry: expiry,
+      });
     }
   };
 
@@ -69,13 +73,22 @@ export function TypeFormModal({ visible, type, existingNames, onSubmit, onClose 
           />
           {errors.name ? <Text style={styles.err}>{errors.name}</Text> : null}
 
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            value={description} onChangeText={setDescription} placeholder="Optional" placeholderTextColor={colors.textHint}
+            style={styles.input}
+          />
+
           <Text style={styles.label}>Applies to *</Text>
           <View style={styles.wrap}>
-            {ROLES.map((r) => (
-              <Chip key={r} label={r} on={applies.includes(r)} onPress={() => toggleRole(r)} />
+            {ENTITY_TYPES.map((r) => (
+              <Chip
+                key={r} label={ENTITY_LABELS[r]} on={appliesTo === r}
+                onPress={() => { if (!type) setAppliesTo(r); }}
+              />
             ))}
           </View>
-          {errors.applies ? <Text style={styles.err}>{errors.applies}</Text> : null}
+          {type ? <Text style={styles.hint}>Can't be changed after creation.</Text> : null}
 
           <View style={styles.switchRow}>
             <View style={{ flex: 1 }}>
@@ -117,6 +130,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body, fontSize: 14, color: colors.text, backgroundColor: colors.cardSolid,
   },
   err: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
+  hint: { fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginTop: 2 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   switchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12, padding: 14,

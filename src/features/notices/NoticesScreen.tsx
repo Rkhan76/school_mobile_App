@@ -5,14 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
+import { ApiError } from '../../lib/apiClient';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
+import { AUDIENCES, type Audience, type Notice } from './types';
 import { NoticeCard } from './NoticeCard';
 import { NoticeDetailSheet } from './NoticeDetailSheet';
 import { NoticeFormModal } from './NoticeFormModal';
-import { Pagination } from './Pagination';
-import { AUDIENCES, useNotices, type Audience, type Notice } from './mockNotices';
+import { downloadAndShareNoticePdf } from './pdf';
+import { PAGE_SIZE, useNotices } from './useNotices';
 
-const PAGE_SIZE = 10;
 const FILTERS: { value: Audience | ''; label: string }[] = [
   { value: '', label: 'All audiences' },
   ...AUDIENCES.map((a) => ({ value: a, label: a })),
@@ -24,36 +26,32 @@ function SkeletonCard() {
 
 export function NoticesScreen() {
   const insets = useSafeAreaInsets();
+  const permissions = useSession((s) => s.permissions);
+  const canCreate = permissions.includes('notice.record.create');
+  const canUpdate = permissions.includes('notice.record.update');
+  const canDelete = permissions.includes('notice.record.delete');
+  const canDownloadPdf = permissions.includes('notice.pdf.read');
+
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [audience, setAudience] = useState<Audience | ''>('');
-  const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Notice | null>(null);
   const [viewing, setViewing] = useState<Notice | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setDebounced(search);
-      setPage(1);
-    }, 300);
+    const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data, total, isLoading, refetch, add, update, remove } = useNotices({
-    search: debounced, audience, page, pageSize: PAGE_SIZE,
+  const { data, isLoading, isLoadingMore, hasMore, loadMore, refetch, add, update, remove } = useNotices({
+    search: debounced, audience, pageSize: PAGE_SIZE,
   });
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
-
-  // Deleting the last item on a page would leave it empty.
-  useEffect(() => {
-    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    if (page > pages) setPage(pages);
-  }, [total, page]);
 
   const doRefresh = useCallback(() => {
     setRefreshing(true);
@@ -63,8 +61,13 @@ export function NoticesScreen() {
   const openAdd = useCallback(() => { setEditing(null); setFormOpen(true); }, []);
   const onEdit = useCallback((n: Notice) => { setEditing(n); setFormOpen(true); }, []);
   const onView = useCallback((n: Notice) => setViewing(n), []);
-  const onShare = useCallback(() => {
-    Alert.alert('Share / print', 'Sharing and printing notices is coming soon.');
+  const onSharePdf = useCallback(async (n: Notice) => {
+    try {
+      await downloadAndShareNoticePdf(n.id);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Could not download the notice PDF.';
+      Alert.alert('Download failed', message);
+    }
   }, []);
   const onDelete = useCallback((n: Notice) => {
     Alert.alert('Delete notice', `Delete "${n.title}"? This cannot be undone.`, [
@@ -84,7 +87,7 @@ export function NoticesScreen() {
           return (
             <Pressable
               key={f.label}
-              onPress={() => { setAudience(f.value); setPage(1); }}
+              onPress={() => setAudience(f.value)}
               style={[styles.chip, on && styles.chipOn]}
             >
               <Text style={[styles.chipText, on && styles.chipTextOn]}>{f.label}</Text>
@@ -111,10 +114,12 @@ export function NoticesScreen() {
             <Pressable style={styles.iconBtn} onPress={doRefresh} accessibilityLabel="Refresh">
               <Ionicons name="refresh" size={20} color={colors.textSecondary} />
             </Pressable>
-            <Pressable style={styles.newBtn} onPress={openAdd} accessibilityLabel="Add notice">
-              <Ionicons name="add" size={18} color={colors.white} />
-              <Text style={styles.newText}>Add</Text>
-            </Pressable>
+            {canCreate && (
+              <Pressable style={styles.newBtn} onPress={openAdd} accessibilityLabel="Add notice">
+                <Ionicons name="add" size={18} color={colors.white} />
+                <Text style={styles.newText}>Add</Text>
+              </Pressable>
+            )}
           </>
         }
       />
@@ -124,7 +129,16 @@ export function NoticesScreen() {
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View style={styles.itemWrap}>
-            <NoticeCard item={item} onView={onView} onShare={onShare} onEdit={onEdit} onDelete={onDelete} />
+            <NoticeCard
+              item={item}
+              onView={onView}
+              onSharePdf={onSharePdf}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              canUpdate={canUpdate}
+              canDelete={canDelete}
+              canDownloadPdf={canDownloadPdf}
+            />
           </View>
         )}
         ListEmptyComponent={
@@ -137,10 +151,14 @@ export function NoticesScreen() {
           )
         }
         ListFooterComponent={
-          !isLoading && total > 0 ? (
-            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-          ) : isLoading && refreshing ? <ActivityIndicator color={colors.primary} /> : null
+          isLoadingMore ? (
+            <ActivityIndicator style={styles.footerLoader} color={colors.primary} />
+          ) : !showSkeleton && data.length > 0 && !hasMore ? (
+            <Text style={styles.endText}>You've reached the end</Text>
+          ) : null
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={doRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
@@ -151,7 +169,7 @@ export function NoticesScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      <NoticeDetailSheet notice={viewing} onClose={() => setViewing(null)} />
+      <NoticeDetailSheet notice={viewing} onClose={() => setViewing(null)} canDownloadPdf={canDownloadPdf} />
       <NoticeFormModal
         visible={formOpen}
         notice={editing}
@@ -191,4 +209,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.primary,
   },
   newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
+  footerLoader: { marginVertical: 20 },
+  endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
 });

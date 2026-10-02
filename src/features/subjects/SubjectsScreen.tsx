@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
@@ -7,17 +7,16 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { ApiError } from '../../lib/apiClient';
+import { useSession } from '../auth/session';
 import { ManageSheet } from './ManageSheet';
 import { OptionSheet, type Option } from './OptionSheet';
-import { Pagination } from './Pagination';
 import { PickerField } from './PickerField';
 import { SubjectCard } from './SubjectCard';
 import { SubjectFormModal } from './SubjectFormModal';
-import {
-  ACADEMIC_YEARS, CLASS_LIST, sectionsOfClass, useSubjects, type Subject,
-} from './mockSubjects';
+import { useSubjects } from './useSubjects';
+import type { SubjectWithAssignments } from './types';
 
-const PAGE_SIZE = 10;
 type SheetKind = 'class' | 'section' | 'year' | null;
 
 function SkeletonCard() {
@@ -26,43 +25,53 @@ function SkeletonCard() {
 
 export function SubjectsScreen() {
   const insets = useSafeAreaInsets();
+  const { permissions } = useSession();
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [classId, setClassId] = useState('');
   const [sectionId, setSectionId] = useState('');
-  const [year, setYear] = useState('');
-  const [page, setPage] = useState(1);
+  const [yearId, setYearId] = useState('');
   const [sheet, setSheet] = useState<SheetKind>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Subject | null>(null);
-  const [managing, setManaging] = useState<Subject | null>(null);
+  const [editing, setEditing] = useState<SubjectWithAssignments | null>(null);
+  const [managing, setManaging] = useState<SubjectWithAssignments | null>(null);
+
+  const canCreate = permissions.includes('subject.record.create');
+  const canUpdate = permissions.includes('subject.record.update');
+  const canDeletePerm = permissions.includes('subject.record.delete');
+  const canManagePerm = permissions.includes('subject.section-link.update');
 
   useEffect(() => {
     const t = setTimeout(() => {
       setDebounced(search);
-      setPage(1);
     }, 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data, total, stats, allCodes, isLoading, refetch, add, update, remove, setAssignments } = useSubjects({
-    search: debounced, classId, sectionId, year, page, pageSize: PAGE_SIZE,
-  });
+  const {
+    data, total, stats, allCodes, classes, years, activeYearId, isLoading, error, refetch, add, update, remove, setAssignments,
+  } = useSubjects({ search: debounced, classId, sectionId, yearId });
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
 
-  const classOptions = useMemo<Option[]>(() => CLASS_LIST.map((c) => ({ value: c.id, label: c.name })), []);
-  const sectionOptions = useMemo<Option[]>(
-    () => (classId ? sectionsOfClass(classId).map((s) => ({ value: s.sectionId, label: `Section ${s.sectionName}` })) : []),
-    [classId],
-  );
-  const yearOptions = useMemo<Option[]>(() => ACADEMIC_YEARS.map((y) => ({ value: y, label: y })), []);
+  useEffect(() => {
+    if (error) Alert.alert('Something went wrong', error);
+  }, [error]);
 
-  const className = CLASS_LIST.find((c) => c.id === classId)?.name ?? null;
+  const classOptions = useMemo<Option[]>(() => classes.map((c) => ({ value: c.id, label: c.name })), [classes]);
+  const sectionOptions = useMemo<Option[]>(
+    () => (classId ? (classes.find((c) => c.id === classId)?.sections ?? []).map((s) => ({ value: s.id, label: `Section ${s.name}` })) : []),
+    [classes, classId],
+  );
+  const yearOptions = useMemo<Option[]>(() => years.map((y) => ({ value: y.id, label: y.label })), [years]);
+
+  const className = classes.find((c) => c.id === classId)?.name ?? null;
   const sectionName = sectionOptions.find((s) => s.value === sectionId)?.label ?? null;
+  const yearLabel = years.find((y) => y.id === yearId)?.label ?? null;
+  const activeYearLabel = years.find((y) => y.id === activeYearId)?.label;
 
   const takenCodes = useMemo(
     () => allCodes.filter((c) => c.id !== editing?.id).map((c) => c.code),
@@ -75,21 +84,41 @@ export function SubjectsScreen() {
   }, [refetch]);
 
   const openAdd = useCallback(() => { setEditing(null); setFormOpen(true); }, []);
-  const onEdit = useCallback((s: Subject) => { setEditing(s); setFormOpen(true); }, []);
-  const onManage = useCallback((s: Subject) => setManaging(s), []);
-  const onView = useCallback((s: Subject) => {
-    const assigned = s.assignments.length ? s.assignments.map((a) => a.label).join(', ') : 'Not assigned';
+  const onEdit = useCallback((s: SubjectWithAssignments) => { setEditing(s); setFormOpen(true); }, []);
+  const onManage = useCallback((s: SubjectWithAssignments) => setManaging(s), []);
+  const onView = useCallback((s: SubjectWithAssignments) => {
+    const assigned = s.assignments.length
+      ? s.assignments.map((a) => `${a.section.class.name} · ${a.section.name}`).join(', ')
+      : 'Not assigned';
     Alert.alert(
       `${s.name} (${s.subjectCode})`,
       `${s.description || 'No description'}\n\nAssigned to (${s.assignments.length}): ${assigned}`,
     );
   }, []);
-  const onDelete = useCallback((s: Subject) => {
-    Alert.alert('Delete subject', `Delete ${s.name}? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => remove(s.id) },
-    ]);
+  const onDelete = useCallback((s: SubjectWithAssignments) => {
+    Alert.alert(
+      'Delete subject',
+      `Delete "${s.name}"? This permanently removes it from the catalog — there is NO safety check: it will be deleted even if it's currently assigned to sections or referenced by exams, homework or syllabus. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            remove(s.id).catch((err) => {
+              Alert.alert('Delete failed', err instanceof ApiError ? err.message : 'Please try again.');
+            });
+          },
+        },
+      ],
+    );
   }, [remove]);
+
+  const onSaveAssignments = useCallback((id: string, sectionIds: string[]) => {
+    setAssignments(id, sectionIds).catch((err) => {
+      Alert.alert('Save failed', err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Please try again.');
+    });
+  }, [setAssignments]);
 
   const showSkeleton = isLoading && !refreshing;
 
@@ -114,7 +143,7 @@ export function SubjectsScreen() {
         />
       </View>
       <View style={styles.row}>
-        <PickerField label="ACADEMIC YEAR" value={year || null} placeholder="Select year..." onPress={() => setSheet('year')} />
+        <PickerField label="ACADEMIC YEAR" value={yearLabel} placeholder="Select year..." onPress={() => setSheet('year')} />
       </View>
       <SearchBar value={search} onChangeText={setSearch} placeholder="Search name, code, description..." />
       <Text style={styles.count}>{total} subject{total === 1 ? '' : 's'}</Text>
@@ -137,10 +166,12 @@ export function SubjectsScreen() {
             <Pressable style={styles.iconBtn} onPress={doRefresh} accessibilityLabel="Refresh">
               <Ionicons name="refresh" size={20} color={colors.textSecondary} />
             </Pressable>
-            <Pressable style={styles.newBtn} onPress={openAdd} accessibilityLabel="Add subject">
-              <Ionicons name="add" size={18} color={colors.white} />
-              <Text style={styles.newText}>Add</Text>
-            </Pressable>
+            {canCreate ? (
+              <Pressable style={styles.newBtn} onPress={openAdd} accessibilityLabel="Add subject">
+                <Ionicons name="add" size={18} color={colors.white} />
+                <Text style={styles.newText}>Add</Text>
+              </Pressable>
+            ) : null}
           </>
         }
       />
@@ -150,7 +181,16 @@ export function SubjectsScreen() {
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View style={styles.itemWrap}>
-            <SubjectCard item={item} onView={onView} onManage={onManage} onEdit={onEdit} onDelete={onDelete} />
+            <SubjectCard
+              item={item}
+              canManage={canManagePerm}
+              canEdit={canUpdate}
+              canDelete={canDeletePerm}
+              onView={onView}
+              onManage={onManage}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
           </View>
         )}
         ListEmptyComponent={
@@ -161,11 +201,6 @@ export function SubjectsScreen() {
               <Text style={styles.emptySub}>Try changing the search or filters.</Text>
             </View>
           )
-        }
-        ListFooterComponent={
-          !isLoading && total > 0 ? (
-            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-          ) : isLoading && refreshing ? <ActivityIndicator color={colors.primary} /> : null
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={doRefresh} tintColor={colors.primary} colors={[colors.primary]} />
@@ -184,7 +219,7 @@ export function SubjectsScreen() {
         options={classOptions}
         value={classId}
         onClose={() => setSheet(null)}
-        onSelect={(v) => { setClassId(v); setSectionId(''); setPage(1); setSheet(null); }}
+        onSelect={(v) => { setClassId(v); setSectionId(''); setSheet(null); }}
       />
       <OptionSheet
         visible={sheet === 'section'}
@@ -193,27 +228,37 @@ export function SubjectsScreen() {
         options={sectionOptions}
         value={sectionId}
         onClose={() => setSheet(null)}
-        onSelect={(v) => { setSectionId(v); setPage(1); setSheet(null); }}
+        onSelect={(v) => { setSectionId(v); setSheet(null); }}
       />
       <OptionSheet
         visible={sheet === 'year'}
         title="Select academic year"
         allLabel="All years"
         options={yearOptions}
-        value={year}
+        value={yearId}
         onClose={() => setSheet(null)}
-        onSelect={(v) => { setYear(v); setPage(1); setSheet(null); }}
+        onSelect={(v) => { setYearId(v); setSheet(null); }}
       />
-      <ManageSheet subject={managing} onClose={() => setManaging(null)} onSave={setAssignments} />
+      <ManageSheet
+        subject={managing}
+        classes={classes}
+        activeYearId={activeYearId}
+        activeYearLabel={activeYearLabel}
+        onClose={() => setManaging(null)}
+        onSave={onSaveAssignments}
+      />
       <SubjectFormModal
         visible={formOpen}
         subject={editing}
         takenCodes={takenCodes}
         onClose={() => setFormOpen(false)}
         onSubmit={(input) => {
-          if (editing) update(editing.id, input);
-          else add(input);
-          setFormOpen(false);
+          const task = editing ? update(editing.id, input) : add(input);
+          task
+            .then(() => setFormOpen(false))
+            .catch((err) => {
+              Alert.alert('Save failed', err instanceof ApiError ? err.message : 'Please try again.');
+            });
         }}
       />
     </ScreenBackground>

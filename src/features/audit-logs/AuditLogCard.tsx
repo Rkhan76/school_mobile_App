@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts } from '../../theme/tokens';
 import { ActionPill } from './ActionPill';
-import { formatDateTime, type AuditLog } from './mockAuditLogs';
+import { formatDateTime, type AuditLog } from './types';
 
 type Props = { item: AuditLog; serial: number; onView: (l: AuditLog) => void };
 
@@ -27,8 +27,11 @@ function AuditLogCardBase({ item, serial, onView }: Props) {
           </View>
           <View style={styles.col}>
             <Text style={styles.label}>USER</Text>
-            <Text style={styles.value} numberOfLines={1}>{item.userName}</Text>
-            <Text style={styles.role}>{item.userRole}</Text>
+            <Text style={styles.value} numberOfLines={1}>{item.userName ?? 'Unknown user'}</Text>
+            <Text style={styles.role}>
+              {item.userType}
+              {item.impersonatedByName ? ` · via ${item.impersonatedByName}` : ''}
+            </Text>
           </View>
         </View>
       </Card>

@@ -5,12 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
 import { ActionBtn, EmptyState, RoleTag, SkeletonList } from './parts';
 import { TypeFormModal } from './TypeFormModal';
-import { useDocumentTypes, type DocumentType } from './mockDocuments';
+import { useDocumentTypes } from './useDocuments';
+import { ENTITY_LABELS, type DocumentType } from './types';
 
 export function TypesTab() {
   const insets = useSafeAreaInsets();
+  const permissions = useSession((s) => s.permissions);
+  const canCreate = permissions.includes('document-type.record.create');
+  const canUpdate = permissions.includes('document-type.record.update');
+  const canDelete = permissions.includes('document-type.record.delete');
+
   const { data, isLoading, refetch, add, update, remove } = useDocumentTypes();
   const [refreshing, setRefreshing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -37,10 +44,12 @@ export function TypesTab() {
           <View style={styles.headerWrap}>
             <View style={styles.headRow}>
               <Text style={styles.count}>{data.length} document type{data.length === 1 ? '' : 's'}</Text>
-              <Pressable style={styles.addBtn} onPress={() => { setEditing(null); setFormOpen(true); }} accessibilityLabel="Add document type">
-                <Ionicons name="add" size={18} color={colors.white} />
-                <Text style={styles.addText}>Add type</Text>
-              </Pressable>
+              {canCreate ? (
+                <Pressable style={styles.addBtn} onPress={() => { setEditing(null); setFormOpen(true); }} accessibilityLabel="Add document type">
+                  <Ionicons name="add" size={18} color={colors.white} />
+                  <Text style={styles.addText}>Add type</Text>
+                </Pressable>
+              ) : null}
             </View>
             {showSkeleton ? <SkeletonList count={4} height={120} /> : null}
           </View>
@@ -54,18 +63,22 @@ export function TypesTab() {
                 </View>
                 <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
               </View>
+              {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
               <View style={styles.badges}>
-                <Badge label={item.mandatory ? 'Mandatory' : 'Optional'} tone={item.mandatory ? 'danger' : 'neutral'} />
-                <Badge label={item.expiryRequired ? 'Expiry required' : 'No expiry'} tone={item.expiryRequired ? 'warning' : 'neutral'} />
+                <Badge label={item.isMandatory ? 'Mandatory' : 'Optional'} tone={item.isMandatory ? 'danger' : 'neutral'} />
+                <Badge label={item.hasExpiry ? 'Expiry required' : 'No expiry'} tone={item.hasExpiry ? 'warning' : 'neutral'} />
+                {!item.isActive ? <Badge label="Inactive" tone="neutral" /> : null}
               </View>
               <View style={styles.applies}>
                 <Text style={styles.appliesLabel}>Applies to</Text>
-                {item.appliesTo.map((r) => <RoleTag key={r} role={r} />)}
+                <RoleTag role={ENTITY_LABELS[item.appliesTo]} />
               </View>
-              <View style={styles.actions}>
-                <ActionBtn label="Edit" icon="create-outline" onPress={() => { setEditing(item); setFormOpen(true); }} />
-                <ActionBtn label="Delete" icon="trash-outline" tone="danger" onPress={() => onDelete(item)} />
-              </View>
+              {canUpdate || canDelete ? (
+                <View style={styles.actions}>
+                  {canUpdate ? <ActionBtn label="Edit" icon="create-outline" onPress={() => { setEditing(item); setFormOpen(true); }} /> : null}
+                  {canDelete ? <ActionBtn label="Delete" icon="trash-outline" tone="danger" onPress={() => onDelete(item)} /> : null}
+                </View>
+              ) : null}
             </Card>
           </View>
         )}
@@ -84,7 +97,7 @@ export function TypesTab() {
         existingNames={data.map((t) => t.name)}
         onClose={() => setFormOpen(false)}
         onSubmit={(input) => {
-          if (editing) update(editing.id, input);
+          if (editing) update(editing.id, { name: input.name, description: input.description, isMandatory: input.isMandatory, hasExpiry: input.hasExpiry, sortOrder: input.sortOrder });
           else add(input);
           setFormOpen(false);
         }}
@@ -106,6 +119,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mint },
   name: { flex: 1, fontFamily: fonts.heading, fontSize: 15, color: colors.text },
+  desc: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   applies: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   appliesLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },

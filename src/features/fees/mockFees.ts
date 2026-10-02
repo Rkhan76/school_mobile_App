@@ -393,7 +393,7 @@ export function useInvoices(params: InvoiceParams) {
       .sort((a, b) => b.invoiceNo.localeCompare(a.invoiceNo));
   }, [invoices, search, student, classId, status, dueDate]);
 
-  const data = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+  const data = useMemo(() => filtered.slice(0, page * pageSize), [filtered, page, pageSize]);
 
   /** Always returns the live version of an invoice (for open detail sheets). */
   const byId = useCallback((id: string) => invoices.find((i) => i.id === id) ?? null, [invoices]);
@@ -491,7 +491,7 @@ export function useAssignments(params: AssignmentParams) {
       });
   }, [assignments, structures, search, classId]);
 
-  const data = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+  const data = useMemo(() => filtered.slice(0, page * pageSize), [filtered, page, pageSize]);
 
   const assign = useCallback((studentId: string, structureId: string | null) => {
     setState((s) => ({ ...s, assignments: s.assignments.map((a) => (a.studentId === studentId ? { ...a, structureId } : a)) }));

@@ -10,7 +10,7 @@ export function LoginFooter() {
           <Ionicons name="shield-outline" size={14} color={colors.textSecondary} />
           <Text style={styles.sslText}>256-Bit SSL Encrypted</Text>
         </View>
-        <Text style={styles.version}>Verdant v2.4</Text>
+        <Text style={styles.version}>Aethen v2.4</Text>
       </View>
       <Text style={styles.links}>{'Help & Support  ·  Privacy Policy  ·  Terms'}</Text>
     </View>

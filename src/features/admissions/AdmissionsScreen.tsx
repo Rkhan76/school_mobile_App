@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
 import { AdmissionCard } from './AdmissionCard';
 import { BulkBar } from './BulkBar';
-import { ClassFilterSheet } from './ClassFilterSheet';
-import { Pagination } from './Pagination';
+import { ClassFilterSheet, type ClassOption } from './ClassFilterSheet';
 import { RejectModal } from './RejectModal';
 import { StatusChips, type StatusFilter } from './StatusChips';
-import { useAdmissions, type Admission } from './mockAdmissions';
+import { useAdmissions } from './useAdmissions';
+import type { AdmissionListItem } from './types';
 
 const PAGE_SIZE = 20;
 const soon = (what: string) => Alert.alert(what, 'Coming soon.');
@@ -24,26 +26,32 @@ function SkeletonCard() {
 
 export function AdmissionsScreen() {
   const insets = useSafeAreaInsets();
+  const permissions = useSession((s) => s.permissions);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [className, setClassName] = useState('All');
+  const [classOption, setClassOption] = useState<ClassOption>(null);
   const [status, setStatus] = useState<StatusFilter>('all');
-  const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [rejectIds, setRejectIds] = useState<string[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const canCreate = permissions.includes('admission.application.create');
+  const canUpdate = permissions.includes('admission.application.update');
+  const canApprovePerm = permissions.includes('admission.approval.update');
+  const canRejectPerm = permissions.includes('admission.rejection.update');
+  const canCancelPerm = permissions.includes('admission.cancellation.update');
+  const canDeletePerm = permissions.includes('admission.application.delete');
+
   useEffect(() => {
     const t = setTimeout(() => {
       setDebounced(search);
-      setPage(1);
     }, 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data, total, stats, isLoading, refetch, approve, reject, remove } = useAdmissions({
-    search: debounced, className, status, page, pageSize: PAGE_SIZE,
+  const { data, stats, isLoading, isLoadingMore, hasMore, loadMore, refetch, approve, reject, cancelOne, remove } = useAdmissions({
+    search: debounced, className: classOption?.name ?? 'All', classId: classOption?.id ?? 'all', status, pageSize: PAGE_SIZE,
   });
 
   useEffect(() => {
@@ -51,28 +59,58 @@ export function AdmissionsScreen() {
   }, [isLoading]);
 
   const selectionMode = selected.length > 0;
-  const toggle = useCallback((a: Admission) => {
+  const toggle = useCallback((a: AdmissionListItem) => {
     setSelected((s) => (s.includes(a.id) ? s.filter((x) => x !== a.id) : [...s, a.id]));
   }, []);
 
   const confirmApprove = useCallback((ids: string[]) => {
-    Alert.alert('Approve', `Approve ${ids.length} application${ids.length > 1 ? 's' : ''}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Approve', onPress: () => { approve(ids); setSelected([]); } },
-    ]);
+    Alert.alert(
+      'Approve application' + (ids.length > 1 ? 's' : ''),
+      `This will immediately create the student's portal login and enroll ${ids.length > 1 ? 'them' : 'the student'}. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Approve', onPress: () => { approve(ids); setSelected([]); } },
+      ]
+    );
   }, [approve]);
 
-  const handlePress = useCallback((a: Admission) => { if (selectionMode) toggle(a); }, [selectionMode, toggle]);
-  const handleLong = useCallback((a: Admission) => { if (!selectionMode) setSelected([a.id]); }, [selectionMode]);
-  const onApprove = useCallback((a: Admission) => confirmApprove([a.id]), [confirmApprove]);
-  const onReject = useCallback((a: Admission) => setRejectIds([a.id]), []);
-  const onView = useCallback((a: Admission) => soon(`View ${a.fullName}`), []);
-  const onEdit = useCallback((a: Admission) => soon(`Edit ${a.fullName}`), []);
-  const onDelete = useCallback((a: Admission) => {
-    Alert.alert('Delete application', `Delete ${a.applicationNumber}? This cannot be undone.`, [
+  const handlePress = useCallback((a: AdmissionListItem) => { if (selectionMode) toggle(a); }, [selectionMode, toggle]);
+  const handleLong = useCallback((a: AdmissionListItem) => { if (!selectionMode) setSelected([a.id]); }, [selectionMode]);
+  const onApprove = useCallback((a: AdmissionListItem) => confirmApprove([a.id]), [confirmApprove]);
+  const onReject = useCallback((a: AdmissionListItem) => setRejectIds([a.id]), []);
+  const onCancelItem = useCallback((a: AdmissionListItem) => {
+    Alert.alert('Cancel application?', `Cancel application ${a.admissionNumber}? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => remove(a.id) },
+      { text: 'Cancel Application', style: 'destructive', onPress: () => cancelOne(a.id) },
     ]);
+  }, [cancelOne]);
+  const onView = useCallback((a: AdmissionListItem) => router.push(`/admissions/${a.id}`), []);
+  const onEdit = useCallback((a: AdmissionListItem) => router.push(`/admissions/${a.id}/edit`), []);
+  const onDelete = useCallback((a: AdmissionListItem) => {
+    if (a.status === 'pending') {
+      Alert.alert('Delete application', `Delete ${a.admissionNumber}? This cannot be undone.`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => remove(a.id) },
+      ]);
+      return;
+    }
+    Alert.alert(
+      'Delete application',
+      `This application is already ${a.status} — deleting it cannot be undone and will not affect the student record it created. Are you sure?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Confirm delete', `Permanently delete ${a.admissionNumber}?`, [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: () => remove(a.id) },
+            ]);
+          },
+        },
+      ]
+    );
   }, [remove]);
 
   const showSkeleton = isLoading && !refreshing;
@@ -80,7 +118,7 @@ export function AdmissionsScreen() {
   const header = (
     <View style={styles.headerWrap}>
       <View style={styles.stats}>
-        <StatTile label="Total Applications" value={String(stats.total)} icon="document-text-outline" tint={colors.primary} />
+        <StatTile label="Total Applications" value={String(stats.totalApplications)} icon="document-text-outline" tint={colors.primary} />
         <StatTile label="Enrolled" value={String(stats.enrolled)} icon="checkmark-circle-outline" tint={colors.success} />
       </View>
       <View style={styles.stats}>
@@ -88,10 +126,6 @@ export function AdmissionsScreen() {
         <StatTile label="Rejected" value={String(stats.rejected)} icon="close-circle-outline" tint={colors.danger} />
       </View>
       <View style={styles.secondary}>
-        <Pressable style={styles.secBtn} onPress={() => soon('Export')}>
-          <Ionicons name="download-outline" size={16} color={colors.primaryDeep} />
-          <Text style={styles.secText}>Export</Text>
-        </Pressable>
         <Pressable style={styles.secBtn} onPress={() => soon('Generate Roll Numbers')}>
           <Ionicons name="list-outline" size={16} color={colors.primaryDeep} />
           <Text style={styles.secText} numberOfLines={1}>Generate Roll Numbers</Text>
@@ -102,7 +136,7 @@ export function AdmissionsScreen() {
         onChangeText={setSearch}
         placeholder="Search applications..."
         onFilterPress={() => setSheetOpen(true)}
-        filterCount={className !== 'All' ? 1 : undefined}
+        filterCount={classOption ? 1 : undefined}
       />
     </View>
   );
@@ -111,17 +145,19 @@ export function AdmissionsScreen() {
     <ScreenBackground>
       <ScreenHeader
         title="Admissions"
-        subtitle={`${stats.total} applications`}
+        subtitle={`${stats.totalApplications} applications`}
         back
         right={
           <>
             <Pressable style={styles.iconBtn} onPress={() => { setRefreshing(true); refetch(); }} accessibilityLabel="Refresh">
               <Ionicons name="refresh" size={20} color={colors.textSecondary} />
             </Pressable>
-            <Pressable style={styles.newBtn} onPress={() => soon('New Admission')}>
-              <Ionicons name="add" size={18} color={colors.white} />
-              <Text style={styles.newText}>New</Text>
-            </Pressable>
+            {canCreate && (
+              <Pressable style={styles.newBtn} onPress={() => router.push('/admissions/new')}>
+                <Ionicons name="add" size={18} color={colors.white} />
+                <Text style={styles.newText}>New</Text>
+              </Pressable>
+            )}
           </>
         }
       />
@@ -132,7 +168,7 @@ export function AdmissionsScreen() {
           <>
             {header}
             <View style={styles.chipsWrap}>
-              <StatusChips value={status} stats={stats} onChange={(v) => { setStatus(v); setPage(1); setSelected([]); }} />
+              <StatusChips value={status} stats={stats} onChange={(v) => { setStatus(v); setSelected([]); }} />
             </View>
             {showSkeleton ? (
               <View style={styles.list}>
@@ -147,10 +183,16 @@ export function AdmissionsScreen() {
               item={item}
               selected={selected.includes(item.id)}
               selectionMode={selectionMode}
+              canApprove={canApprovePerm}
+              canReject={canRejectPerm}
+              canCancel={canCancelPerm}
+              canEdit={canUpdate}
+              canDelete={canDeletePerm}
               onPress={handlePress}
               onLongPress={handleLong}
               onApprove={onApprove}
               onReject={onReject}
+              onCancel={onCancelItem}
               onView={onView}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -167,16 +209,16 @@ export function AdmissionsScreen() {
           )
         }
         ListFooterComponent={
-          !isLoading && total > 0 ? (
-            <Pagination
-              page={page}
-              pageSize={PAGE_SIZE}
-              total={total}
-              shown={data.length}
-              onChange={(p) => { setPage(p); setSelected([]); }}
-            />
-          ) : isLoading && refreshing ? <ActivityIndicator color={colors.primary} /> : null
+          isLoadingMore ? (
+            <ActivityIndicator style={styles.footerLoader} color={colors.primary} />
+          ) : !showSkeleton && data.length > 0 && !hasMore ? (
+            <Text style={styles.endText}>You've reached the end</Text>
+          ) : isLoading && refreshing ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : null
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); refetch(); }} tintColor={colors.primary} colors={[colors.primary]} />
         }
@@ -189,6 +231,8 @@ export function AdmissionsScreen() {
       {selectionMode && (
         <BulkBar
           count={selected.length}
+          canApprove={canApprovePerm}
+          canReject={canRejectPerm}
           onApprove={() => confirmApprove(selected)}
           onReject={() => setRejectIds(selected)}
           onCancel={() => setSelected([])}
@@ -196,9 +240,9 @@ export function AdmissionsScreen() {
       )}
       <ClassFilterSheet
         visible={sheetOpen}
-        value={className}
+        value={classOption}
         onClose={() => setSheetOpen(false)}
-        onApply={(v) => { setClassName(v); setPage(1); setSheetOpen(false); }}
+        onApply={(v) => { setClassOption(v); setSheetOpen(false); }}
       />
       <RejectModal
         visible={rejectIds !== null}
@@ -230,6 +274,8 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48, gap: 6 },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
+  footerLoader: { paddingVertical: 16 },
+  endText: { textAlign: 'center', paddingVertical: 16, fontFamily: fonts.body, fontSize: 12, color: colors.textHint },
   iconBtn: {
     width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,

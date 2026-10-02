@@ -4,24 +4,25 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors } from '../../theme/tokens';
 import { cardStyles, IconBtn, IdPill, InfoRow, Name } from './cardParts';
-import type { NonTeachingStaff } from './mockEmployees';
+import type { EmployeeStatus, NTSListItem } from './types';
 
 type Props = {
-  staff: NonTeachingStaff;
-  onPress: (s: NonTeachingStaff) => void;
-  onToggle: (s: NonTeachingStaff, active: boolean) => void;
-  onDelete: (s: NonTeachingStaff) => void;
+  staff: NTSListItem;
+  onPress: (s: NTSListItem) => void;
+  onToggleStatus: (s: NTSListItem, next: EmployeeStatus) => void;
+  onToggleBlock: (s: NTSListItem) => void;
+  canUpdateStatus: boolean;
+  canToggleBlock: boolean;
 };
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const STATUS_TONE: Record<EmployeeStatus, 'success' | 'warning' | 'danger'> = {
+  ACTIVE: 'success',
+  INACTIVE: 'warning',
+  TERMINATED: 'danger',
+};
 
-function formatDate(iso: string) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return `${d} ${MONTHS[(m ?? 1) - 1]} ${y}`;
-}
-
-export function StaffCard({ staff: s, onPress, onToggle, onDelete }: Props) {
-  const active = s.status === 'Active';
+export function StaffCard({ staff: s, onPress, onToggleStatus, onToggleBlock, canUpdateStatus, canToggleBlock }: Props) {
+  const active = s.status === 'ACTIVE';
   return (
     <Pressable onPress={() => onPress(s)}>
       <Card style={cardStyles.card}>
@@ -29,27 +30,36 @@ export function StaffCard({ staff: s, onPress, onToggle, onDelete }: Props) {
           <Avatar name={s.fullName} size={46} />
           <View style={cardStyles.headText}>
             <Name>{s.fullName}</Name>
-            <IdPill id={s.staffId} />
+            <IdPill id={s.employeeCode || s.staffId} />
           </View>
-          <Badge label={s.status} tone={active ? 'success' : 'danger'} />
+          <Badge label={s.status} tone={STATUS_TONE[s.status]} />
         </View>
         <View style={cardStyles.info}>
-          <InfoRow icon="briefcase-outline" text={s.designation} />
-          <InfoRow icon="business-outline" text={s.department} />
-          <InfoRow icon="calendar-outline" text={`Joined ${formatDate(s.joiningDate)}`} />
-          <InfoRow icon="document-text-outline" text={s.contractType} />
-          <InfoRow icon="call-outline" text={s.phone} />
+          {s.designation ? <InfoRow icon="briefcase-outline" text={s.designation} /> : null}
+          {s.department ? <InfoRow icon="business-outline" text={s.department} /> : null}
+          {s.phone ? <InfoRow icon="call-outline" text={s.phone} /> : null}
+          {s.email ? <InfoRow icon="mail-outline" text={s.email} /> : null}
         </View>
         <View style={cardStyles.actions}>
-          <IconBtn icon="call-outline" label="Call staff" onPress={() => void Linking.openURL(`tel:${s.phone.replace(/\s/g, '')}`)} />
+          {s.phone ? (
+            <IconBtn
+              icon="call-outline"
+              label="Call staff"
+              onPress={() => void Linking.openURL(`tel:${s.phone!.replace(/\s/g, '')}`)}
+            />
+          ) : null}
           <View style={cardStyles.spacer} />
-          <Switch
-            value={active}
-            onValueChange={(v) => onToggle(s, v)}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={colors.white}
-          />
-          <IconBtn icon="trash-outline" label="Delete staff" danger onPress={() => onDelete(s)} />
+          {canUpdateStatus ? (
+            <Switch
+              value={active}
+              onValueChange={(v) => onToggleStatus(s, v ? 'ACTIVE' : 'INACTIVE')}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.white}
+            />
+          ) : null}
+          {canToggleBlock ? (
+            <IconBtn icon="trash-outline" label="Block staff" danger onPress={() => onToggleBlock(s)} />
+          ) : null}
         </View>
       </Card>
     </Pressable>

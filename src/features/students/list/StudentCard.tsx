@@ -5,13 +5,15 @@ import { Avatar } from '../../../components/ui/Avatar';
 import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
 import { colors, fonts, radius } from '../../../theme/tokens';
-import type { Student } from '../mockStudents';
+import type { StudentRow } from '../useStudents';
 
 interface Props {
-  student: Student;
+  student: StudentRow;
   onView: (id: string) => void;
   onToggleStatus: (id: string, active: boolean) => void;
-  onDelete: (id: string) => void;
+  onToggleBlock: (id: string) => void;
+  canToggleStatus: boolean;
+  canToggleBlock: boolean;
 }
 
 function InfoItem({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }) {
@@ -23,8 +25,8 @@ function InfoItem({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>[
   );
 }
 
-function StudentCardBase({ student: s, onView, onToggleStatus, onDelete }: Props) {
-  const active = s.status === 'Active';
+function StudentCardBase({ student: s, onView, onToggleStatus, onToggleBlock, canToggleStatus, canToggleBlock }: Props) {
+  const active = s.status === 'active';
   return (
     <Card style={styles.card}>
       <Pressable onPress={() => onView(s.id)} accessibilityRole="button" accessibilityLabel={`View ${s.fullName}`}>
@@ -32,19 +34,17 @@ function StudentCardBase({ student: s, onView, onToggleStatus, onDelete }: Props
           <View style={styles.pill}>
             <Text style={styles.pillText}>{s.admissionNumber}</Text>
           </View>
-          <Badge label={s.status} tone={active ? 'success' : 'neutral'} />
+          <Badge label={active ? 'Active' : 'Inactive'} tone={active ? 'success' : 'neutral'} />
         </View>
         <View style={styles.identity}>
           <Avatar name={s.fullName} size={46} />
           <View style={styles.names}>
             <Text style={styles.name} numberOfLines={1}>{s.fullName}</Text>
-            <Text style={styles.email} numberOfLines={1}>{s.email}</Text>
+            <Text style={styles.email} numberOfLines={1}>Roll #{s.rollNumber ?? '—'}</Text>
           </View>
         </View>
         <View style={styles.infoGrid}>
-          <InfoItem icon="school-outline" text={`${s.className} · Sec ${s.section}`} />
-          <InfoItem icon="calendar-outline" text={s.dob} />
-          <InfoItem icon="call-outline" text={s.phone} />
+          <InfoItem icon="school-outline" text={`${s.class?.name ?? 'No class'} · Sec ${s.section?.name ?? '—'}`} />
         </View>
       </Pressable>
       <View style={styles.actions}>
@@ -59,16 +59,24 @@ function StudentCardBase({ student: s, onView, onToggleStatus, onDelete }: Props
           <Ionicons name="create-outline" size={18} color={colors.blue} />
         </Pressable>
         <View style={styles.spacer} />
-        <Text style={styles.switchLabel}>{active ? 'Active' : 'Inactive'}</Text>
-        <Switch
-          value={active}
-          onValueChange={(v) => onToggleStatus(s.id, v)}
-          trackColor={{ false: '#d5dedc', true: colors.primary }}
-          thumbColor={colors.white}
-        />
-        <Pressable style={[styles.iconBtn, styles.danger]} onPress={() => onDelete(s.id)} accessibilityLabel="Delete student">
-          <Ionicons name="trash-outline" size={18} color={colors.danger} />
-        </Pressable>
+        {canToggleStatus ? (
+          <>
+            <Text style={styles.switchLabel}>{active ? 'Active' : 'Inactive'}</Text>
+            <Switch
+              value={active}
+              onValueChange={(v) => onToggleStatus(s.id, v)}
+              trackColor={{ false: '#d5dedc', true: colors.primary }}
+              thumbColor={colors.white}
+            />
+          </>
+        ) : (
+          <Text style={styles.switchLabel}>{active ? 'Active' : 'Inactive'}</Text>
+        )}
+        {canToggleBlock && (
+          <Pressable style={[styles.iconBtn, styles.danger]} onPress={() => onToggleBlock(s.id)} accessibilityLabel="Block student">
+            <Ionicons name="ban-outline" size={18} color={colors.danger} />
+          </Pressable>
+        )}
       </View>
     </Card>
   );

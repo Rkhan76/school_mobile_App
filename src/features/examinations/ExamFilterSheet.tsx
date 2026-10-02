@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { getClassesMaster } from '../common/api';
+import type { ClassWithSections } from '../common/types';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { CLASS_OPTIONS, EXAM_TYPE_NAMES, type ExamStatusFilter } from './mockExams';
+import { listExamTypes } from './api';
+import type { ExamFilters, ExamStatusFilter, ExamType } from './types';
 
-export type ExamFilters = { examType: string; status: ExamStatusFilter; className: string };
-export const DEFAULT_FILTERS: ExamFilters = { examType: 'All', status: 'all', className: 'All' };
+export const DEFAULT_FILTERS: ExamFilters = { examTypeId: 'all', status: 'all', classId: 'all' };
 
 type Props = { visible: boolean; value: ExamFilters; onApply: (v: ExamFilters) => void; onClose: () => void };
 
@@ -30,9 +32,17 @@ function Chips<T extends string>({ options, value, onChange, label }: {
 
 export function ExamFilterSheet({ visible, value, onApply, onClose }: Props) {
   const [draft, setDraft] = useState(value);
+  const [examTypes, setExamTypes] = useState<ExamType[]>([]);
+  const [classes, setClasses] = useState<ClassWithSections[]>([]);
+
   useEffect(() => {
     if (visible) setDraft(value);
   }, [visible, value]);
+
+  useEffect(() => {
+    listExamTypes().then(setExamTypes).catch(() => {});
+    getClassesMaster().then(setClasses).catch(() => {});
+  }, []);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -43,9 +53,9 @@ export function ExamFilterSheet({ visible, value, onApply, onClose }: Props) {
         <ScrollView style={styles.scroll}>
           <Chips<string>
             label="Exam type"
-            value={draft.examType}
-            onChange={(examType) => setDraft((d) => ({ ...d, examType }))}
-            options={[{ value: 'All', label: 'All types' }, ...EXAM_TYPE_NAMES.map((n) => ({ value: n, label: n }))]}
+            value={draft.examTypeId}
+            onChange={(examTypeId) => setDraft((d) => ({ ...d, examTypeId }))}
+            options={[{ value: 'all', label: 'All types' }, ...examTypes.map((t) => ({ value: t.id, label: t.name }))]}
           />
           <Chips<ExamStatusFilter>
             label="Status"
@@ -59,9 +69,9 @@ export function ExamFilterSheet({ visible, value, onApply, onClose }: Props) {
           />
           <Chips<string>
             label="Class"
-            value={draft.className}
-            onChange={(className) => setDraft((d) => ({ ...d, className }))}
-            options={[{ value: 'All', label: 'All classes' }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
+            value={draft.classId}
+            onChange={(classId) => setDraft((d) => ({ ...d, classId }))}
+            options={[{ value: 'all', label: 'All classes' }, ...classes.map((c) => ({ value: c.id, label: c.name }))]}
           />
         </ScrollView>
         <View style={styles.actions}>

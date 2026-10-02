@@ -1,4 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import {
+  changeEmployment as apiChangeEmployment,
+  getTeacher,
+  getTeacherBank,
+  getTeacherEmploymentHistory,
+  getTeacherPersonal,
+  setTeacherStatus as apiSetTeacherStatus,
+  toggleTeacherBlock as apiToggleTeacherBlock,
+  updateTeacher as apiUpdateTeacher,
+} from './api';
+
+export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'TERMINATED';
 
 export interface TeacherAddress {
   current: string;
@@ -6,29 +19,16 @@ export interface TeacherAddress {
 }
 
 export interface TeacherBankDetails {
-  accountHolder: string;
-  accountNumber: string;
   bankName: string;
-  ifsc: string;
+  accountNumber: string;
+  ifscCode: string;
 }
 
 export interface TeacherDocument {
   id: string;
   name: string;
+  file?: string;
   verified: boolean;
-}
-
-export type ClassStatus = 'done' | 'live' | 'upcoming';
-
-export interface TodaysClass {
-  id: string;
-  startTime: string;
-  endTime: string;
-  subject: string;
-  className: string;
-  section: string;
-  room: string;
-  status: ClassStatus;
 }
 
 export interface Assignment {
@@ -36,54 +36,163 @@ export interface Assignment {
   className: string;
   section: string;
   subject: string;
-  periodsPerWeek: number;
+  periodsPerWeek?: number;
 }
 
-export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
+/** -------- Raw API shapes (section 4 of MOBILE_API_DOCS.md) -------- */
 
-export interface TimetablePeriod {
+export interface TeacherStaffInfo {
+  id?: string;
+  employeeCode?: string;
+  designation?: string;
+  department?: string;
+  employeeType?: string;
+  joiningDate?: string;
+  contractType?: string;
+  status?: TeacherStatus;
+}
+
+/** `GET /teachers/:id` — full entity with `staff` relation populated. */
+export interface TeacherRaw {
   id: string;
-  period: number;
-  startTime: string;
-  endTime: string;
-  subject: string;
-  classSection: string;
-  room: string;
+  schoolId?: string;
+  staffId?: string;
+  fullName: string;
+  gender?: string;
+  dateOfBirth?: string;
+  fathersName?: string;
+  mothersName?: string;
+  maritalStatus?: string;
+  shift?: string;
+  workLocation?: string;
+  phone?: string;
+  email?: string;
+  experience?: string;
+  qualification?: string;
+  profileImage?: string;
+  medicalDetails?: Record<string, unknown>;
+  bankDetails?: Record<string, unknown>;
+  documents?: RawDocument[];
+  previousSchoolName?: string;
+  previousSchoolAddress?: string;
+  addressInfo?: Record<string, unknown>;
+  additionalDetails?: string;
+  socialLinks?: { facebook?: string; linkedin?: string; instagram?: string; youtube?: string };
+  status?: TeacherStatus;
+  staff?: TeacherStaffInfo | null;
+  [key: string]: unknown;
 }
 
-export type AttendanceDayStatus = 'P' | 'A' | 'L' | 'H';
-
-export interface AttendanceSummary {
-  monthLabel: string;
-  present: number;
-  absent: number;
-  leave: number;
-  percentage: number;
-  days: AttendanceDayStatus[];
+export interface RawDocument {
+  id?: string;
+  documentName?: string;
+  name?: string;
+  file?: string;
+  verified?: boolean;
 }
 
-export interface Payslip {
+export interface AssignmentSection {
+  id?: string;
+  name?: string;
+  class?: { id?: string; name?: string };
+}
+
+export interface AssignmentSubject {
+  id?: string;
+  name?: string;
+}
+
+export interface RawAssignment {
+  sectionId: string;
+  section?: AssignmentSection | null;
+  subjectId: string;
+  subject?: AssignmentSubject | null;
+  academicYearId?: string;
+  assignedFrom?: string;
+}
+
+/** `GET /teachers/:id/personal` — the rich tab-shaped response. */
+export interface TeacherPersonal {
   id: string;
-  monthLabel: string;
-  gross: number;
-  deductions: number;
-  net: number;
-  status: 'Paid' | 'Pending';
-  paidOn: string;
+  schoolUserId?: string | null;
+  employeeCode?: string;
+  fullName: string;
+  gender?: string;
+  dateOfBirth?: string;
+  fathersName?: string;
+  mothersName?: string;
+  maritalStatus?: string;
+  phone?: string;
+  email?: string;
+  profileImage?: string;
+  currentAssignments: RawAssignment[];
+  contractType?: string;
+  shift?: string;
+  workLocation?: string;
+  joiningDate?: string;
+  experience?: string;
+  qualification?: string;
+  previousSchoolName?: string;
+  previousSchoolAddress?: string;
+  socialLinks?: Record<string, string>;
+  additionalDetails?: string;
+  medicalDetails?: Record<string, unknown>;
+  addressInfo?: Record<string, unknown>;
+  documents?: RawDocument[];
 }
 
-export interface TeacherReport {
+/** `GET /teachers/:id/bank` */
+export interface TeacherBankResponse {
   id: string;
-  title: string;
-  summary: string;
-  icon: 'calendar-outline' | 'book-outline' | 'time-outline';
+  bankDetails?: Record<string, unknown>;
 }
+
+/** One row of `GET /teachers/:id/employment-history` — exact field names beyond
+ * designation/department aren't pinned down by the docs, so this is read defensively. */
+export interface EmploymentHistoryRow {
+  id?: string;
+  designation?: string;
+  department?: string;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  startDate?: string;
+  endDate?: string | null;
+  [key: string]: unknown;
+}
+
+export interface TeacherUpdatePayload {
+  personalInfo?: Partial<{
+    fullName: string;
+    gender: string;
+    dateOfBirth: string;
+    phone: string;
+    email: string;
+    qualification: string;
+    experience: string;
+    workLocation: string;
+    joiningDate: string;
+    contractType: string;
+    shift: string;
+  }>;
+  bankDetails?: Partial<{ accountNumber: string; bankName: string; ifscCode: string }>;
+  address?: Partial<{ currentAddress: string; permanentAddress: string }>;
+  [key: string]: unknown;
+}
+
+export interface EmploymentChangePayload {
+  designation?: string;
+  department?: string;
+  effectiveDate?: string;
+}
+
+/** -------- Merged shape the existing tab components render -------- */
 
 export interface TeacherDetail {
   id: string;
   staffId: string;
   fullName: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: TeacherStatus;
+  blocked: boolean;
   subject: string;
   isClassTeacher: boolean;
   className: string;
@@ -99,151 +208,224 @@ export interface TeacherDetail {
   joiningDate: string;
   phone: string;
   email: string;
-  experienceYears: number;
+  experience: string;
   qualification: string;
   addressInfo: TeacherAddress;
   bankDetails: TeacherBankDetails;
   documents: TeacherDocument[];
-  todaysClasses: TodaysClass[];
   assignments: Assignment[];
-  timetable: Record<Weekday, TimetablePeriod[]>;
-  attendance: AttendanceSummary;
-  payslips: Payslip[];
-  reports: TeacherReport[];
-  reportRange: string;
+  designation?: string;
+  department?: string;
 }
 
-const period = (
-  d: string,
-  n: number,
-  start: string,
-  end: string,
-  subject: string,
-  classSection: string,
-  room: string,
-): TimetablePeriod => ({ id: `${d}-${n}`, period: n, startTime: start, endTime: end, subject, classSection, room });
+function str(v: unknown, fallback = '—'): string {
+  if (typeof v === 'string' && v.trim()) return v;
+  return fallback;
+}
 
-const slots: [string, string][] = [
-  ['08:00', '08:45'],
-  ['08:50', '09:35'],
-  ['09:50', '10:35'],
-  ['10:40', '11:25'],
-  ['12:10', '12:55'],
-];
+function pickAddress(raw?: Record<string, unknown>): TeacherAddress {
+  const a = raw ?? {};
+  const current = a.current ?? a.currentAddress;
+  const permanent = a.permanent ?? a.permanentAddress;
+  return { current: str(current, ''), permanent: str(permanent, '') };
+}
 
-const day = (d: string, rows: [string, string][]): TimetablePeriod[] =>
-  rows.map(([cs, room], i) => period(d, i + 1, slots[i][0], slots[i][1], 'Mathematics', cs, room));
+function pickBank(raw?: Record<string, unknown>): TeacherBankDetails {
+  const b = raw ?? {};
+  return {
+    bankName: str(b.bankName, ''),
+    accountNumber: str(b.accountNumber, ''),
+    ifscCode: str(b.ifscCode ?? b.ifsc, ''),
+  };
+}
 
-const SAMPLE: TeacherDetail = {
-  id: 'sample',
-  staffId: 'TCH-0012',
-  fullName: 'Anita Sharma',
-  status: 'ACTIVE',
-  subject: 'Mathematics',
-  isClassTeacher: true,
-  className: '5',
-  section: 'A',
-  gender: 'Female',
-  dateOfBirth: '14 Mar 1988',
-  fathersName: 'Ramesh Sharma',
-  mothersName: 'Sunita Sharma',
-  maritalStatus: 'Married',
-  contractType: 'Permanent',
-  shift: 'Morning (8:00 - 2:30)',
-  workLocation: 'Main Campus',
-  joiningDate: '01 Jun 2018',
-  phone: '+91 98765 43210',
-  email: 'anita.sharma@verdant.test',
-  experienceYears: 8,
-  qualification: 'M.Sc Mathematics, B.Ed',
-  addressInfo: {
-    current: '24 Lotus Residency, Banjara Hills, Hyderabad - 500034',
-    permanent: '12 Gandhi Nagar, Jaipur, Rajasthan - 302015',
-  },
-  bankDetails: {
-    accountHolder: 'Anita Sharma',
-    accountNumber: 'XXXXXXXX4821',
-    bankName: 'State Bank of India',
-    ifsc: 'SBIN0001234',
-  },
-  documents: [
-    { id: 'd1', name: 'Aadhaar Card', verified: true },
-    { id: 'd2', name: 'PAN Card', verified: true },
-    { id: 'd3', name: 'B.Ed Degree Certificate', verified: true },
-    { id: 'd4', name: 'Experience Letter', verified: false },
-  ],
-  todaysClasses: [
-    { id: 'c1', startTime: '08:00', endTime: '08:45', subject: 'Mathematics', className: '5', section: 'A', room: 'Room 101', status: 'done' },
-    { id: 'c2', startTime: '08:50', endTime: '09:35', subject: 'Mathematics', className: '6', section: 'B', room: 'Room 204', status: 'done' },
-    { id: 'c3', startTime: '09:50', endTime: '10:35', subject: 'Mathematics', className: '7', section: 'A', room: 'Room 207', status: 'live' },
-    { id: 'c4', startTime: '10:40', endTime: '11:25', subject: 'Mathematics', className: '8', section: 'C', room: 'Room 112', status: 'upcoming' },
-    { id: 'c5', startTime: '12:10', endTime: '12:55', subject: 'Mathematics', className: '5', section: 'A', room: 'Room 101', status: 'upcoming' },
-  ],
-  assignments: [
-    { id: 'a1', className: '5', section: 'A', subject: 'Mathematics', periodsPerWeek: 6 },
-    { id: 'a2', className: '6', section: 'B', subject: 'Mathematics', periodsPerWeek: 5 },
-    { id: 'a3', className: '7', section: 'A', subject: 'Mathematics', periodsPerWeek: 5 },
-    { id: 'a4', className: '8', section: 'C', subject: 'Mathematics', periodsPerWeek: 5 },
-    { id: 'a5', className: '5', section: 'B', subject: 'Mental Maths', periodsPerWeek: 2 },
-  ],
-  timetable: {
-    Mon: day('Mon', [['5-A', 'Room 101'], ['6-B', 'Room 204'], ['7-A', 'Room 207'], ['8-C', 'Room 112'], ['5-A', 'Room 101']]),
-    Tue: day('Tue', [['6-B', 'Room 204'], ['5-A', 'Room 101'], ['8-C', 'Room 112'], ['7-A', 'Room 207']]),
-    Wed: day('Wed', [['7-A', 'Room 207'], ['8-C', 'Room 112'], ['5-A', 'Room 101'], ['6-B', 'Room 204']]),
-    Thu: day('Thu', [['5-A', 'Room 101'], ['7-A', 'Room 207'], ['6-B', 'Room 204'], ['8-C', 'Room 112'], ['5-B', 'Room 103']]),
-    Fri: day('Fri', [['8-C', 'Room 112'], ['6-B', 'Room 204'], ['5-A', 'Room 101'], ['7-A', 'Room 207']]),
-    Sat: day('Sat', [['5-A', 'Room 101'], ['5-B', 'Room 103'], ['6-B', 'Room 204']]),
-  },
-  attendance: {
-    monthLabel: 'October 2026',
-    present: 21,
-    absent: 1,
-    leave: 1,
-    percentage: 95.5,
-    days: [
-      'P', 'P', 'P', 'P', 'P', 'H',
-      'P', 'P', 'A', 'P', 'P', 'P',
-      'H', 'P', 'P', 'P', 'L', 'P',
-      'P', 'H', 'P', 'P', 'P', 'P',
-      'P', 'P', 'H', 'P', 'P', 'P',
-    ],
-  },
-  payslips: [
-    { id: 'p1', monthLabel: 'September 2026', gross: 62000, deductions: 7250, net: 54750, status: 'Paid', paidOn: '30 Sep 2026' },
-    { id: 'p2', monthLabel: 'August 2026', gross: 62000, deductions: 7250, net: 54750, status: 'Paid', paidOn: '31 Aug 2026' },
-    { id: 'p3', monthLabel: 'July 2026', gross: 61000, deductions: 7100, net: 53900, status: 'Paid', paidOn: '31 Jul 2026' },
-  ],
-  reports: [
-    { id: 'r1', title: 'Attendance Report', summary: '95.5% average, 1 absence', icon: 'calendar-outline' },
-    { id: 'r2', title: 'Homework Report', summary: '42 assigned, 96% reviewed on time', icon: 'book-outline' },
-    { id: 'r3', title: 'Workload Report', summary: '23 periods per week across 4 classes', icon: 'time-outline' },
-  ],
-  reportRange: 'Last 30 days',
-};
+function mapDocuments(docs?: RawDocument[]): TeacherDocument[] {
+  if (!docs) return [];
+  return docs.map((d, i) => ({
+    id: d.id ?? `${i}`,
+    name: d.documentName ?? d.name ?? 'Document',
+    file: d.file,
+    verified: d.verified ?? false,
+  }));
+}
+
+function mapAssignments(assignments?: RawAssignment[]): Assignment[] {
+  if (!assignments) return [];
+  return assignments.map((a, i) => ({
+    id: `${a.sectionId}-${a.subjectId}-${i}`,
+    className: a.section?.class?.name ?? '—',
+    section: a.section?.name ?? '—',
+    subject: a.subject?.name ?? '—',
+  }));
+}
+
+function merge(raw: TeacherRaw, personal: TeacherPersonal, bank: TeacherBankResponse): TeacherDetail {
+  const assignments = mapAssignments(personal.currentAssignments);
+  const first = assignments[0];
+  return {
+    id: raw.id,
+    staffId: personal.employeeCode ?? raw.staff?.employeeCode ?? raw.staffId ?? raw.id,
+    fullName: raw.fullName ?? personal.fullName,
+    status: raw.status ?? raw.staff?.status ?? 'ACTIVE',
+    blocked: false,
+    subject: first?.subject ?? '—',
+    // The API doesn't expose a "class teacher" flag anywhere in this controller — assignment
+    // records are subject/section links only, so this can't be derived reliably.
+    isClassTeacher: false,
+    className: first?.className ?? '',
+    section: first?.section ?? '',
+    gender: str(raw.gender ?? personal.gender),
+    dateOfBirth: str(raw.dateOfBirth ?? personal.dateOfBirth),
+    fathersName: str(raw.fathersName ?? personal.fathersName),
+    mothersName: str(raw.mothersName ?? personal.mothersName),
+    maritalStatus: str(raw.maritalStatus ?? personal.maritalStatus),
+    contractType: str(personal.contractType ?? raw.staff?.contractType),
+    shift: str(raw.shift ?? personal.shift),
+    workLocation: str(raw.workLocation ?? personal.workLocation),
+    joiningDate: str(personal.joiningDate ?? raw.staff?.joiningDate),
+    phone: str(raw.phone ?? personal.phone, ''),
+    email: str(raw.email ?? personal.email, ''),
+    experience: str(raw.experience ?? personal.experience),
+    qualification: str(raw.qualification ?? personal.qualification),
+    addressInfo: pickAddress((raw.addressInfo ?? personal.addressInfo) as Record<string, unknown> | undefined),
+    bankDetails: pickBank((bank.bankDetails ?? raw.bankDetails) as Record<string, unknown> | undefined),
+    documents: mapDocuments(personal.documents ?? raw.documents),
+    assignments,
+    designation: raw.staff?.designation,
+    department: raw.staff?.department,
+  };
+}
 
 export interface UseTeacherDetailResult {
   data: TeacherDetail | null;
   isLoading: boolean;
   error: Error | null;
+  refetch: () => void;
+  mutating: boolean;
+  employmentHistory: EmploymentHistoryRow[] | null;
+  employmentHistoryLoading: boolean;
+  loadEmploymentHistory: () => void;
+  updateProfile: (partial: TeacherUpdatePayload) => Promise<void>;
+  changeEmployment: (payload: EmploymentChangePayload) => Promise<void>;
+  setStatus: (status: TeacherStatus) => Promise<void>;
+  toggleBlock: () => Promise<boolean>;
 }
 
-/** Dummy hook; swap the body for the real API call later. Same teacher for any id. */
 export function useTeacherDetail(id: string | undefined): UseTeacherDetailResult {
-  const [state, setState] = useState<UseTeacherDetailResult>({ data: null, isLoading: true, error: null });
+  const [data, setData] = useState<TeacherDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [mutating, setMutating] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [employmentHistory, setEmploymentHistory] = useState<EmploymentHistoryRow[] | null>(null);
+  const [employmentHistoryLoading, setEmploymentHistoryLoading] = useState(false);
 
   useEffect(() => {
-    setState({ data: null, isLoading: true, error: null });
-    const t = setTimeout(() => {
-      if (!id) {
-        setState({ data: null, isLoading: false, error: new Error('Teacher not found') });
-        return;
+    let cancelled = false;
+    if (!id) {
+      setData(null);
+      setIsLoading(false);
+      setError(new Error('Teacher not found'));
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    setEmploymentHistory(null);
+    Promise.all([getTeacher(id), getTeacherPersonal(id), getTeacherBank(id)])
+      .then(([raw, personal, bank]) => {
+        if (cancelled) return;
+        setData(merge(raw, personal, bank));
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err : new Error('Something went wrong.'));
+        setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, reloadToken]);
+
+  const refetch = useCallback(() => setReloadToken((n) => n + 1), []);
+
+  const loadEmploymentHistory = useCallback(() => {
+    if (!id || employmentHistoryLoading) return;
+    setEmploymentHistoryLoading(true);
+    getTeacherEmploymentHistory(id)
+      .then((rows) => setEmploymentHistory(rows))
+      .catch(() => setEmploymentHistory([]))
+      .finally(() => setEmploymentHistoryLoading(false));
+  }, [id, employmentHistoryLoading]);
+
+  const updateProfile = useCallback(
+    async (partial: TeacherUpdatePayload) => {
+      if (!id) return;
+      setMutating(true);
+      try {
+        await apiUpdateTeacher(id, partial);
+        refetch();
+      } finally {
+        setMutating(false);
       }
-      setState({ data: { ...SAMPLE, id }, isLoading: false, error: null });
-    }, 400);
-    return () => clearTimeout(t);
+    },
+    [id, refetch]
+  );
+
+  const changeEmploymentFn = useCallback(
+    async (payload: EmploymentChangePayload) => {
+      if (!id) return;
+      setMutating(true);
+      try {
+        await apiChangeEmployment(id, payload);
+        refetch();
+      } finally {
+        setMutating(false);
+      }
+    },
+    [id, refetch]
+  );
+
+  const setStatus = useCallback(
+    async (status: TeacherStatus) => {
+      if (!id) return;
+      setMutating(true);
+      try {
+        await apiSetTeacherStatus(id, status);
+        setData((prev) => (prev ? { ...prev, status } : prev));
+      } finally {
+        setMutating(false);
+      }
+    },
+    [id]
+  );
+
+  const toggleBlock = useCallback(async (): Promise<boolean> => {
+    if (!id) return false;
+    setMutating(true);
+    try {
+      const result = await apiToggleTeacherBlock(id);
+      setData((prev) => (prev ? { ...prev, blocked: result.blocked } : prev));
+      return result.blocked;
+    } finally {
+      setMutating(false);
+    }
   }, [id]);
 
-  return state;
+  return {
+    data,
+    isLoading,
+    error,
+    refetch,
+    mutating,
+    employmentHistory,
+    employmentHistoryLoading,
+    loadEmploymentHistory,
+    updateProfile,
+    changeEmployment: changeEmploymentFn,
+    setStatus,
+    toggleBlock,
+  };
 }
 
 /** Indian digit grouping (12,34,567), manual to avoid locale support issues. */

@@ -9,7 +9,8 @@ import type { StudentDetail } from './studentDetail';
 /** Sub-bar: back + "Directory", edit, status pill, kebab. */
 export function SubBar({ status }: { status?: string }) {
   const router = useRouter();
-  const active = status === 'ACTIVE';
+  const active = status === 'active';
+  const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : '';
   return (
     <View style={styles.subBar}>
       <Pressable
@@ -27,7 +28,7 @@ export function SubBar({ status }: { status?: string }) {
         {status ? (
           <View style={[styles.status, !active && { backgroundColor: colors.dangerBg }]}>
             <View style={[styles.dot, { backgroundColor: active ? colors.primaryDeep : colors.danger }]} />
-            <Text style={[styles.statusText, !active && { color: colors.danger }]}>{status}</Text>
+            <Text style={[styles.statusText, !active && { color: colors.danger }]}>{label}</Text>
           </View>
         ) : null}
         <Pressable style={styles.circle} onPress={() => Alert.alert('More', 'More actions coming soon')} accessibilityLabel="More actions">
@@ -41,7 +42,8 @@ export function SubBar({ status }: { status?: string }) {
 export function ProfileHeader({ s }: { s: StudentDetail }) {
   // No clipboard package installed yet; show the address so it can be long-press copied.
   const copy = () => Alert.alert('Email', s.email);
-  const blood = s.bloodGroup.replace('+', '').replace('-', '') + (s.bloodGroup.endsWith('-') ? ' NEG' : ' POS');
+  const hasBlood = Boolean(s.bloodGroup) && s.bloodGroup !== '—';
+  const blood = hasBlood ? s.bloodGroup.replace('+', '').replace('-', '') + (s.bloodGroup.endsWith('-') ? ' NEG' : ' POS') : null;
   return (
     <Card style={styles.card}>
       <View style={styles.top}>
@@ -56,9 +58,11 @@ export function ProfileHeader({ s }: { s: StudentDetail }) {
         <View style={styles.info}>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>{s.fullName}</Text>
-            <View style={styles.blood}>
-              <Text style={styles.bloodText}>{blood}</Text>
-            </View>
+            {blood && (
+              <View style={styles.blood}>
+                <Text style={styles.bloodText}>{blood}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.pills}>
             <Text style={styles.pill}>{s.admissionNumber}</Text>
@@ -82,9 +86,6 @@ export function ProfileHeader({ s }: { s: StudentDetail }) {
       <View style={styles.row}>
         <Ionicons name="call-outline" size={16} color={colors.textSecondary} />
         <Text style={[styles.rowText, { fontFamily: fonts.bodySemi }]}>{s.phone}</Text>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>{s.phoneTag}</Text>
-        </View>
       </View>
     </Card>
   );

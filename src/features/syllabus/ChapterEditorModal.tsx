@@ -1,53 +1,76 @@
 import { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { Chapter } from './mockSyllabus';
+import type { Chapter, ChapterInput } from './types';
+
+type DraftChapter = {
+  /** stable React key — equals the server `id` for existing chapters */
+  key: string;
+  /** present only for chapters that already exist on the backend */
+  id?: string;
+  title: string;
+  topics: string[];
+};
 
 type Props = {
   visible: boolean;
   title: string;
   subtitle?: string;
   chapters: Chapter[];
-  onSave: (chapters: Chapter[]) => void;
+  saving?: boolean;
+  onSave: (chapters: ChapterInput[]) => void;
   onClose: () => void;
 };
 
 let draftSeq = 0;
-const newId = () => `new-${Date.now()}-${(draftSeq += 1)}`;
+const newKey = () => `new-${Date.now()}-${(draftSeq += 1)}`;
 
 /** Modal editor: add / rename / remove chapters, adjust topic counts. */
-export function ChapterEditorModal({ visible, title, subtitle, chapters, onSave, onClose }: Props) {
-  const [draft, setDraft] = useState<Chapter[]>([]);
+export function ChapterEditorModal({ visible, title, subtitle, chapters, saving, onSave, onClose }: Props) {
+  const [draft, setDraft] = useState<DraftChapter[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (visible) {
-      setDraft(chapters.map((c) => ({ ...c })));
+      setDraft(chapters.map((c) => ({ key: c.id, id: c.id, title: c.title, topics: [...c.topics] })));
       setErrors({});
     }
     // only reset when opening
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const patch = (id: string, p: Partial<Chapter>) => {
-    setDraft((d) => d.map((c) => (c.id === id ? { ...c, ...p } : c)));
-    if (p.title !== undefined) setErrors((e) => ({ ...e, [id]: '' }));
+  const patch = (key: string, p: Partial<DraftChapter>) => {
+    setDraft((d) => d.map((c) => (c.key === key ? { ...c, ...p } : c)));
+    if (p.title !== undefined) setErrors((e) => ({ ...e, [key]: '' }));
   };
 
-  const add = () => setDraft((d) => [...d, { id: newId(), title: '', topics: 1 }]);
-  const remove = (id: string) => setDraft((d) => d.filter((c) => c.id !== id));
+  const add = () => setDraft((d) => [...d, { key: newKey(), title: '', topics: [] }]);
+  const remove = (key: string) => setDraft((d) => d.filter((c) => c.key !== key));
+
+  const addTopic = (key: string) => {
+    const row = draft.find((c) => c.key === key);
+    if (!row) return;
+    patch(key, { topics: [...row.topics, `Topic ${row.topics.length + 1}`] });
+  };
+  const removeTopic = (key: string) => {
+    const row = draft.find((c) => c.key === key);
+    if (!row || row.topics.length === 0) return;
+    patch(key, { topics: row.topics.slice(0, -1) });
+  };
 
   const submit = () => {
     const e: Record<string, string> = {};
     draft.forEach((c) => {
-      if (!c.title.trim()) e[c.id] = 'Chapter name is required.';
+      if (!c.title.trim()) e[c.key] = 'Chapter name is required.';
     });
     setErrors(e);
     if (Object.keys(e).length) return;
-    onSave(draft.map((c) => ({ ...c, title: c.title.trim() })));
+    onSave(
+      draft.map((c) => (c.id ? { id: c.id, title: c.title.trim(), topics: c.topics } : { title: c.title.trim(), topics: c.topics })),
+    );
   };
 
   return (
@@ -69,36 +92,28 @@ export function ChapterEditorModal({ visible, title, subtitle, chapters, onSave,
           <ScrollView keyboardShouldPersistTaps="handled" style={styles.scroll} contentContainerStyle={styles.list}>
             {draft.length === 0 ? <Text style={styles.empty}>No chapters yet. Add the first one.</Text> : null}
             {draft.map((c, i) => (
-              <View key={c.id} style={styles.item}>
+              <View key={c.key} style={styles.item}>
                 <View style={styles.itemRow}>
                   <Text style={styles.num}>{i + 1}</Text>
                   <TextInput
                     value={c.title}
-                    onChangeText={(t) => patch(c.id, { title: t })}
+                    onChangeText={(t) => patch(c.key, { title: t })}
                     placeholder="Chapter name"
                     placeholderTextColor={colors.textHint}
-                    style={[styles.input, !!errors[c.id] && styles.inputErr]}
+                    style={[styles.input, !!errors[c.key] && styles.inputErr]}
                   />
-                  <Pressable onPress={() => remove(c.id)} hitSlop={8} accessibilityLabel={`Remove chapter ${i + 1}`}>
+                  <Pressable onPress={() => remove(c.key)} hitSlop={8} accessibilityLabel={`Remove chapter ${i + 1}`}>
                     <Ionicons name="trash-outline" size={20} color={colors.danger} />
                   </Pressable>
                 </View>
-                {errors[c.id] ? <Text style={styles.err}>{errors[c.id]}</Text> : null}
+                {errors[c.key] ? <Text style={styles.err}>{errors[c.key]}</Text> : null}
                 <View style={styles.stepRow}>
                   <Text style={styles.stepLabel}>Topics</Text>
-                  <Pressable
-                    style={styles.stepBtn}
-                    onPress={() => patch(c.id, { topics: Math.max(0, c.topics - 1) })}
-                    accessibilityLabel="Fewer topics"
-                  >
+                  <Pressable style={styles.stepBtn} onPress={() => removeTopic(c.key)} accessibilityLabel="Fewer topics">
                     <Ionicons name="remove" size={16} color={colors.primaryDeep} />
                   </Pressable>
-                  <Text style={styles.stepVal}>{c.topics}</Text>
-                  <Pressable
-                    style={styles.stepBtn}
-                    onPress={() => patch(c.id, { topics: c.topics + 1 })}
-                    accessibilityLabel="More topics"
-                  >
+                  <Text style={styles.stepVal}>{c.topics.length}</Text>
+                  <Pressable style={styles.stepBtn} onPress={() => addTopic(c.key)} accessibilityLabel="More topics">
                     <Ionicons name="add" size={16} color={colors.primaryDeep} />
                   </Pressable>
                 </View>
@@ -111,11 +126,11 @@ export function ChapterEditorModal({ visible, title, subtitle, chapters, onSave,
           </ScrollView>
 
           <View style={styles.footer}>
-            <Pressable style={[styles.btn, styles.btnGhost]} onPress={onClose}>
+            <Pressable style={[styles.btn, styles.btnGhost]} onPress={onClose} disabled={saving}>
               <Text style={styles.btnGhostText}>Cancel</Text>
             </Pressable>
-            <Pressable style={[styles.btn, styles.btnPrimary]} onPress={submit}>
-              <Text style={styles.btnPrimaryText}>Save</Text>
+            <Pressable style={[styles.btn, styles.btnPrimary, saving && styles.btnDisabled]} onPress={submit} disabled={saving}>
+              {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.btnPrimaryText}>Save</Text>}
             </Pressable>
           </View>
         </View>
@@ -165,5 +180,6 @@ const styles = StyleSheet.create({
   btnGhost: { backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
   btnGhostText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   btnPrimary: { backgroundColor: colors.primary },
+  btnDisabled: { opacity: 0.6 },
   btnPrimaryText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
 });

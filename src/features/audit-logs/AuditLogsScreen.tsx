@@ -1,34 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { SearchBar } from '../../components/ui/SearchBar';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { ActiveFilterChips, activeFilterCount } from './ActiveFilterChips';
 import { AuditDetailSheet } from './AuditDetailSheet';
 import { AuditFilterSheet } from './AuditFilterSheet';
 import { AuditLogCard } from './AuditLogCard';
-import { Pagination } from './Pagination';
-import { EMPTY_FILTERS, useAuditLogs, type AuditFilters, type AuditLog } from './mockAuditLogs';
+import { EMPTY_FILTERS, parseDMY, toApiDate, type AuditFilters, type AuditLog } from './types';
+import { useAuditLogs } from './useAuditLogs';
 
 export function AuditLogsScreen() {
   const insets = useSafeAreaInsets();
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
   const [filters, setFilters] = useState<AuditFilters>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [viewing, setViewing] = useState<AuditLog | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => { setDebounced(search); setPage(1); }, 300);
-    return () => clearTimeout(t);
-  }, [search]);
+  const queryParams = useMemo(
+    () => ({
+      entityType: filters.entityType.trim() || undefined,
+      action: filters.action.trim() || undefined,
+      userId: filters.userId.trim() || undefined,
+      fromDate: parseDMY(filters.from) !== null ? toApiDate(filters.from) : undefined,
+      toDate: parseDMY(filters.to) !== null ? toApiDate(filters.to) : undefined,
+    }),
+    [filters]
+  );
 
-  const { data, total, isLoading, refetch } = useAuditLogs({ ...filters, search: debounced, page });
+  const { data, isLoading, isLoadingMore, hasMore, loadMore, refetch, permissionDenied, permissionDeniedMessage } =
+    useAuditLogs(queryParams);
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
@@ -37,24 +40,20 @@ export function AuditLogsScreen() {
   const doRefresh = useCallback(() => { setRefreshing(true); refetch(); }, [refetch]);
   const onView = useCallback((l: AuditLog) => setViewing(l), []);
 
-  const applyFilters = (f: AuditFilters) => { setFilters(f); setPage(1); setFilterOpen(false); };
+  const applyFilters = (f: AuditFilters) => { setFilters(f); setFilterOpen(false); };
   const clearOne = (k: 'entityType' | 'action' | 'userId' | 'from' | 'to') => {
     setFilters((f) => ({ ...f, [k]: '' }));
-    setPage(1);
   };
 
-  const showSkeleton = isLoading && !refreshing;
+  const showSkeleton = isLoading && !refreshing && data.length === 0;
   const count = activeFilterCount(filters);
 
   const header = (
     <View style={styles.headerWrap}>
-      <SearchBar
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search action, entity or user..."
-        onFilterPress={() => setFilterOpen(true)}
-        filterCount={count}
-      />
+      <Pressable style={styles.filterBtn} onPress={() => setFilterOpen(true)} accessibilityLabel="Filters">
+        <Ionicons name="options-outline" size={18} color={colors.primaryDeep} />
+        <Text style={styles.filterBtnText}>Filter{count ? ` (${count})` : ''}</Text>
+      </Pressable>
       <ActiveFilterChips filters={filters} onClear={clearOne} />
       {showSkeleton ? (
         <View style={styles.skeletons}>
@@ -82,23 +81,35 @@ export function AuditLogsScreen() {
         ListHeaderComponent={header}
         renderItem={({ item, index }) => (
           <View style={styles.itemWrap}>
-            <AuditLogCard item={item} serial={(page - 1) * filters.pageSize + index + 1} onView={onView} />
+            <AuditLogCard item={item} serial={index + 1} onView={onView} />
           </View>
         )}
         ListEmptyComponent={
           showSkeleton ? null : (
             <View style={styles.empty}>
-              <Ionicons name="time-outline" size={44} color={colors.textHint} />
-              <Text style={styles.emptyTitle}>No audit logs found</Text>
-              <Text style={styles.emptySub}>Try changing the search or filters.</Text>
+              <Ionicons
+                name={permissionDenied ? 'lock-closed-outline' : 'time-outline'}
+                size={44}
+                color={colors.textHint}
+              />
+              <Text style={styles.emptyTitle}>
+                {permissionDenied ? 'Audit logs unavailable' : 'No audit logs found'}
+              </Text>
+              <Text style={styles.emptySub}>
+                {permissionDenied ? permissionDeniedMessage : 'Try changing the filters.'}
+              </Text>
             </View>
           )
         }
         ListFooterComponent={
-          !isLoading && total > 0 ? (
-            <Pagination page={page} pageSize={filters.pageSize} total={total} onChange={setPage} />
-          ) : isLoading && refreshing ? <ActivityIndicator color={colors.primary} /> : null
+          isLoadingMore ? (
+            <ActivityIndicator style={styles.footerLoader} color={colors.primary} />
+          ) : !isLoading && data.length > 0 && !hasMore ? (
+            <Text style={styles.endText}>You&rsquo;ve reached the end</Text>
+          ) : null
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={doRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
@@ -118,11 +129,18 @@ export function AuditLogsScreen() {
 const styles = StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   itemWrap: { paddingHorizontal: 16 },
+  filterBtn: {
+    alignSelf: 'flex-start', height: 40, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.mint, borderRadius: radius.lg,
+  },
+  filterBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primaryDeep },
   skeletons: { gap: 12 },
   skeleton: { height: 130, borderRadius: radius.xl, backgroundColor: colors.mint, opacity: 0.7 },
-  empty: { alignItems: 'center', paddingVertical: 48, gap: 6 },
-  emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
-  emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
+  empty: { alignItems: 'center', paddingVertical: 48, gap: 6, paddingHorizontal: 24 },
+  emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text, textAlign: 'center' },
+  emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
+  footerLoader: { marginVertical: 16 },
+  endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
   iconBtn: {
     width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,

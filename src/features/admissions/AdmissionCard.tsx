@@ -5,28 +5,39 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatDate, type Admission, type AdmissionStatus } from './mockAdmissions';
+import type { AdmissionListItem, AdmissionStatus } from './types';
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
 type Tone = 'success' | 'danger' | 'warning' | 'neutral' | 'primary';
 const STATUS: Record<AdmissionStatus, { label: string; tone: Tone }> = {
   pending: { label: 'Pending', tone: 'warning' },
-  approved: { label: 'Approved', tone: 'success' },
   enrolled: { label: 'Enrolled', tone: 'success' },
   rejected: { label: 'Rejected', tone: 'danger' },
   cancelled: { label: 'Cancelled', tone: 'neutral' },
 };
 
 type Props = {
-  item: Admission;
+  item: AdmissionListItem;
   selected: boolean;
   selectionMode: boolean;
-  onPress: (item: Admission) => void;
-  onLongPress: (item: Admission) => void;
-  onApprove: (item: Admission) => void;
-  onReject: (item: Admission) => void;
-  onView: (item: Admission) => void;
-  onEdit: (item: Admission) => void;
-  onDelete: (item: Admission) => void;
+  canApprove: boolean;
+  canReject: boolean;
+  canCancel: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  onPress: (item: AdmissionListItem) => void;
+  onLongPress: (item: AdmissionListItem) => void;
+  onApprove: (item: AdmissionListItem) => void;
+  onReject: (item: AdmissionListItem) => void;
+  onCancel: (item: AdmissionListItem) => void;
+  onView: (item: AdmissionListItem) => void;
+  onEdit: (item: AdmissionListItem) => void;
+  onDelete: (item: AdmissionListItem) => void;
 };
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -39,7 +50,10 @@ function Action({ icon, label, color, bg, onPress }: { icon: IconName; label: st
   );
 }
 
-function AdmissionCardBase({ item, selected, selectionMode, onPress, onLongPress, onApprove, onReject, onView, onEdit, onDelete }: Props) {
+function AdmissionCardBase({
+  item, selected, selectionMode, canApprove, canReject, canCancel, canEdit, canDelete,
+  onPress, onLongPress, onApprove, onReject, onCancel, onView, onEdit, onDelete,
+}: Props) {
   const st = STATUS[item.status];
   const pending = item.status === 'pending';
   return (
@@ -52,17 +66,17 @@ function AdmissionCardBase({ item, selected, selectionMode, onPress, onLongPress
           <Avatar name={item.fullName} size={44} />
           <View style={styles.info}>
             <Text style={styles.name} numberOfLines={1}>{item.fullName}</Text>
-            <Text style={styles.email} numberOfLines={1}>{item.email}</Text>
+            <Text style={styles.email} numberOfLines={1}>{item.email ?? '—'}</Text>
           </View>
           <Badge label={st.label} tone={st.tone} />
         </View>
         <View style={styles.meta}>
           <View style={styles.appNo}>
-            <Text style={styles.appNoText}>{item.applicationNumber}</Text>
+            <Text style={styles.appNoText}>{item.admissionNumber}</Text>
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="school-outline" size={14} color={colors.textSecondary} />
-            <Text style={styles.metaText}>{item.className}, {item.sectionName}</Text>
+            <Text style={styles.metaText}>{item.className ?? '—'}{item.sectionName ? `, ${item.sectionName}` : ''}</Text>
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
@@ -71,12 +85,13 @@ function AdmissionCardBase({ item, selected, selectionMode, onPress, onLongPress
         </View>
         {!selectionMode && (
           <View style={styles.actions}>
-            {pending && <Action icon="checkmark-circle-outline" label="Approve" color={colors.success} bg={colors.successBg} onPress={() => onApprove(item)} />}
-            {pending && <Action icon="close-circle-outline" label="Reject" color={colors.danger} bg={colors.dangerBg} onPress={() => onReject(item)} />}
+            {pending && canApprove && <Action icon="checkmark-circle-outline" label="Approve" color={colors.success} bg={colors.successBg} onPress={() => onApprove(item)} />}
+            {pending && canReject && <Action icon="close-circle-outline" label="Reject" color={colors.danger} bg={colors.dangerBg} onPress={() => onReject(item)} />}
+            {pending && canCancel && <Action icon="ban-outline" label="Cancel" color={colors.textSecondary} bg={colors.mint} onPress={() => onCancel(item)} />}
             <View style={styles.spacer} />
             <Action icon="eye-outline" label="View" color={colors.primaryDeep} bg={colors.mint} onPress={() => onView(item)} />
-            <Action icon="create-outline" label="Edit" color={colors.blue} bg="#dbeafe" onPress={() => onEdit(item)} />
-            <Action icon="trash-outline" label="Delete" color={colors.danger} bg={colors.dangerBg} onPress={() => onDelete(item)} />
+            {pending && canEdit && <Action icon="create-outline" label="Edit" color={colors.blue} bg="#dbeafe" onPress={() => onEdit(item)} />}
+            {canDelete && <Action icon="trash-outline" label="Delete" color={colors.danger} bg={colors.dangerBg} onPress={() => onDelete(item)} />}
           </View>
         )}
       </Card>

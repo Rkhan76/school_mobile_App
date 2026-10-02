@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { StatTile } from '../../../components/ui/StatTile';
 import { colors } from '../../../theme/tokens';
-import type { StudentStats } from '../mockStudents';
+import type { StudentStats } from '../types';
 
 export function StatsGrid({ stats }: { stats: StudentStats }) {
   return (
@@ -12,7 +12,7 @@ export function StatsGrid({ stats }: { stats: StudentStats }) {
       </View>
       <View style={styles.row}>
         <StatTile label="Female" value={String(stats.female)} icon="female-outline" tint={colors.primaryDeep} />
-        <StatTile label="With Portal Access" value={String(stats.portalAccess)} icon="school-outline" tint={colors.purple} />
+        <StatTile label="With Portal Access" value={String(stats.withPortalAccess)} icon="school-outline" tint={colors.purple} />
       </View>
     </View>
   );

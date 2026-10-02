@@ -1,32 +1,44 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ApiError } from '../../lib/apiClient';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { Certificate } from './mockCertificates';
+import type { Certificate } from './types';
 
 type Props = {
   certificate: Certificate | null;
-  onConfirm: (id: string, reason: string) => void;
+  onConfirm: (id: string, reason?: string) => Promise<void>;
   onClose: () => void;
 };
 
 export function RevokeModal({ certificate, onConfirm, onClose }: Props) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (certificate) {
       setReason('');
       setError('');
+      setSubmitting(false);
     }
   }, [certificate]);
 
-  const submit = () => {
-    if (!certificate) return;
-    if (reason.trim().length < 5) {
-      setError('Please enter a reason of at least 5 characters.');
-      return;
+  const submit = async () => {
+    if (!certificate || submitting) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      await onConfirm(certificate.id, reason.trim() || undefined);
+    } catch (err) {
+      if (err instanceof ApiError && err.statusCode === 409) {
+        setError('This certificate has already been revoked.');
+      } else if (err instanceof ApiError) {
+        setError(err.message || 'Something went wrong. Please try again.');
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+      setSubmitting(false);
     }
-    onConfirm(certificate.id, reason.trim());
   };
 
   return (
@@ -39,22 +51,22 @@ export function RevokeModal({ certificate, onConfirm, onClose }: Props) {
             <Text style={styles.sub}>
               {certificate.referenceNo} issued to {certificate.recipientName} will be marked as revoked. This cannot be undone.
             </Text>
-            <Text style={styles.label}>Reason *</Text>
+            <Text style={styles.label}>Reason (optional)</Text>
             <TextInput
               value={reason}
               onChangeText={(t) => { setReason(t); if (error) setError(''); }}
               placeholder="Why is this certificate being revoked?"
               placeholderTextColor={colors.textHint}
               multiline
-              style={[styles.input, !!error && styles.inputErr]}
+              style={styles.input}
             />
             {error ? <Text style={styles.err}>{error}</Text> : null}
             <View style={styles.actions}>
-              <Pressable style={[styles.btn, styles.cancel]} onPress={onClose}>
+              <Pressable style={[styles.btn, styles.cancel]} onPress={onClose} disabled={submitting}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
-              <Pressable style={[styles.btn, styles.confirm]} onPress={submit}>
-                <Text style={styles.confirmText}>Revoke</Text>
+              <Pressable style={[styles.btn, styles.confirm, submitting && styles.off]} onPress={submit} disabled={submitting}>
+                {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.confirmText}>Revoke</Text>}
               </Pressable>
             </View>
           </View>
@@ -75,7 +87,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
     fontFamily: fonts.body, fontSize: 14, color: colors.text, backgroundColor: colors.cardSolid,
   },
-  inputErr: { borderColor: colors.danger },
   err: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
   actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   btn: { flex: 1, height: 46, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
@@ -83,4 +94,5 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   confirm: { backgroundColor: colors.danger },
   confirmText: { fontFamily: fonts.bodySemi, color: colors.white },
+  off: { opacity: 0.6 },
 });

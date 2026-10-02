@@ -2,9 +2,9 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, shadow } from '../../theme/tokens';
 import { listStamp } from './format';
-import type { ChatGroup } from './mockMessages';
+import type { UIChatGroup } from './types';
 
-type Props = { group: ChatGroup; onPress: (id: string) => void };
+type Props = { group: UIChatGroup; onPress: (id: string) => void };
 
 export const GroupAvatar = memo(function GroupAvatar({ name, size = 46 }: { name: string; size?: number }) {
   return (

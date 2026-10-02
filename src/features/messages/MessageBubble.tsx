@@ -2,8 +2,9 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../../theme/tokens';
+import { useSession } from '../auth/session';
 import { formatTime } from './format';
-import { DELETED_TEXT, ME_ID, type ChatMessage } from './mockMessages';
+import { DELETED_TEXT, type UIChatMessage } from './types';
 
 const SENDER_COLORS = [colors.blue, colors.indigo, colors.purple, colors.orange, colors.primaryDark, '#db2777'];
 
@@ -14,14 +15,16 @@ function senderColor(id: string): string {
 }
 
 type Props = {
-  message: ChatMessage;
+  message: UIChatMessage;
   /** show the sender name above (first of a run in group chats) */
   showSender: boolean;
-  onLongPress?: (m: ChatMessage) => void;
+  /** sender or an OWNER/ADMIN of the group — resolved by the caller (see ChatScreen.tsx) */
+  canDelete?: boolean;
+  onLongPress?: (m: UIChatMessage) => void;
 };
 
-function MessageBubbleImpl({ message, showSender, onLongPress }: Props) {
-  const own = message.senderId === ME_ID;
+function MessageBubbleImpl({ message, showSender, canDelete, onLongPress }: Props) {
+  const own = message.senderId === useSession((s) => s.user?.id);
   const deleted = message.deleted;
   return (
     <View style={[styles.row, own ? styles.rowOwn : styles.rowOther]}>
@@ -29,7 +32,7 @@ function MessageBubbleImpl({ message, showSender, onLongPress }: Props) {
         <Text style={[styles.sender, { color: senderColor(message.senderId) }]}>{message.senderName}</Text>
       ) : null}
       <Pressable
-        onLongPress={own && !deleted && onLongPress ? () => onLongPress(message) : undefined}
+        onLongPress={canDelete && !deleted && onLongPress ? () => onLongPress(message) : undefined}
         delayLongPress={300}
         style={[
           styles.bubble,

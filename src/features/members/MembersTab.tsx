@@ -1,72 +1,147 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
 import { AddMemberModal } from './AddMemberModal';
 import { MemberCard } from './MemberCard';
-import { AssignRoleSheet, MemberPermissionsSheet } from './MemberSheets';
-import { useMembers, useRoles, type Member } from './mockMembers';
-import { Chip, EmptyState, Pagination, SkeletonBlock } from './parts';
-
-const PAGE_SIZE = 20;
+import { AssignRoleSheet } from './MemberSheets';
+import { Chip, EmptyState, SkeletonBlock } from './parts';
+import { canActOnCredentials, ROLE_FILTER_OPTIONS, type SchoolUser, type SchoolUserBaseRole } from './types';
+import { useMembers, useRoles } from './useMembers';
 
 export function MembersTab() {
   const insets = useSafeAreaInsets();
+  const { permissions, user } = useSession();
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [roleId, setRoleId] = useState('');
-  const [page, setPage] = useState(1);
+  const [role, setRole] = useState<SchoolUserBaseRole | ''>('');
   const [refreshing, setRefreshing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [assigning, setAssigning] = useState<Member | null>(null);
-  const [previewing, setPreviewing] = useState<Member | null>(null);
+  const [assigning, setAssigning] = useState<SchoolUser | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => { setDebounced(search); setPage(1); }, 300);
+    const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
+  const canResendInvite = permissions.includes('school-user.invite.create');
+  const canResetPassword = permissions.includes('school-user.password.update');
+  const canResetPasswordPlaintext = permissions.includes('school-user.password-plaintext.update');
+  const canToggleBlock = permissions.includes('school-user.profile.delete');
+  const canAssignRole = permissions.includes('rbac.user-role.update');
+
   const { data: roles } = useRoles();
-  const { data, total, stats, isLoading, refetch, add, assignRole, setActive } = useMembers({
-    search: debounced, roleId, page, pageSize: PAGE_SIZE,
-  });
+  const {
+    data,
+    total,
+    stats,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+    refetch,
+    resendInvite,
+    resetPassword,
+    resetPasswordPlaintext,
+    toggleBlock,
+    assignRole,
+  } = useMembers({ search: debounced, role });
 
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  useEffect(() => { if (page > pages) setPage(pages); }, [page, pages]);
-  useEffect(() => { if (!isLoading) setRefreshing(false); }, [isLoading]);
+  useEffect(() => {
+    if (!isLoading) setRefreshing(false);
+  }, [isLoading]);
 
-  const roleNames = useMemo(() => {
-    const m: Record<string, string> = {};
-    roles.forEach((r) => { m[r.id] = r.name; });
-    return m;
-  }, [roles]);
+  const doRefresh = useCallback(() => {
+    setRefreshing(true);
+    refetch();
+  }, [refetch]);
 
-  const doRefresh = useCallback(() => { setRefreshing(true); refetch(); }, [refetch]);
-  const onAssign = useCallback((m: Member) => setAssigning(m), []);
-  const onPermissions = useCallback((m: Member) => setPreviewing(m), []);
-  const onToggle = useCallback((m: Member, active: boolean) => setActive(m.id, active), [setActive]);
+  const onAssign = useCallback((m: SchoolUser) => setAssigning(m), []);
+
+  const onResendInvite = useCallback(
+    (m: SchoolUser) => {
+      Alert.alert('Resend invite', `Resend the invite email to ${m.firstName} ${m.lastName}?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Resend', onPress: () => resendInvite(m.id) },
+      ]);
+    },
+    [resendInvite]
+  );
+
+  const onResetPassword = useCallback(
+    (m: SchoolUser) => {
+      if (m.email) {
+        Alert.alert(
+          'Reset password',
+          `Send a password reset link to ${m.firstName} ${m.lastName}? This revokes all of their active sessions.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Send link', style: 'destructive', onPress: () => resetPassword(m.id) },
+          ]
+        );
+        return;
+      }
+      Alert.alert(
+        'Set temporary password',
+        `${m.firstName} ${m.lastName} has no email on file — this will set a new temporary password directly and revoke all active sessions. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Set password',
+            style: 'destructive',
+            onPress: async () => {
+              const res = await resetPasswordPlaintext(m.id);
+              if (res) {
+                Alert.alert(
+                  'Temporary password set',
+                  `Username: ${res.username}\nTemporary password: ${res.temporaryPassword}\n\nShare this with them now — it will not be shown again.`
+                );
+              }
+            },
+          },
+        ]
+      );
+    },
+    [resetPassword, resetPasswordPlaintext]
+  );
+
+  const onToggleBlock = useCallback(
+    (m: SchoolUser) => {
+      const blocking = m.status === 'ACTIVE';
+      Alert.alert(
+        blocking ? 'Block account' : 'Unblock account',
+        blocking
+          ? `Block ${m.firstName} ${m.lastName}? This deactivates their profile and portal login and revokes all active sessions.`
+          : `Unblock ${m.firstName} ${m.lastName}? They will be able to sign in again.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: blocking ? 'Block' : 'Unblock', style: blocking ? 'destructive' : 'default', onPress: () => toggleBlock(m.id) },
+        ]
+      );
+    },
+    [toggleBlock]
+  );
 
   const showSkeleton = isLoading && !refreshing;
-  // Always read the freshest member so the sheets reflect role changes.
-  const previewRole = previewing ? roles.find((r) => r.id === previewing.roleId) : undefined;
 
   const header = (
     <View style={styles.headerWrap}>
       <View style={styles.stats}>
         <StatTile label="Total Members" value={String(stats.total)} icon="people-outline" />
-        <StatTile label="Current Page" value={`${page} / ${pages}`} icon="funnel-outline" tint={colors.blue} />
-        <StatTile label="Showing" value={String(data.length)} icon="shield-checkmark-outline" tint={colors.indigo} />
+        <StatTile label="Loaded" value={String(data.length)} icon="layers-outline" tint={colors.blue} />
+        <StatTile label="Active (loaded)" value={String(stats.activeLoaded)} icon="shield-checkmark-outline" tint={colors.indigo} />
       </View>
 
       <SearchBar value={search} onChangeText={setSearch} placeholder="Search by name or email..." />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        <Chip label="All" on={roleId === ''} onPress={() => { setRoleId(''); setPage(1); }} />
-        {roles.map((r) => (
-          <Chip key={r.id} label={r.name} on={roleId === r.id} onPress={() => { setRoleId(r.id); setPage(1); }} />
+        <Chip label="All" on={role === ''} onPress={() => setRole('')} />
+        {ROLE_FILTER_OPTIONS.map((r) => (
+          <Chip key={r.value} label={r.label} on={role === r.value} onPress={() => setRole(r.value)} />
         ))}
       </ScrollView>
 
@@ -95,27 +170,37 @@ export function MembersTab() {
         data={showSkeleton ? [] : data}
         keyExtractor={(m) => m.id}
         ListHeaderComponent={header}
-        renderItem={({ item }) => (
-          <View style={styles.itemWrap}>
-            <MemberCard
-              member={item}
-              roleName={roleNames[item.roleId] ?? 'Unknown'}
-              onAssign={onAssign}
-              onPermissions={onPermissions}
-              onToggle={onToggle}
-            />
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const rankOk = canActOnCredentials(user?.id, user?.role, item);
+          return (
+            <View style={styles.itemWrap}>
+              <MemberCard
+                member={item}
+                canAssignRole={canAssignRole}
+                canResendInvite={canResendInvite && rankOk}
+                canResetPassword={canResetPassword && rankOk}
+                canResetPasswordPlaintext={canResetPasswordPlaintext && rankOk}
+                canToggleBlock={canToggleBlock && rankOk}
+                onAssign={onAssign}
+                onResendInvite={onResendInvite}
+                onResetPassword={onResetPassword}
+                onToggleBlock={onToggleBlock}
+              />
+            </View>
+          );
+        }}
         ListEmptyComponent={
           showSkeleton ? null : (
             <EmptyState icon="people-outline" title="No members found" sub="Try changing the search or role filter." />
           )
         }
         ListFooterComponent={
-          !isLoading && total > 0 ? (
-            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-          ) : isLoading && refreshing ? <ActivityIndicator color={colors.primary} /> : null
+          isLoadingMore ? (
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
+          ) : null
         }
+        onEndReached={() => { if (hasMore) loadMore(); }}
+        onEndReachedThreshold={0.4}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={doRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
@@ -126,19 +211,14 @@ export function MembersTab() {
         showsVerticalScrollIndicator={false}
       />
 
-      <AddMemberModal
-        visible={addOpen}
-        roles={roles}
-        onClose={() => setAddOpen(false)}
-        onSubmit={(input) => { add(input); setAddOpen(false); setPage(1); }}
-      />
+      <AddMemberModal visible={addOpen} onClose={() => setAddOpen(false)} />
       <AssignRoleSheet
         member={assigning}
         roles={roles}
+        currentUserId={user?.id}
         onClose={() => setAssigning(null)}
         onAssign={assignRole}
       />
-      <MemberPermissionsSheet member={previewing} role={previewRole} onClose={() => setPreviewing(null)} />
     </>
   );
 }

@@ -25,8 +25,8 @@ function DeltaChip({ kpi }: { kpi: ReportKpi }) {
 function KpiGrid({ kpis }: { kpis: ReportKpi[] }) {
   return (
     <View style={styles.grid}>
-      {kpis.map((k) => (
-        <Card key={k.label} style={styles.kpi}>
+      {kpis.map((k, i) => (
+        <Card key={k.key ?? `${k.label}-${i}`} style={styles.kpi}>
           <Text style={styles.kpiLabel} numberOfLines={1}>{k.label}</Text>
           <Text style={styles.kpiValue} numberOfLines={1} adjustsFontSizeToFit>{formatValue(k.value, k.format)}</Text>
           <DeltaChip kpi={k} />

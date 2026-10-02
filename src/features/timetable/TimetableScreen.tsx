@@ -1,93 +1,188 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ApiError } from '../../lib/apiClient';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { PickerField } from '../subjects/PickerField';
 import { SelectSheet } from '../syllabus/SelectSheet';
+import { lookupSubjects, lookupTeachers } from './api';
 import { BreakRow } from './BreakRow';
 import { DaySelector } from './DaySelector';
 import { PeriodCard } from './PeriodCard';
-import { SlotEditSheet } from './SlotEditSheet';
+import { SlotEditSheet, type SlotFormInput } from './SlotEditSheet';
 import { TimetableSkeleton } from './TimetableSkeleton';
+import {
+  useActiveAcademicYearId, useClassesMaster, usePeriods, useSectionGrid, useMySchedule,
+  useSlotMutations, useTimetablePermissions,
+} from './useTimetable';
 import { ViewToggle, type ViewMode } from './ViewToggle';
 import { WeekOverview } from './WeekOverview';
 import {
-  CLASS_OPTIONS, DAY_LONG, DEFAULT_CLASS, DEFAULT_SECTION, MOCK_TODAY, SECTION_OPTIONS, TEACHER_OPTIONS,
-  classLabel, isCurrentPeriod, useTeacherTimetable, useTimetable,
-  type Day, type Period,
-} from './mockTimetable';
+  DAY_LONG, DAY_TO_DOW, isCurrentPeriod, nowInfo,
+  type Day, type Option, type Period, type TimetableSlot,
+} from './types';
 
-type SheetKind = 'class' | 'section' | 'teacher' | null;
+type SheetKind = 'class' | 'section' | null;
 
 export function TimetableScreen() {
   const insets = useSafeAreaInsets();
+  const perms = useTimetablePermissions();
+
   const [mode, setMode] = useState<ViewMode>('class');
-  const [classId, setClassId] = useState(DEFAULT_CLASS);
-  const [sectionId, setSectionId] = useState(DEFAULT_SECTION);
-  const [teacherId, setTeacherId] = useState(TEACHER_OPTIONS[0]?.value ?? '');
-  const [day, setDay] = useState<Day>(MOCK_TODAY);
+  const [classId, setClassId] = useState<string | null>(null);
+  const [sectionId, setSectionId] = useState<string | null>(null);
+  const [day, setDay] = useState<Day>(() => nowInfo().day ?? 'MON');
   const [sheet, setSheet] = useState<SheetKind>(null);
   const [showWeek, setShowWeek] = useState(false);
   const [editing, setEditing] = useState<Period | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const cls = useTimetable(classId, sectionId);
-  const teacher = useTeacherTimetable(teacherId);
+  const [now, setNow] = useState(() => nowInfo());
+  useEffect(() => {
+    const t = setInterval(() => setNow(nowInfo()), 60000);
+    return () => clearInterval(t);
+  }, []);
 
-  const isLoading = mode === 'class' ? cls.isLoading : teacher.isLoading;
-  const periods = cls.periods;
-  const isToday = day === MOCK_TODAY;
+  const { classes, isLoading: classesLoading } = useClassesMaster();
+  const academicYearId = useActiveAcademicYearId();
+
+  // Default to the first class/section once the master list loads.
+  useEffect(() => {
+    if (classes.length === 0) return;
+    if (classId && classes.some((c) => c.id === classId)) return;
+    const first = classes[0];
+    setClassId(first?.id ?? null);
+    setSectionId(first?.sections[0]?.id ?? null);
+  }, [classes, classId]);
+
+  const selectedClass = classes.find((c) => c.id === classId);
+  const sections = selectedClass?.sections ?? [];
+
+  useEffect(() => {
+    if (!selectedClass) return;
+    if (sectionId && sections.some((s) => s.id === sectionId)) return;
+    setSectionId(sections[0]?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClass]);
+
+  const { periods, isLoading: periodsLoading } = usePeriods(perms.canListPeriods);
+
+  const classGridEnabled = mode === 'class' && perms.canView;
+  const cls = useSectionGrid(sectionId, academicYearId, classGridEnabled);
+
+  const mineEnabled = mode === 'teacher' && perms.canViewMine;
+  const mine = useMySchedule(academicYearId, mineEnabled);
+
+  const refetchClass = cls.refetch;
+  const onSlotsChanged = useCallback(() => { void refetchClass(); }, [refetchClass]);
+  const { save, remove, isSaving } = useSlotMutations(sectionId, academicYearId, onSlotsChanged);
+
+  const [subjectOptions, setSubjectOptions] = useState<Option[]>([]);
+  const [teacherOptions, setTeacherOptions] = useState<Option[]>([]);
+  useEffect(() => {
+    lookupSubjects()
+      .then((rows) => setSubjectOptions(rows.map((s) => ({ value: s.id, label: s.name }))))
+      .catch(() => setSubjectOptions([]));
+    lookupTeachers()
+      .then((rows) => setTeacherOptions(rows.map((t) => ({ value: t.id, label: t.fullName }))))
+      .catch(() => setTeacherOptions([]));
+  }, []);
+
+  const isLoading = mode === 'class'
+    ? (classesLoading || periodsLoading || cls.isLoading)
+    : (periodsLoading || mine.isLoading);
+  const loadError = mode === 'class' ? cls.error : mine.error;
+  const isToday = day === now.day;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await (mode === 'class' ? cls.refetch() : teacher.refetch());
+    await (mode === 'class' ? cls.refetch() : mine.refetch());
     setRefreshing(false);
-  }, [mode, cls, teacher]);
+  }, [mode, cls, mine]);
 
-  const className = CLASS_OPTIONS.find((c) => c.value === classId)?.label ?? '';
-  const teacherName = TEACHER_OPTIONS.find((t) => t.value === teacherId)?.label ?? '';
-  const subtitle = mode === 'class' ? classLabel(classId, sectionId) : teacherName;
+  const className = selectedClass?.name ?? '';
+  const sectionName = sections.find((s) => s.id === sectionId)?.name ?? '';
+  const subtitle = mode === 'class' ? [className, sectionName].filter(Boolean).join(' - ') : 'My schedule';
 
-  const daySlots = cls.slots.filter((s) => s.day === day);
-  const dayEntries = teacher.entries.filter((e) => e.day === day);
-  const isEmpty = mode === 'class' ? daySlots.length === 0 : dayEntries.length === 0;
+  const dow = DAY_TO_DOW[day];
+  const daySlots: TimetableSlot[] = mode === 'class'
+    ? cls.slots.filter((s) => s.dayOfWeek === dow)
+    : mine.slots.filter((s) => s.dayOfWeek === dow);
+  const isEmpty = daySlots.length === 0;
 
-  const editingSlot = editing ? cls.slots.find((s) => s.day === day && s.periodId === editing.id) : undefined;
+  const editingSlot = editing ? daySlots.find((s) => s.period.id === editing.id) : undefined;
+
+  const canOpenCell = (slot: TimetableSlot | undefined) =>
+    mode === 'class' && (slot ? perms.canUpdate : perms.canCreate);
+
+  const closeSheet = () => { setEditing(null); setSaveError(null); };
+
+  const handleSave = async (input: SlotFormInput) => {
+    if (!editing) return;
+    setSaveError(null);
+    try {
+      await save(editingSlot?.id ?? null, {
+        dayOfWeek: dow,
+        periodId: editing.id,
+        subjectId: input.subjectId,
+        teacherId: input.teacherId,
+        roomName: input.room,
+      });
+      closeSheet();
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : 'Could not save this slot.');
+    }
+  };
+
+  const handleClear = async () => {
+    if (!editingSlot) return;
+    setSaveError(null);
+    try {
+      await remove(editingSlot.id);
+      closeSheet();
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : 'Could not delete this slot.');
+    }
+  };
 
   const renderRows = () =>
     periods.map((p) => {
-      const now = isToday && isCurrentPeriod(p);
-      if (p.isBreak) return <BreakRow key={p.id} period={p} isNow={now} />;
+      const isNow = isToday && isCurrentPeriod(p, now.minutes);
+      if (p.isBreak) return <BreakRow key={p.id} period={p} isNow={isNow} />;
+      const slot = daySlots.find((s) => s.period.id === p.id);
+      const openable = canOpenCell(slot);
       if (mode === 'class') {
-        const slot = daySlots.find((s) => s.periodId === p.id);
         return (
           <PeriodCard
             key={p.id}
             period={p}
-            subject={slot?.subject}
-            secondary={slot?.teacherName}
-            room={slot?.room}
-            isNow={now}
-            onPress={() => setEditing(p)}
+            subject={slot?.subject?.name}
+            secondary={slot?.teacher?.fullName}
+            room={slot?.roomName ?? undefined}
+            isNow={isNow}
+            onPress={openable ? () => setEditing(p) : undefined}
           />
         );
       }
-      const entry = dayEntries.find((e) => e.periodId === p.id);
+      const label = [slot?.class?.name, slot?.section?.name].filter(Boolean).join(' - ');
       return (
         <PeriodCard
           key={p.id}
           period={p}
-          subject={entry?.subject}
-          secondary={entry?.classLabel}
-          room={entry?.room}
-          isNow={now}
+          subject={slot?.subject?.name}
+          secondary={label || undefined}
+          room={slot?.roomName ?? undefined}
+          isNow={isNow}
           showAvatar={false}
         />
       );
     });
+
+  const noPermission = mode === 'class' ? !perms.canView : !perms.canViewMine;
 
   return (
     <ScreenBackground>
@@ -108,17 +203,18 @@ export function TimetableScreen() {
 
       <View style={styles.top}>
         <View style={styles.pad}><ViewToggle value={mode} onChange={setMode} /></View>
-        <View style={[styles.pickers, styles.pad]}>
-          {mode === 'class' ? (
-            <>
-              <PickerField label="CLASS" value={className} placeholder="Class" onPress={() => setSheet('class')} />
-              <PickerField label="SECTION" value={`Section ${sectionId}`} placeholder="Section" onPress={() => setSheet('section')} />
-            </>
-          ) : (
-            <PickerField label="TEACHER" value={teacherName} placeholder="Select teacher" onPress={() => setSheet('teacher')} />
-          )}
-        </View>
-        <DaySelector value={day} onChange={setDay} />
+        {mode === 'class' ? (
+          <View style={[styles.pickers, styles.pad]}>
+            <PickerField label="CLASS" value={className || null} placeholder="Class" onPress={() => setSheet('class')} />
+            <PickerField
+              label="SECTION"
+              value={sectionName ? `Section ${sectionName}` : null}
+              placeholder="Section"
+              onPress={() => setSheet('section')}
+            />
+          </View>
+        ) : null}
+        <DaySelector value={day} onChange={setDay} today={now.day} />
       </View>
 
       <ScrollView
@@ -127,7 +223,7 @@ export function TimetableScreen() {
       >
         <View style={styles.dayRow}>
           <Text style={styles.dayTitle}>{DAY_LONG[day]}</Text>
-          {isToday ? <Text style={styles.today}>Today · 2 Oct 2026</Text> : null}
+          {isToday ? <Text style={styles.today}>Today</Text> : null}
         </View>
 
         {mode === 'class' ? (
@@ -142,18 +238,32 @@ export function TimetableScreen() {
               <Text style={styles.weekText}>Week overview</Text>
               <Ionicons name={showWeek ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primaryDeep} />
             </Pressable>
-            {showWeek && !isLoading ? <WeekOverview periods={periods} slots={cls.slots} /> : null}
+            {showWeek && !isLoading ? <WeekOverview periods={periods} slots={cls.slots} today={now.day} /> : null}
           </>
         ) : null}
 
-        {isLoading && !refreshing ? (
+        {noPermission ? (
+          <View style={styles.empty}>
+            <Ionicons name="lock-closed-outline" size={40} color={colors.textHint} />
+            <Text style={styles.emptyTitle}>No access</Text>
+            <Text style={styles.emptyText}>
+              {mode === 'class' ? "You don't have permission to view the timetable." : "You don't have permission to view your schedule."}
+            </Text>
+          </View>
+        ) : loadError ? (
+          <View style={styles.empty}>
+            <Ionicons name="alert-circle-outline" size={40} color={colors.danger} />
+            <Text style={styles.emptyTitle}>Couldn't load timetable</Text>
+            <Text style={styles.emptyText}>{loadError}</Text>
+          </View>
+        ) : isLoading && !refreshing ? (
           <TimetableSkeleton />
         ) : isEmpty ? (
           <View style={styles.empty}>
             <Ionicons name="calendar-clear-outline" size={40} color={colors.textHint} />
             <Text style={styles.emptyTitle}>No periods scheduled</Text>
             <Text style={styles.emptyText}>
-              {mode === 'class' ? `Tap a period to add a subject for ${DAY_LONG[day]}.` : `${teacherName} has no classes on ${DAY_LONG[day]}.`}
+              {mode === 'class' ? `Tap a period to add a subject for ${DAY_LONG[day]}.` : `No classes on ${DAY_LONG[day]}.`}
             </Text>
             {mode === 'class' ? (
               <View style={styles.emptyList}>{renderRows()}</View>
@@ -165,31 +275,34 @@ export function TimetableScreen() {
       </ScrollView>
 
       <SelectSheet
-        visible={sheet === 'class'} title="Select class" options={CLASS_OPTIONS} value={classId}
-        onClose={() => setSheet(null)} onSelect={(v) => { setClassId(v); setSheet(null); }}
+        visible={sheet === 'class'}
+        title="Select class"
+        options={classes.map((c) => ({ value: c.id, label: c.name }))}
+        value={classId ?? ''}
+        onClose={() => setSheet(null)}
+        onSelect={(v) => { setClassId(v); setSectionId(null); setSheet(null); }}
       />
       <SelectSheet
-        visible={sheet === 'section'} title="Select section" options={SECTION_OPTIONS} value={sectionId}
-        onClose={() => setSheet(null)} onSelect={(v) => { setSectionId(v); setSheet(null); }}
-      />
-      <SelectSheet
-        visible={sheet === 'teacher'} title="Select teacher" options={TEACHER_OPTIONS} value={teacherId}
-        onClose={() => setSheet(null)} onSelect={(v) => { setTeacherId(v); setSheet(null); }}
+        visible={sheet === 'section'}
+        title="Select section"
+        options={sections.map((s) => ({ value: s.id, label: s.name }))}
+        value={sectionId ?? ''}
+        onClose={() => setSheet(null)}
+        onSelect={(v) => { setSectionId(v); setSheet(null); }}
       />
       <SlotEditSheet
         visible={editing !== null}
         day={day}
         period={editing}
         slot={editingSlot}
-        onClose={() => setEditing(null)}
-        onSave={(input) => {
-          if (editing) cls.updateSlot(day, editing.id, input);
-          setEditing(null);
-        }}
-        onClear={() => {
-          if (editing) cls.clearSlot(day, editing.id);
-          setEditing(null);
-        }}
+        subjectOptions={subjectOptions}
+        teacherOptions={teacherOptions}
+        canDelete={perms.canDelete}
+        isSaving={isSaving}
+        error={saveError}
+        onSave={handleSave}
+        onClear={handleClear}
+        onClose={closeSheet}
       />
     </ScreenBackground>
   );

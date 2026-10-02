@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { ActionPill } from './ActionPill';
 import { JsonDiff } from './JsonDiff';
-import { formatDateTime, type AuditLog } from './mockAuditLogs';
+import { formatDateTime, type AuditLog } from './types';
 
 type Props = { log: AuditLog | null; onClose: () => void };
 
@@ -32,16 +32,21 @@ export function AuditDetailSheet({ log, onClose }: Props) {
               <Row label="Date & time" value={formatDateTime(log.createdAt)} />
               <Row label="Entity type" value={log.entityType} />
               <Row label="Entity ID" value={log.entityId} mono />
-              <Row label="User" value={`${log.userName} (${log.userRole})`} />
+              <Row label="User" value={`${log.userName ?? 'Unknown user'} (${log.userType})`} />
               <Row label="User ID" value={log.userId} mono />
+              {log.impersonatedBy ? (
+                <Row label="Impersonated by" value={log.impersonatedByName ?? log.impersonatedBy} mono={!log.impersonatedByName} />
+              ) : null}
+              <Row label="IP address" value={log.ipAddress ?? '—'} mono />
+              <Row label="User agent" value={log.userAgent ?? '—'} />
               <Text style={styles.section}>Changes</Text>
-              {(log.before || log.after) && (
+              {(log.oldValue !== null || log.newValue !== null) && (
                 <View style={styles.legend}>
                   <Text style={[styles.legendText, { color: colors.danger }]}>- before</Text>
                   <Text style={[styles.legendText, { color: colors.success }]}>+ after</Text>
                 </View>
               )}
-              <JsonDiff before={log.before} after={log.after} />
+              <JsonDiff before={log.oldValue} after={log.newValue} />
             </ScrollView>
             <Pressable style={styles.close} onPress={onClose}>
               <Text style={styles.closeText}>Close</Text>

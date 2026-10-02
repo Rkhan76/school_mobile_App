@@ -2,18 +2,14 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import {
-  CERTIFICATE_KINDS, KIND_LABEL, RECIPIENT_TYPES, STATUSES,
-  type CertificateKind, type CertificateStatus, type RecipientType,
-} from './mockCertificates';
+import { RECIPIENT_TYPES, RECIPIENT_TYPE_LABEL, STATUSES, type CertificateStatus, type RecipientType } from './types';
 
 export interface Filters {
   recipientType: RecipientType | '';
-  kind: CertificateKind | '';
   status: CertificateStatus | '';
 }
 
-export const EMPTY_FILTERS: Filters = { recipientType: '', kind: '', status: '' };
+export const EMPTY_FILTERS: Filters = { recipientType: '', status: '' };
 
 type Props = { visible: boolean; value: Filters; onApply: (f: Filters) => void; onClose: () => void };
 
@@ -55,11 +51,9 @@ export function FilterSheet({ visible, value, onApply, onClose }: Props) {
           <View style={styles.grab} />
           <Text style={styles.heading}>Filters</Text>
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-            <Group label="Recipient type" options={RECIPIENT_TYPES} value={draft.recipientType}
+            <Group label="Recipient type" options={RECIPIENT_TYPES} value={draft.recipientType} display={(t) => RECIPIENT_TYPE_LABEL[t]}
               onChange={(v) => setDraft((d) => ({ ...d, recipientType: v }))} />
-            <Group label="Certificate kind" options={CERTIFICATE_KINDS} value={draft.kind} display={(k) => KIND_LABEL[k]}
-              onChange={(v) => setDraft((d) => ({ ...d, kind: v }))} />
-            <Group label="Status" options={STATUSES} value={draft.status}
+            <Group label="Status" options={STATUSES} value={draft.status} display={(s) => (s === 'ACTIVE' ? 'Active' : 'Revoked')}
               onChange={(v) => setDraft((d) => ({ ...d, status: v }))} />
           </ScrollView>
           <View style={styles.actions}>

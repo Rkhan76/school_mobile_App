@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { EMPTY_FILTERS, PAGE_SIZES, parseDMY, type AuditFilters } from './mockAuditLogs';
+import { EMPTY_FILTERS, parseDMY, type AuditFilters } from './types';
 
 type Props = { visible: boolean; filters: AuditFilters; onClose: () => void; onApply: (f: AuditFilters) => void };
 
@@ -35,7 +35,7 @@ export function AuditFilterSheet({ visible, filters, onClose, onApply }: Props) 
     if (Object.keys(e).length === 0) onApply({ ...draft, from: draft.from.trim(), to: draft.to.trim() });
   };
 
-  const field = (label: string, key: 'entityType' | 'action' | 'userId', placeholder: string) => (
+  const field = (label: string, key: 'entityType' | 'action' | 'userId', placeholder: string, hint?: string) => (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
@@ -47,6 +47,7 @@ export function AuditFilterSheet({ visible, filters, onClose, onApply }: Props) 
         autoCapitalize="none"
         autoCorrect={false}
       />
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 
@@ -75,26 +76,13 @@ export function AuditFilterSheet({ visible, filters, onClose, onApply }: Props) 
           <Text style={styles.title}>Filter audit logs</Text>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
             {field('Entity type', 'entityType', 'e.g. StudentEntity')}
-            {field('Action', 'action', 'e.g. fee.payment.created')}
+            {field('Action', 'action', 'e.g. admission.approved', 'Exact code only — not a text search.')}
             {field('User ID', 'userId', 'e.g. USR-001')}
             <View style={styles.dates}>
               {dateField('From date', 'from', errors.from)}
               {dateField('To date', 'to', errors.to)}
             </View>
             {errors.range ? <Text style={styles.err}>{errors.range}</Text> : null}
-            <View style={styles.field}>
-              <Text style={styles.label}>Rows per page</Text>
-              <View style={styles.seg}>
-                {PAGE_SIZES.map((n) => {
-                  const on = draft.pageSize === n;
-                  return (
-                    <Pressable key={n} style={[styles.segBtn, on && styles.segOn]} onPress={() => set('pageSize', n)}>
-                      <Text style={[styles.segText, on && styles.segTextOn]}>{n}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
           </ScrollView>
           <View style={styles.actions}>
             <Pressable
@@ -126,11 +114,7 @@ const styles = StyleSheet.create({
   input: { height: 46, paddingHorizontal: 14, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.mintSoft, fontFamily: fonts.body, fontSize: 14, color: colors.text },
   inputErr: { borderColor: colors.danger },
   err: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
-  seg: { flexDirection: 'row', gap: 8 },
-  segBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardSolid },
-  segOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  segText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.textSecondary },
-  segTextOn: { color: colors.white },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.textHint },
   actions: { flexDirection: 'row', gap: 12 },
   btn: { flex: 1, height: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   reset: { backgroundColor: colors.mint },

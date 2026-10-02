@@ -3,17 +3,20 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { Subject } from './mockSubjects';
+import type { SubjectWithAssignments } from './types';
 
 type Props = {
-  item: Subject;
-  onView: (s: Subject) => void;
-  onManage: (s: Subject) => void;
-  onEdit: (s: Subject) => void;
-  onDelete: (s: Subject) => void;
+  item: SubjectWithAssignments;
+  canManage: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  onView: (s: SubjectWithAssignments) => void;
+  onManage: (s: SubjectWithAssignments) => void;
+  onEdit: (s: SubjectWithAssignments) => void;
+  onDelete: (s: SubjectWithAssignments) => void;
 };
 
-function SubjectCardBase({ item, onView, onManage, onEdit, onDelete }: Props) {
+function SubjectCardBase({ item, canManage, canEdit, canDelete, onView, onManage, onEdit, onDelete }: Props) {
   const shown = item.assignments.slice(0, 2);
   const extra = item.assignments.length - shown.length;
   return (
@@ -33,8 +36,8 @@ function SubjectCardBase({ item, onView, onManage, onEdit, onDelete }: Props) {
         ) : (
           <>
             {shown.map((a) => (
-              <View key={a.sectionId} style={styles.chip}>
-                <Text style={styles.chipText}>{a.label}</Text>
+              <View key={a.id} style={styles.chip}>
+                <Text style={styles.chipText}>{a.section.class.name} · {a.section.name}</Text>
               </View>
             ))}
             {extra > 0 ? <Text style={styles.more}>+{extra}</Text> : null}
@@ -45,17 +48,23 @@ function SubjectCardBase({ item, onView, onManage, onEdit, onDelete }: Props) {
         <Pressable style={styles.iconBtn} onPress={() => onView(item)} accessibilityLabel={`View ${item.name}`}>
           <Ionicons name="eye-outline" size={18} color={colors.textSecondary} />
         </Pressable>
-        <Pressable style={styles.manage} onPress={() => onManage(item)} accessibilityLabel={`Manage ${item.name}`}>
-          <Ionicons name="bookmarks-outline" size={14} color={colors.orange} />
-          <Text style={styles.manageText}>Manage</Text>
-        </Pressable>
+        {canManage ? (
+          <Pressable style={styles.manage} onPress={() => onManage(item)} accessibilityLabel={`Manage ${item.name}`}>
+            <Ionicons name="bookmarks-outline" size={14} color={colors.orange} />
+            <Text style={styles.manageText}>Manage</Text>
+          </Pressable>
+        ) : null}
         <View style={styles.spacer} />
-        <Pressable style={styles.iconBtn} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.name}`}>
-          <Ionicons name="create-outline" size={18} color={colors.primaryDeep} />
-        </Pressable>
-        <Pressable style={[styles.iconBtn, styles.del]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.name}`}>
-          <Ionicons name="trash-outline" size={18} color={colors.danger} />
-        </Pressable>
+        {canEdit ? (
+          <Pressable style={styles.iconBtn} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.name}`}>
+            <Ionicons name="create-outline" size={18} color={colors.primaryDeep} />
+          </Pressable>
+        ) : null}
+        {canDelete ? (
+          <Pressable style={[styles.iconBtn, styles.del]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.name}`}>
+            <Ionicons name="trash-outline" size={18} color={colors.danger} />
+          </Pressable>
+        ) : null}
       </View>
     </Card>
   );

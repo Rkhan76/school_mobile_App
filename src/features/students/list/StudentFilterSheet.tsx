@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../../theme/tokens';
-import { CLASS_OPTIONS, SECTION_OPTIONS, STATUS_OPTIONS, type StudentStatus } from '../mockStudents';
+import { getClassesMaster } from '../../common/api';
+import type { ClassWithSections, SectionLite } from '../../common/types';
 
 export interface StudentFilters {
-  className?: string;
-  section?: string;
-  status?: StudentStatus;
+  classId?: string;
+  sectionId?: string;
 }
 
 interface Props {
@@ -17,25 +17,27 @@ interface Props {
   onApply: (f: StudentFilters) => void;
 }
 
-interface ChipsProps<T extends string> {
-  options: readonly T[];
-  selected: string | undefined;
-  onSelect: (v: T | undefined) => void;
-}
-
-function Chips<T extends string>({ options, selected, onSelect }: ChipsProps<T>) {
+function Chips<T extends { id: string; name: string }>({
+  options,
+  selectedId,
+  onSelect,
+}: {
+  options: T[];
+  selectedId: string | undefined;
+  onSelect: (id: string | undefined) => void;
+}) {
   return (
     <View style={styles.chips}>
       {options.map((o) => {
-        const on = o === selected;
+        const on = o.id === selectedId;
         return (
           <Pressable
-            key={o}
-            onPress={() => onSelect(on ? undefined : o)}
+            key={o.id}
+            onPress={() => onSelect(on ? undefined : o.id)}
             style={[styles.chip, on && styles.chipOn]}
             accessibilityState={{ selected: on }}
           >
-            <Text style={[styles.chipText, on && styles.chipTextOn]}>{o}</Text>
+            <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.name}</Text>
           </Pressable>
         );
       })}
@@ -46,10 +48,19 @@ function Chips<T extends string>({ options, selected, onSelect }: ChipsProps<T>)
 export function StudentFilterSheet({ visible, value, onClose, onApply }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<StudentFilters>(value);
+  const [classes, setClasses] = useState<ClassWithSections[]>([]);
 
   useEffect(() => {
-    if (visible) setDraft(value);
+    if (visible) {
+      setDraft(value);
+      getClassesMaster()
+        .then(setClasses)
+        .catch(() => setClasses([]));
+    }
   }, [visible, value]);
+
+  const selectedClass = classes.find((c) => c.id === draft.classId);
+  const sections: SectionLite[] = selectedClass?.sections ?? [];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -59,11 +70,25 @@ export function StudentFilterSheet({ visible, value, onClose, onApply }: Props) 
         <Text style={styles.title}>Filter students</Text>
         <ScrollView showsVerticalScrollIndicator={false} style={styles.body}>
           <Text style={styles.label}>Class</Text>
-          <Chips options={CLASS_OPTIONS} selected={draft.className} onSelect={(v) => setDraft((d) => ({ ...d, className: v }))} />
-          <Text style={styles.label}>Section</Text>
-          <Chips options={SECTION_OPTIONS} selected={draft.section} onSelect={(v) => setDraft((d) => ({ ...d, section: v }))} />
-          <Text style={styles.label}>Status</Text>
-          <Chips options={STATUS_OPTIONS} selected={draft.status} onSelect={(v) => setDraft((d) => ({ ...d, status: v }))} />
+          {classes.length === 0 ? (
+            <Text style={styles.hint}>Loading classes…</Text>
+          ) : (
+            <Chips
+              options={classes}
+              selectedId={draft.classId}
+              onSelect={(id) => setDraft((d) => ({ classId: id, sectionId: id === d.classId ? d.sectionId : undefined }))}
+            />
+          )}
+          {sections.length > 0 && (
+            <>
+              <Text style={styles.label}>Section</Text>
+              <Chips
+                options={sections}
+                selectedId={draft.sectionId}
+                onSelect={(id) => setDraft((d) => ({ ...d, sectionId: id }))}
+              />
+            </>
+          )}
         </ScrollView>
         <View style={styles.footer}>
           <Pressable style={[styles.btn, styles.reset]} onPress={() => setDraft({})}>
@@ -88,6 +113,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
   body: { flexGrow: 0, marginTop: 4 },
   label: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary, marginTop: 16, marginBottom: 8, textTransform: 'uppercase' },
+  hint: { fontFamily: fonts.body, fontSize: 13, color: colors.textHint },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.mintSoft,

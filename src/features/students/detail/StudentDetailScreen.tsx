@@ -8,13 +8,23 @@ import { colors, fonts } from '../../../theme/tokens';
 import { AppBar } from '../../dashboard/AppBar';
 import { BottomActions } from './BottomActions';
 import { OverviewTab } from './OverviewTab';
-import { AttendanceTab, BankTab, DocumentsTab, FeesTab, GuardiansTab, HostelTab, ReportsTab } from './OtherTabs';
+import { AttendanceTab, BankTab, DocumentsTab, FeesTab, GuardiansTab, HistoryTab, HostelTab, ReportsTab } from './OtherTabs';
 import { ProfileHeader, SubBar } from './ProfileHeader';
 import { StatRow } from './StatRow';
-import { useStudentDetail, type StudentDetail } from './studentDetail';
+import { useStudentDetail, type StudentDetail, type StudentEnrollmentRow } from './studentDetail';
 import { TabChips, type TabKey } from './TabChips';
 
-function TabContent({ tab, s }: { tab: TabKey; s: StudentDetail }) {
+function TabContent({
+  tab,
+  s,
+  enrollments,
+  enrollmentsLoading,
+}: {
+  tab: TabKey;
+  s: StudentDetail;
+  enrollments: StudentEnrollmentRow[] | null;
+  enrollmentsLoading: boolean;
+}) {
   switch (tab) {
     case 'overview': return <OverviewTab s={s} />;
     case 'guardians': return <GuardiansTab s={s} />;
@@ -24,6 +34,7 @@ function TabContent({ tab, s }: { tab: TabKey; s: StudentDetail }) {
     case 'hostel': return <HostelTab s={s} />;
     case 'documents': return <DocumentsTab s={s} />;
     case 'reports': return <ReportsTab s={s} />;
+    case 'history': return <HistoryTab rows={enrollments} loading={enrollmentsLoading} />;
   }
 }
 
@@ -66,8 +77,12 @@ function NotFound({ message }: { message: string }) {
 
 export function StudentDetailScreen({ id }: { id: string | undefined }) {
   const insets = useSafeAreaInsets();
-  const { data, isLoading, error } = useStudentDetail(id);
+  const { data, isLoading, error, enrollments, enrollmentsLoading, loadEnrollments } = useStudentDetail(id);
   const [tab, setTab] = useState<TabKey>('overview');
+
+  useEffect(() => {
+    if (tab === 'history') loadEnrollments();
+  }, [tab, loadEnrollments]);
 
   return (
     <ScreenBackground>
@@ -86,7 +101,7 @@ export function StudentDetailScreen({ id }: { id: string | undefined }) {
             <View style={styles.tabs}>
               <TabChips active={tab} onChange={setTab} />
             </View>
-            <TabContent tab={tab} s={data} />
+            <TabContent tab={tab} s={data} enrollments={enrollments} enrollmentsLoading={enrollmentsLoading} />
           </>
         )}
       </ScrollView>

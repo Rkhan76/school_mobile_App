@@ -3,10 +3,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { EXAM_TYPES, SUBJECT_OPTIONS, type ExamType } from './mockSyllabus';
+import { lookupExamTypes, lookupSubjects } from './api';
+import type { ExamTypeLookupItem, SubjectLookupItem } from './types';
 
 export interface ExamExtraFilters {
-  examType: ExamType | '';
+  examTypeId: string;
   subjectId: string;
   upcomingOnly: boolean;
 }
@@ -30,11 +31,27 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 export function ExamFilterSheet({ visible, value, onApply, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<ExamExtraFilters>(value);
+  const [examTypes, setExamTypes] = useState<ExamTypeLookupItem[]>([]);
+  const [subjects, setSubjects] = useState<SubjectLookupItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (visible) setDraft(value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  useEffect(() => {
+    if (!visible || loaded) return;
+    Promise.all([lookupExamTypes(), lookupSubjects()])
+      .then(([types, subs]) => {
+        setExamTypes(types);
+        setSubjects(subs);
+        setLoaded(true);
+      })
+      .catch(() => {
+        // leave lists empty — the user can still use "Upcoming only"
+      });
+  }, [visible, loaded]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -45,21 +62,26 @@ export function ExamFilterSheet({ visible, value, onApply, onClose }: Props) {
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={styles.label}>EXAM TYPE</Text>
           <View style={styles.chips}>
-            <Chip label="All exam types" active={draft.examType === ''} onPress={() => setDraft({ ...draft, examType: '' })} />
-            {EXAM_TYPES.map((t) => (
-              <Chip key={t} label={t} active={draft.examType === t} onPress={() => setDraft({ ...draft, examType: t })} />
+            <Chip label="All exam types" active={draft.examTypeId === ''} onPress={() => setDraft({ ...draft, examTypeId: '' })} />
+            {examTypes.map((t) => (
+              <Chip
+                key={t.id}
+                label={t.name}
+                active={draft.examTypeId === t.id}
+                onPress={() => setDraft({ ...draft, examTypeId: t.id })}
+              />
             ))}
           </View>
 
           <Text style={styles.label}>SUBJECT</Text>
           <View style={styles.chips}>
             <Chip label="All subjects" active={draft.subjectId === ''} onPress={() => setDraft({ ...draft, subjectId: '' })} />
-            {SUBJECT_OPTIONS.map((s) => (
+            {subjects.map((s) => (
               <Chip
-                key={s.value}
-                label={s.label}
-                active={draft.subjectId === s.value}
-                onPress={() => setDraft({ ...draft, subjectId: s.value })}
+                key={s.id}
+                label={s.name}
+                active={draft.subjectId === s.id}
+                onPress={() => setDraft({ ...draft, subjectId: s.id })}
               />
             ))}
           </View>
@@ -79,7 +101,7 @@ export function ExamFilterSheet({ visible, value, onApply, onClose }: Props) {
         <View style={styles.footer}>
           <Pressable
             style={[styles.btn, styles.ghost]}
-            onPress={() => setDraft({ examType: '', subjectId: '', upcomingOnly: false })}
+            onPress={() => setDraft({ examTypeId: '', subjectId: '', upcomingOnly: false })}
           >
             <Text style={styles.ghostText}>Reset</Text>
           </Pressable>

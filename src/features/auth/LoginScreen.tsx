@@ -1,10 +1,9 @@
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
-import { BrandHeader, TopBar } from './BrandHeader';
+import { BrandHeader } from './BrandHeader';
 import { LoginFooter } from './LoginFooter';
 import { LoginForm } from './LoginForm';
-import { SsoButtons } from './SsoButtons';
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -12,7 +11,7 @@ export function LoginScreen() {
     <ScreenBackground>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
@@ -22,10 +21,8 @@ export function LoginScreen() {
             { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
           ]}
         >
-          <TopBar />
           <BrandHeader />
           <LoginForm />
-          <SsoButtons />
           <LoginFooter />
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,15 +1,13 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import {
-  EVENT_AUDIENCES, EVENT_STATUSES, type EventAudience, type EventStatus,
-} from './mockEvents';
+import { EVENT_AUDIENCES, EVENT_STATUSES, type EventAudience, type EventStatus } from './types';
 
 type Props = {
   visible: boolean;
   status: EventStatus | '';
-  audience: EventAudience | '';
-  onChange: (next: { status: EventStatus | ''; audience: EventAudience | '' }) => void;
+  targetAudience: EventAudience | '';
+  onChange: (next: { status: EventStatus | ''; targetAudience: EventAudience | '' }) => void;
   onClose: () => void;
 };
 
@@ -22,7 +20,7 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 }
 
 /** Bottom sheet with status + audience filter chips. */
-export function FilterSheet({ visible, status, audience, onChange, onClose }: Props) {
+export function FilterSheet({ visible, status, targetAudience, onChange, onClose }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -33,22 +31,31 @@ export function FilterSheet({ visible, status, audience, onChange, onClose }: Pr
 
         <Text style={styles.label}>STATUS</Text>
         <View style={styles.chips}>
-          <Chip label="All Statuses" active={status === ''} onPress={() => onChange({ status: '', audience })} />
+          <Chip label="All Statuses" active={status === ''} onPress={() => onChange({ status: '', targetAudience })} />
           {EVENT_STATUSES.map((s) => (
-            <Chip key={s} label={s} active={status === s} onPress={() => onChange({ status: s, audience })} />
+            <Chip key={s} label={s} active={status === s} onPress={() => onChange({ status: s, targetAudience })} />
           ))}
         </View>
 
         <Text style={styles.label}>AUDIENCE</Text>
         <View style={styles.chips}>
-          <Chip label="All Audiences" active={audience === ''} onPress={() => onChange({ status, audience: '' })} />
+          <Chip
+            label="All Audiences"
+            active={targetAudience === ''}
+            onPress={() => onChange({ status, targetAudience: '' })}
+          />
           {EVENT_AUDIENCES.map((a) => (
-            <Chip key={a} label={a} active={audience === a} onPress={() => onChange({ status, audience: a })} />
+            <Chip
+              key={a}
+              label={a}
+              active={targetAudience === a}
+              onPress={() => onChange({ status, targetAudience: a })}
+            />
           ))}
         </View>
 
         <View style={styles.actions}>
-          <Pressable style={[styles.btn, styles.reset]} onPress={() => onChange({ status: '', audience: '' })}>
+          <Pressable style={[styles.btn, styles.reset]} onPress={() => onChange({ status: '', targetAudience: '' })}>
             <Text style={styles.resetText}>Reset</Text>
           </Pressable>
           <Pressable style={[styles.btn, styles.apply]} onPress={onClose}>

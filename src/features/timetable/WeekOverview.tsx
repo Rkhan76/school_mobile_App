@@ -1,16 +1,11 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { DAYS, MOCK_TODAY, subjectColor, type Period, type Slot } from './mockTimetable';
+import { DAY_TO_DOW, DAYS, subjectColor, type Day, type Period, type TimetableSlot } from './types';
 
-const SHORT: Record<string, string> = {
-  Hindi: 'Hindi', Mathematics: 'Maths', English: 'Eng', 'Computer Science': 'CS', 'General Knowledge': 'GK',
-  'Physical Education': 'PE', 'Art Education': 'Art', 'Moral Science': 'Moral', Music: 'Music',
-};
-
-type Props = { periods: Period[]; slots: Slot[] };
+type Props = { periods: Period[]; slots: TimetableSlot[]; today?: Day | null };
 
 /** Compact mini-grid of the whole week (horizontally scrollable). */
-export function WeekOverview({ periods, slots }: Props) {
+export function WeekOverview({ periods, slots, today }: Props) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
       <View style={styles.grid}>
@@ -18,7 +13,7 @@ export function WeekOverview({ periods, slots }: Props) {
           <View style={styles.periodCell} />
           {DAYS.map((d) => (
             <View key={d} style={styles.cell}>
-              <Text style={[styles.head, d === MOCK_TODAY && styles.headToday]}>{d}</Text>
+              <Text style={[styles.head, d === today && styles.headToday]}>{d}</Text>
             </View>
           ))}
         </View>
@@ -31,13 +26,15 @@ export function WeekOverview({ periods, slots }: Props) {
               <View style={styles.breakCell}><Text style={styles.breakText}>Break</Text></View>
             ) : (
               DAYS.map((d) => {
-                const s = slots.find((x) => x.day === d && x.periodId === p.id);
+                const dow = DAY_TO_DOW[d];
+                const s = slots.find((x) => x.dayOfWeek === dow && x.period.id === p.id);
+                const subjectName = s?.subject?.name;
                 return (
                   <View key={d} style={styles.cell}>
-                    {s ? (
-                      <View style={[styles.tag, { backgroundColor: `${subjectColor(s.subject)}22` }]}>
-                        <Text style={[styles.tagText, { color: subjectColor(s.subject) }]} numberOfLines={1}>
-                          {SHORT[s.subject] ?? s.subject}
+                    {subjectName ? (
+                      <View style={[styles.tag, { backgroundColor: `${subjectColor(s?.subject?.id ?? subjectName)}22` }]}>
+                        <Text style={[styles.tagText, { color: subjectColor(s?.subject?.id ?? subjectName) }]} numberOfLines={1}>
+                          {subjectName}
                         </Text>
                       </View>
                     ) : (

@@ -1,17 +1,20 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { DocumentCategory } from './mockSchoolDocuments';
+import type { DocumentCategory } from './types';
 
 type Props = {
   categories: DocumentCategory[];
   selectedId: string;
   onSelect: (id: string) => void;
-  onAdd: () => void;
 };
 
-/** Horizontally scrollable category chips with counts and a trailing "+" chip. */
-export function CategoryChips({ categories, selectedId, onSelect, onAdd }: Props) {
+/**
+ * Horizontally scrollable category chips with counts. There's no documented
+ * create-category endpoint (the doc only exposes read + upload-time categoryId
+ * for `/school-documents/categories`), so there's no "+" add-category affordance
+ * here — categories come entirely from the server's auto-seeded 7 defaults.
+ */
+export function CategoryChips({ categories, selectedId, onSelect }: Props) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {categories.map((c) => {
@@ -20,14 +23,11 @@ export function CategoryChips({ categories, selectedId, onSelect, onAdd }: Props
           <Pressable key={c.id || '__all'} onPress={() => onSelect(c.id)} style={[styles.chip, on && styles.chipOn]}>
             <Text style={[styles.text, on && styles.textOn]}>{c.name}</Text>
             <View style={[styles.count, on && styles.countOn]}>
-              <Text style={[styles.countText, on && styles.countTextOn]}>{c.count}</Text>
+              <Text style={[styles.countText, on && styles.countTextOn]}>{c.documentCount}</Text>
             </View>
           </Pressable>
         );
       })}
-      <Pressable onPress={onAdd} style={styles.addChip} accessibilityLabel="Add category">
-        <Ionicons name="add" size={18} color={colors.primaryDeep} />
-      </Pressable>
     </ScrollView>
   );
 }
@@ -48,8 +48,4 @@ const styles = StyleSheet.create({
   countOn: { backgroundColor: 'rgba(255,255,255,0.25)' },
   countText: { fontFamily: fonts.monoMedium, fontSize: 11, color: colors.primaryDeep },
   countTextOn: { color: colors.white },
-  addChip: {
-    width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.border,
-  },
 });

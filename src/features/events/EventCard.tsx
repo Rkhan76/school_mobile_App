@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatRange, type EventStatus, type SchoolEvent } from './mockEvents';
+import { formatRange } from './dateUtils';
+import type { EventStatus, SchoolEvent } from './types';
 
 export const STATUS_TONE: Record<EventStatus, 'primary' | 'success' | 'neutral' | 'danger'> = {
   UPCOMING: 'primary',
@@ -18,9 +19,11 @@ type Props = {
   onPress: (e: SchoolEvent) => void;
   onEdit: (e: SchoolEvent) => void;
   onDelete: (e: SchoolEvent) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 };
 
-function EventCardBase({ item, onPress, onEdit, onDelete }: Props) {
+function EventCardBase({ item, onPress, onEdit, onDelete, canEdit = true, canDelete = true }: Props) {
   return (
     <Pressable onPress={() => onPress(item)} accessibilityLabel={`Open ${item.title}`}>
       <Card style={[styles.card, item.isHoliday && styles.holiday]}>
@@ -45,7 +48,7 @@ function EventCardBase({ item, onPress, onEdit, onDelete }: Props) {
             <Badge label={item.status} tone={STATUS_TONE[item.status]} />
             <View style={styles.pill}>
               <Ionicons name="people-outline" size={12} color={colors.textSecondary} />
-              <Text style={styles.pillText}>{item.audience}</Text>
+              <Text style={styles.pillText}>{item.targetAudience}</Text>
             </View>
             {item.isHoliday ? (
               <View style={styles.holidayTag}>
@@ -54,14 +57,20 @@ function EventCardBase({ item, onPress, onEdit, onDelete }: Props) {
               </View>
             ) : null}
           </View>
-          <View style={styles.actions}>
-            <Pressable style={styles.act} onPress={() => onEdit(item)} hitSlop={6} accessibilityLabel="Edit event">
-              <Ionicons name="create-outline" size={18} color={colors.primaryDeep} />
-            </Pressable>
-            <Pressable style={styles.act} onPress={() => onDelete(item)} hitSlop={6} accessibilityLabel="Delete event">
-              <Ionicons name="trash-outline" size={18} color={colors.danger} />
-            </Pressable>
-          </View>
+          {canEdit || canDelete ? (
+            <View style={styles.actions}>
+              {canEdit ? (
+                <Pressable style={styles.act} onPress={() => onEdit(item)} hitSlop={6} accessibilityLabel="Edit event">
+                  <Ionicons name="create-outline" size={18} color={colors.primaryDeep} />
+                </Pressable>
+              ) : null}
+              {canDelete ? (
+                <Pressable style={styles.act} onPress={() => onDelete(item)} hitSlop={6} accessibilityLabel="Delete event">
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </Card>
     </Pressable>

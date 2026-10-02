@@ -7,7 +7,8 @@ import { colors, fonts, radius } from '../../theme/tokens';
 import type { TabConfig } from './config';
 import { FormModal } from './FormModal';
 import { MasterCard } from './MasterCard';
-import { useMasterData, type MasterEntityMap, type TabKey } from './mockMaster';
+import { useMasterData } from './useMasterData';
+import type { MasterEntityMap, TabKey } from './types';
 
 type ModalState<K extends TabKey> = { mode: 'add' } | { mode: 'edit'; item: MasterEntityMap[K] } | null;
 

@@ -3,11 +3,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatDate, isExpired, type SchoolDocument } from './mockSchoolDocuments';
+import type { SchoolDocument } from './types';
+import { fileTypeOf, formatBytes, formatDate, isExpired } from './utils';
 
 type Props = {
   item: SchoolDocument;
   categoryName: string;
+  canEdit: boolean;
+  canDelete: boolean;
   onDownload: (d: SchoolDocument) => void;
   onVersions: (d: SchoolDocument) => void;
   onEdit: (d: SchoolDocument) => void;
@@ -23,8 +26,9 @@ function Meta({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function DocumentCardBase({ item, categoryName, onDownload, onVersions, onEdit, onDelete }: Props) {
-  const expired = isExpired(item.expiresAt);
+function DocumentCardBase({ item, categoryName, canEdit, canDelete, onDownload, onVersions, onEdit, onDelete }: Props) {
+  const expired = isExpired(item.expiryDate);
+  const fileType = item.fileFormat?.toUpperCase() ?? fileTypeOf(item.fileName);
   return (
     <Card style={styles.card}>
       <View style={styles.titleRow}>
@@ -32,7 +36,7 @@ function DocumentCardBase({ item, categoryName, onDownload, onVersions, onEdit, 
         <View style={styles.versionPill}>
           <Text style={styles.versionText}>v{item.version}</Text>
         </View>
-        {item.classified ? (
+        {item.confidentiality === 'CLASSIFIED' ? (
           <View style={styles.classified}>
             <Ionicons name="lock-closed-outline" size={11} color={colors.danger} />
             <Text style={styles.classifiedText}>Classified</Text>
@@ -45,17 +49,17 @@ function DocumentCardBase({ item, categoryName, onDownload, onVersions, onEdit, 
         <Meta label="CATEGORY"><Text style={styles.metaValue} numberOfLines={2}>{categoryName}</Text></Meta>
         <Meta label="FILE">
           <Text style={styles.metaMono} numberOfLines={1}>{item.fileName}</Text>
-          <Text style={styles.metaSub}>{item.fileType} · {item.sizeLabel}</Text>
+          <Text style={styles.metaSub}>{fileType} · {formatBytes(item.fileBytes)}</Text>
         </Meta>
         <Meta label="EXPIRY">
           <Text style={[styles.metaValue, expired && styles.expired]}>
-            {item.expiresAt ? formatDate(item.expiresAt) : '—'}
+            {item.expiryDate ? formatDate(item.expiryDate) : '—'}
           </Text>
           {expired ? <Text style={styles.expiredTag}>Expired</Text> : null}
         </Meta>
         <Meta label="UPLOADED">
-          <Text style={styles.metaValue} numberOfLines={1}>{item.uploadedBy}</Text>
-          <Text style={styles.metaSub}>{formatDate(item.uploadedAt)}</Text>
+          <Text style={styles.metaValue} numberOfLines={1}>{item.uploadedByName ?? '—'}</Text>
+          <Text style={styles.metaSub}>{formatDate(item.createdAt.slice(0, 10))}</Text>
         </Meta>
       </View>
 
@@ -68,14 +72,18 @@ function DocumentCardBase({ item, categoryName, onDownload, onVersions, onEdit, 
           <Ionicons name="time-outline" size={15} color={colors.textSecondary} />
           <Text style={styles.actionText}>Versions</Text>
         </Pressable>
-        <Pressable style={styles.action} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.title}`}>
-          <Ionicons name="create-outline" size={15} color={colors.textSecondary} />
-          <Text style={styles.actionText}>Edit</Text>
-        </Pressable>
-        <Pressable style={[styles.action, styles.delete]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.title}`}>
-          <Ionicons name="trash-outline" size={15} color={colors.danger} />
-          <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
-        </Pressable>
+        {canEdit ? (
+          <Pressable style={styles.action} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.title}`}>
+            <Ionicons name="create-outline" size={15} color={colors.textSecondary} />
+            <Text style={styles.actionText}>Edit</Text>
+          </Pressable>
+        ) : null}
+        {canDelete ? (
+          <Pressable style={[styles.action, styles.delete]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.title}`}>
+            <Ionicons name="trash-outline" size={15} color={colors.danger} />
+            <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
+          </Pressable>
+        ) : null}
       </View>
     </Card>
   );

@@ -1,23 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Sharing from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
+import { ApiError } from '../../lib/apiClient';
+import { getEventsPdf } from './api';
+import { dayKey, eventOnDay, formatDay, MONTH_NAMES, monthBounds, parseIso } from './dateUtils';
 import { EventCard } from './EventCard';
 import { EventDetailSheet } from './EventDetailSheet';
 import { EventForm } from './EventForm';
 import { FilterSheet } from './FilterSheet';
 import { MonthCalendar } from './MonthCalendar';
-import {
-  dayKey, eventOnDay, formatDay, MONTH_NAMES, parseIso, useEvents,
-  type EventAudience, type EventStatus, type SchoolEvent,
-} from './mockEvents';
+import type { EventAudience, EventStatus, SchoolEvent } from './types';
+import { useEvents } from './useEvents';
 
 export function EventsScreen() {
   const insets = useSafeAreaInsets();
+  const permissions = useSession((s) => s.permissions);
+  const canCreate = permissions.includes('event.record.create');
+  const canUpdate = permissions.includes('event.record.update');
+  const canDelete = permissions.includes('event.record.delete');
+  const canExportPdf = permissions.includes('event.pdf.read');
+
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -25,21 +35,22 @@ export function EventsScreen() {
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [status, setStatus] = useState<EventStatus | ''>('');
-  const [audience, setAudience] = useState<EventAudience | ''>('');
+  const [targetAudience, setTargetAudience] = useState<EventAudience | ''>('');
   const [holidaysOnly, setHolidaysOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SchoolEvent | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data, isLoading, refetch, add, update, remove } = useEvents({
-    search: debounced, status, audience, holidaysOnly,
+  const { data, isLoading, refetch, add, update, remove } = useEvents(year, month, {
+    search: debounced, status, targetAudience, holidaysOnly,
   });
 
   useEffect(() => {
@@ -57,7 +68,7 @@ export function EventsScreen() {
 
   const detail = useMemo(() => data.find((e) => e.id === detailId) ?? null, [data, detailId]);
 
-  const filterCount = (status ? 1 : 0) + (audience ? 1 : 0);
+  const filterCount = (status ? 1 : 0) + (targetAudience ? 1 : 0);
 
   const doRefresh = useCallback(() => {
     setRefreshing(true);
@@ -73,6 +84,41 @@ export function EventsScreen() {
     ]);
   }, [remove]);
   const onOpen = useCallback((e: SchoolEvent) => setDetailId(e.id), []);
+
+  const onExportPdf = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const { from, to } = monthBounds(year, month);
+      const { blob, fileName } = await getEventsPdf({
+        isHoliday: holidaysOnly ? true : undefined,
+        from,
+        to,
+      });
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Could not read the downloaded PDF.'));
+        reader.onload = () => {
+          const result = String(reader.result ?? '');
+          const comma = result.indexOf(',');
+          resolve(comma >= 0 ? result.slice(comma + 1) : result);
+        };
+        reader.readAsDataURL(blob);
+      });
+      const file = new File(Paths.cache, fileName);
+      file.create({ overwrite: true });
+      file.write(base64, { encoding: 'base64' });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: fileName });
+      } else {
+        Alert.alert('Saved', `PDF saved to ${file.uri}`);
+      }
+    } catch (err) {
+      Alert.alert('Error', err instanceof ApiError ? err.message : 'Failed to export the PDF.');
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, year, month, holidaysOnly]);
 
   const onSelectDay = useCallback((key: string, date: Date) => {
     if (date.getMonth() !== month || date.getFullYear() !== year) {
@@ -157,10 +203,26 @@ export function EventsScreen() {
             <Pressable style={styles.iconBtn} onPress={doRefresh} accessibilityLabel="Refresh">
               <Ionicons name="refresh" size={20} color={colors.textSecondary} />
             </Pressable>
-            <Pressable style={styles.newBtn} onPress={openCreate} accessibilityLabel="Create event">
-              <Ionicons name="add" size={18} color={colors.white} />
-              <Text style={styles.newText}>Create</Text>
-            </Pressable>
+            {canExportPdf ? (
+              <Pressable
+                style={styles.iconBtn}
+                onPress={onExportPdf}
+                disabled={exporting}
+                accessibilityLabel="Export PDF"
+              >
+                {exporting ? (
+                  <ActivityIndicator size="small" color={colors.textSecondary} />
+                ) : (
+                  <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />
+                )}
+              </Pressable>
+            ) : null}
+            {canCreate ? (
+              <Pressable style={styles.newBtn} onPress={openCreate} accessibilityLabel="Create event">
+                <Ionicons name="add" size={18} color={colors.white} />
+                <Text style={styles.newText}>Create</Text>
+              </Pressable>
+            ) : null}
           </>
         }
       />
@@ -170,7 +232,14 @@ export function EventsScreen() {
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View style={styles.itemWrap}>
-            <EventCard item={item} onPress={onOpen} onEdit={onEdit} onDelete={onDelete} />
+            <EventCard
+              item={item}
+              onPress={onOpen}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              canEdit={canUpdate}
+              canDelete={canDelete}
+            />
           </View>
         )}
         ListEmptyComponent={
@@ -190,31 +259,39 @@ export function EventsScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      <Pressable
-        style={[styles.fab, { bottom: insets.bottom + 20 }]}
-        onPress={openCreate}
-        accessibilityLabel="Add event"
-      >
-        <Ionicons name="add" size={28} color={colors.white} />
-      </Pressable>
+      {canCreate ? (
+        <Pressable
+          style={[styles.fab, { bottom: insets.bottom + 20 }]}
+          onPress={openCreate}
+          accessibilityLabel="Add event"
+        >
+          <Ionicons name="add" size={28} color={colors.white} />
+        </Pressable>
+      ) : null}
 
       <FilterSheet
         visible={filterOpen}
         status={status}
-        audience={audience}
-        onChange={(n) => { setStatus(n.status); setAudience(n.audience); }}
+        targetAudience={targetAudience}
+        onChange={(n) => { setStatus(n.status); setTargetAudience(n.targetAudience); }}
         onClose={() => setFilterOpen(false)}
       />
-      <EventDetailSheet event={detail} onClose={() => setDetailId(null)} onEdit={onEdit} onDelete={onDelete} />
+      <EventDetailSheet
+        event={detail}
+        onClose={() => setDetailId(null)}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        canEdit={canUpdate}
+        canDelete={canDelete}
+      />
       <EventForm
         visible={formOpen}
         event={editing}
         defaultDay={selected}
         onClose={() => setFormOpen(false)}
-        onSubmit={(input) => {
-          if (editing) update(editing.id, input);
-          else add(input);
-          setFormOpen(false);
+        onSubmit={async (input) => {
+          const ok = editing ? await update(editing.id, input) : await add(input);
+          if (ok) setFormOpen(false);
         }}
       />
     </ScreenBackground>

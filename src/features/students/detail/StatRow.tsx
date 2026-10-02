@@ -24,6 +24,7 @@ function Mini({ label, value, note, noteIcon, icon }: { label: string; value: st
 
 export function StatRow({ s }: { s: StudentDetail }) {
   const due = s.fees.totalDue;
+  const statusLabel = s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : '—';
   return (
     <View style={styles.row}>
       <Mini label="ATTD." value={`${s.attendance.overallPct}%`} note="Optimal" icon="checkmark-done" />
@@ -34,7 +35,7 @@ export function StatRow({ s }: { s: StudentDetail }) {
         noteIcon={due === 0 ? 'checkmark-circle-outline' : 'alert-circle-outline'}
         icon="cash-outline"
       />
-      <Mini label="RANK" value={s.rank} note={s.rankNote} icon="star-outline" />
+      <Mini label="STATUS" value={statusLabel} note={s.category} icon="shield-checkmark-outline" />
     </View>
   );
 }

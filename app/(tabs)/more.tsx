@@ -6,6 +6,7 @@ import { ScreenBackground } from '../../src/components/ui/Screen';
 import { Card } from '../../src/components/ui/Card';
 import { ScreenHeader } from '../../src/components/ui/ScreenHeader';
 import { colors, fonts } from '../../src/theme/tokens';
+import { useSession } from '../../src/features/auth/session';
 
 type Item = { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; href?: Href };
 type Group = { title: string; items: Item[] };
@@ -40,7 +41,10 @@ const groups: Group[] = [
   },
   {
     title: 'HR',
-    items: [{ label: 'Certificates', icon: 'shield-checkmark-outline', href: '/certificates' }],
+    items: [
+      { label: 'Certificates', icon: 'shield-checkmark-outline', href: '/certificates' },
+      { label: 'Leave Requests', icon: 'calendar-outline', href: '/leave-requests' },
+    ],
   },
   {
     title: 'COMMUNICATION',
@@ -94,6 +98,22 @@ export default function MoreScreen() {
             </Card>
           </View>
         ))}
+        <View style={styles.group}>
+          <Card style={styles.card}>
+            <Pressable
+              onPress={async () => {
+                await useSession.getState().logout();
+                router.replace('/login');
+              }}
+              style={styles.row}
+            >
+              <View style={styles.iconTile}>
+                <Ionicons name="log-out-outline" size={18} color={colors.primaryDeep} />
+              </View>
+              <Text style={styles.label}>Sign Out</Text>
+            </Pressable>
+          </Card>
+        </View>
       </ScrollView>
     </ScreenBackground>
   );

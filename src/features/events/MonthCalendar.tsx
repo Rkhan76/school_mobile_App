@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts } from '../../theme/tokens';
-import { dayKey, eventOnDay, MONTH_NAMES, type SchoolEvent } from './mockEvents';
+import { dayKey, eventOnDay, MONTH_NAMES } from './dateUtils';
+import type { SchoolEvent } from './types';
 
 type Props = {
   year: number;

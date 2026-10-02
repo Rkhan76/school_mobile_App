@@ -5,10 +5,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { parseInputText, parseIso, toInputText, toIso } from './dateUtils';
 import {
-  EVENT_AUDIENCES, EVENT_STATUSES, parseInputText, parseIso, toInputText, toIso,
-  type EventAudience, type EventInput, type EventStatus, type SchoolEvent,
-} from './mockEvents';
+  EVENT_AUDIENCES, EVENT_STATUSES,
+  type EventAudience, type EventPayload, type EventStatus, type SchoolEvent,
+} from './types';
 
 type Props = {
   visible: boolean;
@@ -16,7 +17,7 @@ type Props = {
   event: SchoolEvent | null;
   /** prefill date (YYYY-MM-DD) for new events */
   defaultDay: string | null;
-  onSubmit: (input: EventInput) => void;
+  onSubmit: (input: EventPayload) => void;
   onClose: () => void;
 };
 
@@ -47,7 +48,7 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
   const [end, setEnd] = useState('');
   const [location, setLocation] = useState('');
   const [status, setStatus] = useState<EventStatus>('UPCOMING');
-  const [audience, setAudience] = useState<EventAudience>('ALL');
+  const [targetAudience, setTargetAudience] = useState<EventAudience>('ALL');
   const [isHoliday, setHoliday] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
 
@@ -61,7 +62,7 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
       setEnd(toInputText(parseIso(event.endDate)));
       setLocation(event.location);
       setStatus(event.status);
-      setAudience(event.audience);
+      setTargetAudience(event.targetAudience);
       setHoliday(event.isHoliday);
     } else {
       const base = defaultDay ? parseIso(`${defaultDay}T09:00`) : new Date();
@@ -73,7 +74,7 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
       setEnd(toInputText(endD));
       setLocation('');
       setStatus('UPCOMING');
-      setAudience('ALL');
+      setTargetAudience('ALL');
       setHoliday(false);
     }
   }, [visible, event, defaultDay]);
@@ -87,7 +88,7 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
     else if (!s) e.start = `Use format ${DATE_HINT}.`;
     if (!end.trim()) e.end = 'End date is required.';
     else if (!en) e.end = `Use format ${DATE_HINT}.`;
-    else if (s && en.getTime() <= s.getTime()) e.end = 'End must be after start.';
+    else if (s && en.getTime() < s.getTime()) e.end = 'End must be on or after start.';
     setErrors(e);
     if (Object.keys(e).length > 0 || !s || !en) return;
     onSubmit({
@@ -97,7 +98,7 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
       endDate: toIso(en),
       location: location.trim(),
       status,
-      audience,
+      targetAudience,
       isHoliday,
     });
   };
@@ -159,7 +160,7 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
           <Segment options={EVENT_STATUSES} value={status} onChange={setStatus} />
 
           <Text style={styles.label}>Audience</Text>
-          <Segment options={EVENT_AUDIENCES} value={audience} onChange={setAudience} />
+          <Segment options={EVENT_AUDIENCES} value={targetAudience} onChange={setTargetAudience} />
 
           <View style={styles.switchRow}>
             <View style={styles.switchText}>

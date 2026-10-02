@@ -1,47 +1,42 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { ChapterEditorModal } from './ChapterEditorModal';
 import { ExamCard } from './ExamCard';
 import { ExamFilterSheet, type ExamExtraFilters } from './ExamFilterSheet';
-import { useExamSyllabus, type Chapter, type ExamSyllabus } from './mockSyllabus';
+import { useExamSyllabus } from './useSyllabus';
+import type { ChapterInput, ExamSyllabusItem } from './types';
 
-const PAGE_SIZE = 8;
+type Props = { sectionId: string; academicYearId: string; caption: string; canEdit: boolean };
 
-type Props = { classId: string; sectionId: string; year: string; caption: string };
-
-export function ExamSyllabusTab({ classId, sectionId, year, caption }: Props) {
+export function ExamSyllabusTab({ sectionId, academicYearId, caption, canEdit }: Props) {
   const insets = useSafeAreaInsets();
-  const [extra, setExtra] = useState<ExamExtraFilters>({ examType: '', subjectId: '', upcomingOnly: false });
+  const [extra, setExtra] = useState<ExamExtraFilters>({ examTypeId: '', subjectId: '', upcomingOnly: false });
   const [filterOpen, setFilterOpen] = useState(false);
-  const [editing, setEditing] = useState<ExamSyllabus | null>(null);
+  const [editing, setEditing] = useState<ExamSyllabusItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [saving, setSaving] = useState(false);
 
-  const { data, isLoading, refetch, updateExam } = useExamSyllabus({ classId, sectionId, year, ...extra });
+  const { data, total, isLoading, error, refetch, loadMore, hasMore, updateExam } = useExamSyllabus({
+    sectionId,
+    academicYearId,
+    examTypeId: extra.examTypeId || undefined,
+    subjectId: extra.subjectId || undefined,
+    upcoming: extra.upcomingOnly || undefined,
+  });
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [classId, sectionId, year, extra]);
-
-  const visible = useMemo(() => data.slice(0, visibleCount), [data, visibleCount]);
-  const hasMore = visibleCount < data.length;
-  const activeFilters = (extra.examType ? 1 : 0) + (extra.subjectId ? 1 : 0) + (extra.upcomingOnly ? 1 : 0);
+  const activeFilters = (extra.examTypeId ? 1 : 0) + (extra.subjectId ? 1 : 0) + (extra.upcomingOnly ? 1 : 0);
 
   const doRefresh = useCallback(() => {
     setRefreshing(true);
     refetch();
   }, [refetch]);
-
-  const loadMore = useCallback(() => {
-    if (hasMore) setVisibleCount((n) => n + PAGE_SIZE);
-  }, [hasMore]);
 
   const showSkeleton = isLoading && !refreshing;
 
@@ -60,8 +55,9 @@ export function ExamSyllabusTab({ classId, sectionId, year, caption }: Props) {
           <Ionicons name="refresh" size={18} color={colors.textSecondary} />
         </Pressable>
       </View>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {!showSkeleton ? (
-        <Text style={styles.count}>{data.length} exam{data.length === 1 ? '' : 's'}</Text>
+        <Text style={styles.count}>{total} exam{total === 1 ? '' : 's'}</Text>
       ) : (
         <View style={styles.skeletons}>
           {[0, 1, 2].map((i) => <View key={i} style={styles.skeleton} />)}
@@ -73,12 +69,12 @@ export function ExamSyllabusTab({ classId, sectionId, year, caption }: Props) {
   return (
     <>
       <FlatList
-        data={showSkeleton ? [] : visible}
-        keyExtractor={(e) => e.id}
+        data={showSkeleton ? [] : data}
+        keyExtractor={(e) => e.examScheduleId}
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View style={styles.itemWrap}>
-            <ExamCard item={item} onEdit={setEditing} />
+            <ExamCard item={item} onEdit={canEdit ? setEditing : undefined} />
           </View>
         )}
         ListEmptyComponent={
@@ -114,10 +110,24 @@ export function ExamSyllabusTab({ classId, sectionId, year, caption }: Props) {
         title="Edit syllabus"
         subtitle={editing?.title}
         chapters={editing?.chapters ?? []}
+        saving={saving}
         onClose={() => setEditing(null)}
-        onSave={(chapters: Chapter[]) => {
-          if (editing) updateExam(editing.id, chapters);
-          setEditing(null);
+        onSave={async (chapters: ChapterInput[]) => {
+          if (!editing) return;
+          setSaving(true);
+          try {
+            // This editor only selects/deselects chapters that already exist on the
+            // section+subject+year plan — the exam-schedules endpoint takes chapter
+            // ids only (it cannot create new chapters), so anything without an id
+            // (a row added via "Add chapter" here) is dropped rather than sent.
+            const chapterIds = chapters.map((c) => c.id).filter((id): id is string => !!id);
+            await updateExam(editing.examScheduleId, chapterIds);
+            setEditing(null);
+          } catch {
+            Alert.alert('Save failed', 'Could not save the exam syllabus. Please try again.');
+          } finally {
+            setSaving(false);
+          }
         }}
       />
     </>
@@ -142,6 +152,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
   },
+  errorText: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
   count: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary, textAlign: 'right' },
   itemWrap: { paddingHorizontal: 16 },
   skeletons: { gap: 12 },

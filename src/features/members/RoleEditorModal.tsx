@@ -1,39 +1,52 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { ALL_PERMISSION_CODES, PERMISSION_GROUPS, type Role, type RolePatch } from './mockMembers';
-import { hasPermission } from './permissions';
+import type { RoleDetail, RoleSummary, UpdateRolePayload } from './types';
 import { Checkbox, FooterButtons, FullModal, formStyles as f } from './parts';
+import type { PermissionCatalogGroup } from './useMembers';
+import { useRoleDetail } from './useMembers';
 
 type Props = {
-  role: Role | null;
-  memberCount: number;
-  existingNames: string[];
+  roleId: string | null;
+  roles: RoleSummary[];
+  sessionPermissions: string[];
+  permissionGroups: PermissionCatalogGroup[];
   onClose: () => void;
-  onSave: (id: string, patch: RolePatch) => void;
-  onDelete: (id: string) => void;
+  onSave: (id: string, patch: UpdateRolePayload) => Promise<RoleDetail | null>;
+  onDelete: (id: string) => Promise<boolean>;
 };
 
-export function RoleEditorModal({ role, memberCount, existingNames, onClose, onSave, onDelete }: Props) {
+export function RoleEditorModal({ roleId, roles, sessionPermissions, permissionGroups, onClose, onSave, onDelete }: Props) {
+  const { detail, isLoading } = useRoleDetail(roleId);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [hiddenGranted, setHiddenGranted] = useState<string[]>([]);
   const [nameErr, setNameErr] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const readOnly = !!role?.readOnly;
+  // The default ADMIN role's permission set can't be changed via the API at all —
+  // only name/description. Other default roles (Teacher/Student/Parent/Staff) aren't locked.
+  const locked = !!detail && detail.isDefault && detail.baseRole === 'ADMIN';
+  const sessionSet = useMemo(() => new Set(sessionPermissions), [sessionPermissions]);
 
   useEffect(() => {
-    if (role) {
-      setName(role.name);
-      setDescription(role.description);
-      setSelected(new Set(ALL_PERMISSION_CODES.filter((c) => hasPermission(c, role.permissions))));
+    if (detail) {
+      setName(detail.name);
+      setDescription(detail.description ?? '');
+      const codes = detail.rolePermissions.map((rp) => rp.permission.code);
+      // Only codes the current viewer themselves holds are editable (the backend 403s
+      // on granting beyond your own permissions) — anything else stays untouched.
+      setSelected(new Set(codes.filter((c) => sessionSet.has(c))));
+      setHiddenGranted(codes.filter((c) => !sessionSet.has(c)));
       setNameErr('');
     }
-  }, [role]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail]);
 
   const toggle = (code: string) => {
-    if (readOnly) return;
+    if (locked) return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code); else next.add(code);
@@ -42,7 +55,7 @@ export function RoleEditorModal({ role, memberCount, existingNames, onClose, onS
   };
 
   const toggleGroup = (codes: string[]) => {
-    if (readOnly) return;
+    if (locked) return;
     setSelected((prev) => {
       const next = new Set(prev);
       const all = codes.every((c) => next.has(c));
@@ -52,105 +65,139 @@ export function RoleEditorModal({ role, memberCount, existingNames, onClose, onS
   };
 
   const others = useMemo(
-    () => existingNames.filter((n) => role && n.toLowerCase() !== role.name.toLowerCase()).map((n) => n.toLowerCase()),
-    [existingNames, role],
+    () => roles.filter((r) => r.id !== roleId).map((r) => r.name.toLowerCase()),
+    [roles, roleId]
   );
 
-  const save = () => {
-    if (!role) return;
-    if (!role.system) {
-      if (!name.trim()) { setNameErr('Role name is required.'); return; }
-      if (others.includes(name.trim().toLowerCase())) { setNameErr('A role with this name already exists.'); return; }
+  const visibleGroups = useMemo(
+    () =>
+      permissionGroups
+        .map((g) => ({ ...g, permissions: g.permissions.filter((p) => sessionSet.has(p.code)) }))
+        .filter((g) => g.permissions.length > 0),
+    [permissionGroups, sessionSet]
+  );
+
+  const save = async () => {
+    if (!detail) return;
+    const n = name.trim();
+    if (!n) {
+      setNameErr('Role name is required.');
+      return;
     }
-    onSave(role.id, {
-      ...(role.system ? {} : { name: name.trim(), description: description.trim() || 'Custom role' }),
-      permissions: ALL_PERMISSION_CODES.filter((c) => selected.has(c)),
-    });
-    onClose();
+    if (others.includes(n.toLowerCase())) {
+      setNameErr('A role with this name already exists.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const patch: UpdateRolePayload = { name: n, description: description.trim() || undefined };
+      if (!locked) {
+        // Preserve any permissions outside the viewer's own access that were already
+        // granted — only the visible, editable subset is actually toggled here.
+        patch.permissions = Array.from(new Set([...Array.from(selected), ...hiddenGranted]));
+      }
+      const result = await onSave(detail.id, patch);
+      if (result) onClose();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const confirmDelete = () => {
-    if (!role) return;
-    if (memberCount > 0) {
-      Alert.alert('Cannot delete role', `${memberCount} member(s) still have this role. Reassign them first.`);
-      return;
-    }
-    Alert.alert('Delete role', `Delete "${role.name}"? This cannot be undone.`, [
+    if (!detail) return;
+    Alert.alert('Delete role', `Delete "${detail.name}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { onDelete(role.id); onClose(); } },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const ok = await onDelete(detail.id);
+          if (ok) onClose();
+        },
+      },
     ]);
   };
 
   return (
     <FullModal
-      visible={!!role}
-      title={role ? `${readOnly ? 'View' : 'Edit'} role · ${role.name}` : ''}
+      visible={!!roleId}
+      title={detail ? `Edit role · ${detail.name}` : 'Role'}
       onClose={onClose}
       footer={
-        readOnly
-          ? <FooterButtons cancelLabel="Close" saveLabel="Read-only" saveDisabled onCancel={onClose} onSave={onClose} />
-          : <FooterButtons saveLabel="Save changes" onCancel={onClose} onSave={save} />
+        detail ? (
+          <FooterButtons saveLabel={saving ? 'Saving…' : 'Save changes'} saveDisabled={saving} onCancel={onClose} onSave={save} />
+        ) : undefined
       }
     >
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[f.form, styles.pad]}>
-        {readOnly ? (
-          <View style={styles.banner}>
-            <Ionicons name="lock-closed-outline" size={16} color={colors.warning} />
-            <Text style={styles.bannerText}>The admin role always has every permission and cannot be edited.</Text>
-          </View>
-        ) : null}
-
-        {role && !role.system ? (
-          <>
-            <Text style={f.label}>Role name *</Text>
-            <TextInput
-              value={name} onChangeText={setName} placeholder="Role name" placeholderTextColor={colors.textHint}
-              style={[f.input, !!nameErr && f.inputErr]}
-            />
-            {nameErr ? <Text style={f.err}>{nameErr}</Text> : null}
-            <Text style={f.label}>Description</Text>
-            <TextInput
-              value={description} onChangeText={setDescription} placeholder="What is this role for?"
-              placeholderTextColor={colors.textHint} style={f.input}
-            />
-          </>
-        ) : null}
-
-        {PERMISSION_GROUPS.map((g) => {
-          const codes = g.permissions.map((x) => x.code);
-          const count = codes.filter((c) => selected.has(c)).length;
-          const allOn = count === codes.length;
-          return (
-            <View key={g.key} style={styles.group}>
-              <Pressable style={styles.groupHead} onPress={() => toggleGroup(codes)} disabled={readOnly}>
-                <Ionicons name={g.icon} size={18} color={colors.primaryDeep} />
-                <View style={styles.flex}>
-                  <Text style={styles.groupTitle}>{g.label}</Text>
-                  <Text style={styles.groupSub}>{count} of {codes.length} selected</Text>
-                </View>
-                <Text style={styles.selectAll}>{allOn ? 'Clear all' : 'Select all'}</Text>
-                <Checkbox checked={allOn} disabled={readOnly} />
-              </Pressable>
-              {g.permissions.map((x) => (
-                <Pressable key={x.code} style={styles.permRow} onPress={() => toggle(x.code)} disabled={readOnly}>
-                  <Checkbox checked={selected.has(x.code)} disabled={readOnly} />
-                  <View style={styles.flex}>
-                    <Text style={styles.permLabel}>{x.label}</Text>
-                    <Text style={styles.code}>{x.code}</Text>
-                  </View>
-                </Pressable>
-              ))}
+      {isLoading || !detail ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : (
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[f.form, styles.pad]}>
+          {locked ? (
+            <View style={styles.banner}>
+              <Ionicons name="lock-closed-outline" size={16} color={colors.warning} />
+              <Text style={styles.bannerText}>
+                The default Admin role always has every permission — its permission set can't be changed here, only its name and description.
+              </Text>
             </View>
-          );
-        })}
+          ) : null}
 
-        {role && !role.system ? (
-          <Pressable style={styles.deleteBtn} onPress={confirmDelete}>
-            <Ionicons name="trash-outline" size={16} color={colors.danger} />
-            <Text style={styles.deleteText}>Delete role</Text>
-          </Pressable>
-        ) : null}
-      </ScrollView>
+          <Text style={f.label}>Role name *</Text>
+          <TextInput
+            value={name} onChangeText={setName} placeholder="Role name" placeholderTextColor={colors.textHint}
+            style={[f.input, !!nameErr && f.inputErr]}
+          />
+          {nameErr ? <Text style={f.err}>{nameErr}</Text> : null}
+          <Text style={f.label}>Description</Text>
+          <TextInput
+            value={description} onChangeText={setDescription} placeholder="What is this role for?"
+            placeholderTextColor={colors.textHint} style={f.input}
+          />
+
+          {!locked && hiddenGranted.length > 0 ? (
+            <Text style={styles.hiddenNote}>
+              This role also holds {hiddenGranted.length} permission(s) outside your own access — they're left untouched by any change you make here.
+            </Text>
+          ) : null}
+
+          {visibleGroups.map((g) => {
+            const codes = g.permissions.map((x) => x.code);
+            const count = codes.filter((c) => selected.has(c)).length;
+            const allOn = count === codes.length;
+            return (
+              <View key={g.module} style={styles.group}>
+                <Pressable style={styles.groupHead} onPress={() => toggleGroup(codes)} disabled={locked}>
+                  <View style={styles.flex}>
+                    <Text style={styles.groupTitle}>{g.module}</Text>
+                    <Text style={styles.groupSub}>{count} of {codes.length} selected</Text>
+                  </View>
+                  <Text style={styles.selectAll}>{allOn ? 'Clear all' : 'Select all'}</Text>
+                  <Checkbox checked={allOn} disabled={locked} />
+                </Pressable>
+                {g.permissions.map((x) => (
+                  <Pressable key={x.code} style={styles.permRow} onPress={() => toggle(x.code)} disabled={locked}>
+                    <Checkbox checked={selected.has(x.code)} disabled={locked} />
+                    <View style={styles.flex}>
+                      <Text style={styles.permLabel}>{x.description}</Text>
+                      <Text style={styles.code}>{x.code}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            );
+          })}
+
+          {!detail.isDefault ? (
+            <Pressable style={styles.deleteBtn} onPress={confirmDelete}>
+              <Ionicons name="trash-outline" size={16} color={colors.danger} />
+              <Text style={styles.deleteText}>Delete role</Text>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+      )}
     </FullModal>
   );
 }
@@ -158,11 +205,13 @@ export function RoleEditorModal({ role, memberCount, existingNames, onClose, onS
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   pad: { gap: 10 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   banner: {
     flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: radius.lg,
     backgroundColor: colors.warningBg,
   },
   bannerText: { flex: 1, fontFamily: fonts.body, fontSize: 12, color: colors.warning },
+  hiddenNote: { fontFamily: fonts.body, fontSize: 11.5, color: colors.textHint, marginTop: 2 },
   group: {
     padding: 12, gap: 4, borderRadius: radius.lg, backgroundColor: colors.cardSolid,
     borderWidth: 1, borderColor: colors.border,
@@ -171,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8, marginBottom: 4,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  groupTitle: { fontFamily: fonts.heading, fontSize: 15, color: colors.text },
+  groupTitle: { fontFamily: fonts.heading, fontSize: 15, color: colors.text, textTransform: 'capitalize' },
   groupSub: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary },
   selectAll: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
   permRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },

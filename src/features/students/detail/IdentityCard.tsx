@@ -12,8 +12,8 @@ export function IdentityCard({ s }: { s: StudentDetail }) {
         <LabelValue label="Gender" value={s.gender} />
       </View>
       <View style={styles.row}>
-        <LabelValue label="Admission Date" value={s.admissionDate} />
-        <LabelValue label="Category / Faith" value={`${s.category} • ${s.religion}`} />
+        <LabelValue label="Category" value={s.category} />
+        <LabelValue label="Sub-category" value={s.subcategory} />
       </View>
       <View style={{ gap: 4 }}>
         <Text style={styles.label}>RESIDENTIAL ADDRESS</Text>

@@ -2,7 +2,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { Option } from './mockSyllabus';
+import type { Option } from './types';
 
 type Props = {
   visible: boolean;

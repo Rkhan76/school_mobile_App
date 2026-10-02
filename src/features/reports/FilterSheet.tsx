@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { CLASS_OPTIONS, SECTION_OPTIONS, YEAR_OPTIONS } from './registry';
+import { getAcademicYearsMaster, getClassesMaster } from '../common/api';
+import type { ClassWithSections } from '../common/types';
 import {
   DEFAULT_FILTERS, type Granularity, type RangePreset, type ReportCapabilities, type ReportFilters,
 } from './types';
@@ -68,6 +69,19 @@ export function FilterSheet({ visible, caps, value, onApply, onClose }: Props) {
   useEffect(() => { if (visible) setDraft(value); }, [visible, value]);
   const set = (p: Partial<ReportFilters>): void => setDraft((d) => ({ ...d, ...p }));
 
+  const [classes, setClasses] = useState<ClassWithSections[]>([]);
+  const [years, setYears] = useState<{ id: string; label: string }[]>([]);
+  useEffect(() => {
+    if (!visible) return;
+    getClassesMaster().then(setClasses).catch(() => setClasses([]));
+    getAcademicYearsMaster().then(setYears).catch(() => setYears([]));
+  }, [visible]);
+
+  const sectionOptions = useMemo(
+    () => classes.find((c) => c.id === draft.classId)?.sections ?? [],
+    [classes, draft.classId],
+  );
+
   const custom = draft.preset === 'custom';
   const datesOk = !custom || (isValidDate(draft.from) && isValidDate(draft.to));
   const noClass = !draft.classId;
@@ -111,21 +125,21 @@ export function FilterSheet({ visible, caps, value, onApply, onClose }: Props) {
             {caps.academicYear ? (
               <View style={styles.block}>
                 <Label>Academic year</Label>
-                <Chips options={[{ value: '', label: 'Any / default' }, ...YEAR_OPTIONS.map((y) => ({ value: y, label: y }))]} value={draft.academicYear} onChange={(v) => set({ academicYear: v })} />
+                <Chips options={[{ value: '', label: 'Any / default' }, ...years.map((y) => ({ value: y.id, label: y.label }))]} value={draft.academicYear} onChange={(v) => set({ academicYear: v })} />
               </View>
             ) : null}
 
             {caps.classFilter ? (
               <View style={styles.block}>
                 <Label>Class</Label>
-                <Chips options={[{ value: '', label: 'All classes' }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]} value={draft.classId} onChange={(v) => set({ classId: v, section: '' })} />
+                <Chips options={[{ value: '', label: 'All classes' }, ...classes.map((c) => ({ value: c.id, label: c.name }))]} value={draft.classId} onChange={(v) => set({ classId: v, section: '' })} />
               </View>
             ) : null}
 
             {caps.classFilter && caps.section ? (
               <View style={styles.block}>
                 <Label>Section</Label>
-                <Chips options={[{ value: '', label: 'All sections' }, ...SECTION_OPTIONS.map((s) => ({ value: s, label: s }))]} value={draft.section} onChange={(v) => set({ section: v })} disabled={noClass} />
+                <Chips options={[{ value: '', label: 'All sections' }, ...sectionOptions.map((s) => ({ value: s.id, label: s.name }))]} value={draft.section} onChange={(v) => set({ section: v })} disabled={noClass} />
                 {noClass ? <Text style={styles.hint}>Pick a class to choose a section.</Text> : null}
               </View>
             ) : null}

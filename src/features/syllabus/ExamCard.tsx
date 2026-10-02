@@ -3,27 +3,29 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { examStatusLabel, formatDate, type ExamSyllabus } from './mockSyllabus';
+import type { ExamSyllabusItem } from './types';
+import { examStatusLabel, formatDate } from './utils';
 
-type Props = { item: ExamSyllabus; onEdit: (exam: ExamSyllabus) => void };
+type Props = { item: ExamSyllabusItem; onEdit?: (exam: ExamSyllabusItem) => void };
 
 function ExamCardBase({ item, onEdit }: Props) {
-  const completed = item.daysLeft < 0;
+  const completed = item.daysRemaining < 0;
+  const classLabel = item.section ? `${item.class.name} - ${item.section.name}` : item.class.name;
   return (
     <Card style={styles.card}>
       <View style={styles.top}>
         <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
         <View style={[styles.status, completed ? styles.statusDone : styles.statusUp]}>
           <Text style={[styles.statusText, { color: completed ? colors.warning : colors.blue }]}>
-            {examStatusLabel(item.daysLeft)}
+            {examStatusLabel(item.daysRemaining)}
           </Text>
         </View>
       </View>
       <View style={styles.typePill}>
-        <Text style={styles.typeText}>{item.examType}</Text>
+        <Text style={styles.typeText}>{item.examType.name}</Text>
       </View>
       <Text style={styles.meta}>
-        {item.subjectName} · {item.classLabel} · {item.marks} marks · {formatDate(item.date)}
+        {item.subject.name} · {classLabel} · {item.maxMarks} marks · {formatDate(item.examDate)}
       </Text>
 
       <Text style={styles.section}>SYLLABUS</Text>
@@ -32,15 +34,17 @@ function ExamCardBase({ item, onEdit }: Props) {
         <View key={c.id} style={styles.chapter}>
           <Text style={styles.chNum}>{i + 1}</Text>
           <Text style={styles.chTitle} numberOfLines={2}>{c.title}</Text>
-          <Text style={styles.topics}>{c.topics} topic{c.topics === 1 ? '' : 's'}</Text>
+          <Text style={styles.topics}>{c.topics.length} topic{c.topics.length === 1 ? '' : 's'}</Text>
           <Ionicons name="chevron-forward" size={14} color={colors.textHint} />
         </View>
       ))}
 
-      <Pressable style={styles.editBtn} onPress={() => onEdit(item)} accessibilityLabel={`Edit syllabus for ${item.title}`}>
-        <Ionicons name="pencil-outline" size={15} color={colors.primaryDeep} />
-        <Text style={styles.editText}>Edit syllabus</Text>
-      </Pressable>
+      {onEdit ? (
+        <Pressable style={styles.editBtn} onPress={() => onEdit(item)} accessibilityLabel={`Edit syllabus for ${item.title}`}>
+          <Ionicons name="pencil-outline" size={15} color={colors.primaryDeep} />
+          <Text style={styles.editText}>Edit syllabus</Text>
+        </Pressable>
+      ) : null}
     </Card>
   );
 }

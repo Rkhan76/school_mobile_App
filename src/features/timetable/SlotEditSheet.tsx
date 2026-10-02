@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import {
-  DAY_LONG, SUBJECT_OPTIONS, TEACHER_OPTIONS, formatTime,
-  type Day, type Option, type Period, type Slot, type SlotInput,
-} from './mockTimetable';
+import { DAY_LONG, formatTime, type Day, type Option, type Period, type TimetableSlot } from './types';
+
+export type SlotFormInput = { subjectId: string; teacherId: string; room: string };
 
 type Props = {
   visible: boolean;
   day: Day;
   period: Period | null;
-  slot: Slot | undefined;
-  onSave: (input: SlotInput) => void;
+  slot: TimetableSlot | undefined;
+  subjectOptions: Option[];
+  teacherOptions: Option[];
+  canDelete: boolean;
+  isSaving: boolean;
+  error?: string | null;
+  onSave: (input: SlotFormInput) => void;
   onClear: () => void;
   onClose: () => void;
 };
@@ -38,15 +42,19 @@ function InlineSelect({
       </Pressable>
       {open ? (
         <ScrollView style={styles.list} nestedScrollEnabled>
-          {options.map((o) => {
-            const active = o.value === value;
-            return (
-              <Pressable key={o.value} onPress={() => onSelect(o.value)} style={[styles.opt, active && styles.optActive]}>
-                <Text style={[styles.optText, active && styles.optTextActive]}>{o.label}</Text>
-                {active ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
-              </Pressable>
-            );
-          })}
+          {options.length === 0 ? (
+            <Text style={styles.emptyOpt}>Nothing to select</Text>
+          ) : (
+            options.map((o) => {
+              const active = o.value === value;
+              return (
+                <Pressable key={o.value} onPress={() => onSelect(o.value)} style={[styles.opt, active && styles.optActive]}>
+                  <Text style={[styles.optText, active && styles.optTextActive]} numberOfLines={1}>{o.label}</Text>
+                  {active ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
+                </Pressable>
+              );
+            })
+          )}
         </ScrollView>
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -55,9 +63,11 @@ function InlineSelect({
 }
 
 /** Bottom sheet to edit one timetable slot: subject, teacher, room. */
-export function SlotEditSheet({ visible, day, period, slot, onSave, onClear, onClose }: Props) {
+export function SlotEditSheet({
+  visible, day, period, slot, subjectOptions, teacherOptions, canDelete, isSaving, error: saveError, onSave, onClear, onClose,
+}: Props) {
   const insets = useSafeAreaInsets();
-  const [subject, setSubject] = useState('');
+  const [subjectId, setSubjectId] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [room, setRoom] = useState('');
   const [open, setOpen] = useState<Open>(null);
@@ -65,32 +75,25 @@ export function SlotEditSheet({ visible, day, period, slot, onSave, onClear, onC
 
   useEffect(() => {
     if (visible) {
-      setSubject(slot?.subject ?? '');
-      setTeacherId(slot?.teacherId ?? '');
-      setRoom(slot?.room ?? '');
+      setSubjectId(slot?.subject?.id ?? '');
+      setTeacherId(slot?.teacher?.id ?? '');
+      setRoom(slot?.roomName ?? '');
       setOpen(null);
       setError('');
     }
   }, [visible, slot]);
 
   const save = () => {
-    if (teacherId && !subject) {
-      setError('Subject is required when a teacher is set');
-      return;
-    }
-    if (!subject && !teacherId && !room.trim()) {
-      onClear();
-      return;
-    }
-    if (!subject) {
+    if (!subjectId) {
       setError('Select a subject');
       return;
     }
-    onSave({ subject, teacherId, room });
+    if (!teacherId) {
+      setError('Select a teacher');
+      return;
+    }
+    onSave({ subjectId, teacherId, room: room.trim() });
   };
-
-  const subjectOptions = SUBJECT_OPTIONS;
-  const teacherOptions: Option[] = [{ value: '', label: 'No teacher' }, ...TEACHER_OPTIONS];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -106,18 +109,18 @@ export function SlotEditSheet({ visible, day, period, slot, onSave, onClear, onC
           ) : null}
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <InlineSelect
-              label="SUBJECT" value={subject} placeholder="Select subject" options={subjectOptions}
-              open={open === 'subject'} error={error}
+              label="SUBJECT" value={subjectId} placeholder="Select subject" options={subjectOptions}
+              open={open === 'subject'} error={error && !subjectId ? error : undefined}
               onToggle={() => setOpen(open === 'subject' ? null : 'subject')}
               onSelect={(v) => {
-                setSubject(v);
+                setSubjectId(v);
                 setError('');
                 setOpen(null);
               }}
             />
             <InlineSelect
               label="TEACHER" value={teacherId} placeholder="Select teacher" options={teacherOptions}
-              open={open === 'teacher'}
+              open={open === 'teacher'} error={error && subjectId && !teacherId ? error : undefined}
               onToggle={() => setOpen(open === 'teacher' ? null : 'teacher')}
               onSelect={(v) => { setTeacherId(v); setError(''); setOpen(null); }}
             />
@@ -132,14 +135,17 @@ export function SlotEditSheet({ visible, day, period, slot, onSave, onClear, onC
                 maxLength={30}
               />
             </View>
+            {saveError ? <Text style={styles.apiError}>{saveError}</Text> : null}
           </ScrollView>
           <View style={styles.actions}>
-            <Pressable style={[styles.btn, styles.btnGhost]} onPress={onClear} accessibilityRole="button">
-              <Ionicons name="trash-outline" size={16} color={colors.danger} />
-              <Text style={[styles.btnText, { color: colors.danger }]}>Clear</Text>
-            </Pressable>
-            <Pressable style={[styles.btn, styles.btnPrimary]} onPress={save} accessibilityRole="button">
-              <Text style={[styles.btnText, { color: colors.white }]}>Save</Text>
+            {canDelete && slot ? (
+              <Pressable style={[styles.btn, styles.btnGhost]} onPress={onClear} disabled={isSaving} accessibilityRole="button">
+                <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                <Text style={[styles.btnText, { color: colors.danger }]}>Delete</Text>
+              </Pressable>
+            ) : null}
+            <Pressable style={[styles.btn, styles.btnPrimary]} onPress={save} disabled={isSaving} accessibilityRole="button">
+              {isSaving ? <ActivityIndicator color={colors.white} /> : <Text style={[styles.btnText, { color: colors.white }]}>Save</Text>}
             </Pressable>
           </View>
         </View>
@@ -172,9 +178,11 @@ const styles = StyleSheet.create({
   },
   opt: { height: 42, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   optActive: { backgroundColor: colors.mint },
-  optText: { fontFamily: fonts.bodyMedium, fontSize: 13.5, color: colors.text },
+  optText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13.5, color: colors.text },
   optTextActive: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
+  emptyOpt: { padding: 12, fontFamily: fonts.body, fontSize: 13, color: colors.textHint },
   error: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
+  apiError: { fontFamily: fonts.body, fontSize: 12.5, color: colors.danger, marginTop: 10 },
   input: {
     height: 46, paddingHorizontal: 12, borderRadius: radius.md, backgroundColor: colors.cardSolid,
     borderWidth: 1, borderColor: colors.border, fontFamily: fonts.body, fontSize: 14, color: colors.text,

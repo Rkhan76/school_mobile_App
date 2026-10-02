@@ -1,26 +1,60 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
-import { colors } from '../../theme/tokens';
-import type { Role, RoleInput } from './mockMembers';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { colors, fonts } from '../../theme/tokens';
+import { getRole } from './api';
+import { errorMessage } from './useMembers';
+import type { RoleSummary } from './types';
 import { Chip, FooterButtons, FullModal, formStyles as f } from './parts';
 
-type Props = { visible: boolean; roles: Role[]; onClose: () => void; onSubmit: (input: RoleInput) => void };
+type NewRoleInput = { name: string; description?: string; permissions: string[] };
 
-export function NewRoleModal({ visible, roles, onClose, onSubmit }: Props) {
+type Props = {
+  visible: boolean;
+  roles: RoleSummary[];
+  /** The current user's own granted permission codes — only these can be copied in (403 otherwise). */
+  sessionPermissions: string[];
+  onClose: () => void;
+  onSubmit: (input: NewRoleInput) => void;
+};
+
+/**
+ * Creation only covers name/description/"copy from" — the full permission
+ * checkbox grid lives in RoleEditorModal, opened immediately after creation so
+ * the admin can fine-tune the grant list there.
+ */
+export function NewRoleModal({ visible, roles, sessionPermissions, onClose, onSubmit }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [copyFromId, setCopyFromId] = useState('');
   const [err, setErr] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (visible) { setName(''); setDescription(''); setCopyFromId(''); setErr(''); }
+    if (visible) {
+      setName(''); setDescription(''); setCopyFromId(''); setErr(''); setSubmitting(false);
+    }
   }, [visible]);
 
-  const submit = () => {
+  const submit = async () => {
     const n = name.trim();
     if (!n) { setErr('Role name is required.'); return; }
     if (roles.some((r) => r.name.toLowerCase() === n.toLowerCase())) { setErr('A role with this name already exists.'); return; }
-    onSubmit({ name: n, description, copyFromId: copyFromId || undefined });
+
+    setSubmitting(true);
+    try {
+      let permissions: string[] = [];
+      if (copyFromId) {
+        const source = await getRole(copyFromId);
+        const sourceCodes = source.rolePermissions.map((rp) => rp.permission.code);
+        // You can only grant codes you yourself hold — only copy the overlap.
+        permissions = sourceCodes.filter((c) => sessionPermissions.includes(c));
+      }
+      onSubmit({ name: n, description: description.trim() || undefined, permissions });
+    } catch (error) {
+      setErr(errorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -28,7 +62,7 @@ export function NewRoleModal({ visible, roles, onClose, onSubmit }: Props) {
       visible={visible}
       title="New role"
       onClose={onClose}
-      footer={<FooterButtons saveLabel="Create role" onCancel={onClose} onSave={submit} />}
+      footer={<FooterButtons saveLabel={submitting ? 'Creating…' : 'Create role'} saveDisabled={submitting} onCancel={onClose} onSave={submit} />}
     >
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={f.form}>
         <Text style={f.label}>Role name *</Text>
@@ -49,7 +83,12 @@ export function NewRoleModal({ visible, roles, onClose, onSubmit }: Props) {
           <Chip label="None" on={copyFromId === ''} onPress={() => setCopyFromId('')} />
           {roles.map((r) => <Chip key={r.id} label={r.name} on={copyFromId === r.id} onPress={() => setCopyFromId(r.id)} />)}
         </View>
+        <Text style={styles.hint}>Only permissions you yourself hold can be copied in — you can add more after creating the role.</Text>
       </ScrollView>
     </FullModal>
   );
 }
+
+const styles = StyleSheet.create({
+  hint: { fontFamily: fonts.body, fontSize: 11.5, color: colors.textHint, marginTop: 4 },
+});

@@ -1,10 +1,17 @@
-import { memo, useEffect, useRef } from 'react';
-import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { memo, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { formatShort } from './dateUtils';
-import type { AttendanceStatus, HistoryEntry } from './mockAttendance';
+import type { AttendanceStatus } from './mockAttendance';
+
+/** Richer than mockAttendance's HistoryEntry: carries the saved row's id so a
+ * same-day entry can offer a correction affordance (student history only —
+ * staff history entries simply omit `id` and behave exactly as before). */
+export type HistoryEntry = { date: string; status: AttendanceStatus | null; id?: string };
+
+const CORRECTION_STATUSES: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
 
 /* ------------------------------ status meta ------------------------------ */
 
@@ -30,12 +37,13 @@ type ControlProps = {
   value: AttendanceStatus | null;
   options: AttendanceStatus[];
   onChange: (s: AttendanceStatus | null) => void;
+  disabled?: boolean;
 };
 
 /** Segmented status buttons; tapping the active one clears it. */
-export const StatusControl = memo(function StatusControl({ value, options, onChange }: ControlProps) {
+export const StatusControl = memo(function StatusControl({ value, options, onChange, disabled }: ControlProps) {
   return (
-    <View style={styles.segRow}>
+    <View style={[styles.segRow, disabled && { opacity: 0.5 }]}>
       {options.map((o) => {
         const m = STATUS_META[o];
         const on = value === o;
@@ -43,9 +51,10 @@ export const StatusControl = memo(function StatusControl({ value, options, onCha
           <Pressable
             key={o}
             onPress={() => onChange(on ? null : o)}
+            disabled={disabled}
             style={[styles.seg, { borderColor: on ? m.fg : colors.border, backgroundColor: on ? m.fg : colors.cardSolid }]}
             accessibilityRole="button"
-            accessibilityState={{ selected: on }}
+            accessibilityState={{ selected: on, disabled }}
             accessibilityLabel={m.label}
           >
             <View style={[styles.dot, { backgroundColor: on ? colors.white : m.fg }]} />
@@ -188,12 +197,50 @@ type HistoryProps = {
   subtitle: string;
   entries: HistoryEntry[];
   onClose: () => void;
+  /** Shows a loading state instead of the list (e.g. while fetching real history). */
+  loading?: boolean;
+  /** Only entries dated exactly this (ISO) day may be corrected — matches the
+   * backend's same-day-only correction window. Omit to disable correction entirely. */
+  correctableDate?: string | null;
+  /** Present only when the viewer holds the correction permission. */
+  onCorrect?: (entry: HistoryEntry, update: { status: AttendanceStatus; reason: string }) => Promise<void> | void;
 };
 
-export function HistorySheet({ visible, title, subtitle, entries, onClose }: HistoryProps) {
+export function HistorySheet({ visible, title, subtitle, entries, onClose, loading, correctableDate, onCorrect }: HistoryProps) {
   const counted = entries.filter((e) => e.status);
   const good = counted.filter((e) => e.status === 'PRESENT' || e.status === 'LATE').length;
   const pct = counted.length ? Math.round((good / counted.length) * 100) : 0;
+  const [editing, setEditing] = useState<HistoryEntry | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<AttendanceStatus | null>(null);
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setEditing(null);
+      setReason('');
+      setSubmitting(false);
+    }
+  }, [visible]);
+
+  const startEdit = (e: HistoryEntry) => {
+    setEditing(e);
+    setPendingStatus(e.status);
+    setReason('');
+  };
+
+  const submit = async () => {
+    if (!editing || !onCorrect || reason.trim().length < 3 || !pendingStatus) return;
+    setSubmitting(true);
+    try {
+      await onCorrect(editing, { status: pendingStatus, reason: reason.trim() });
+      setEditing(null);
+      setReason('');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <BottomSheet visible={visible} title={title} onClose={onClose}>
       <Text style={styles.histSub}>{subtitle}</Text>
@@ -201,14 +248,52 @@ export function HistorySheet({ visible, title, subtitle, entries, onClose }: His
         <Text style={styles.histPct}>{pct}%</Text>
         <Text style={styles.histCaption}>attendance over the last {entries.length} working days</Text>
       </View>
-      <ScrollView style={{ flexGrow: 0 }}>
-        {entries.map((e) => (
-          <View key={e.date} style={styles.histRow}>
-            <Text style={styles.histDate}>{formatShort(e.date)}</Text>
-            <StatusPill status={e.status} />
-          </View>
-        ))}
-      </ScrollView>
+      {loading ? (
+        <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
+      ) : (
+        <ScrollView style={{ flexGrow: 0 }}>
+          {entries.map((e) => {
+            const canCorrect = !!onCorrect && !!e.id && !!correctableDate && e.date === correctableDate;
+            const isEditing = !!editing && editing.id === e.id && editing.date === e.date;
+            return (
+              <View key={e.date}>
+                <View style={styles.histRow}>
+                  <Text style={styles.histDate}>{formatShort(e.date)}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <StatusPill status={e.status} />
+                    {canCorrect ? (
+                      <Pressable onPress={() => (isEditing ? setEditing(null) : startEdit(e))} hitSlop={8} accessibilityLabel="Correct this entry">
+                        <Ionicons name={isEditing ? 'close' : 'create-outline'} size={17} color={colors.primaryDeep} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+                {isEditing ? (
+                  <View style={styles.correctBox}>
+                    <StatusControl value={pendingStatus} options={CORRECTION_STATUSES} onChange={setPendingStatus} />
+                    <TextInput
+                      value={reason}
+                      onChangeText={setReason}
+                      placeholder="Reason for correction (min 3 characters)..."
+                      placeholderTextColor={colors.textHint}
+                      style={styles.correctReason}
+                      maxLength={200}
+                    />
+                    <Pressable
+                      onPress={submit}
+                      disabled={submitting || reason.trim().length < 3 || !pendingStatus}
+                      style={[styles.correctSave, (submitting || reason.trim().length < 3 || !pendingStatus) && { opacity: 0.5 }]}
+                      accessibilityRole="button"
+                    >
+                      {submitting ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.correctSaveText}>Save correction</Text>}
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
     </BottomSheet>
   );
 }
@@ -307,6 +392,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
   },
   histDate: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
+  correctBox: { gap: 8, paddingVertical: 10, paddingHorizontal: 2 },
+  correctReason: {
+    height: 40, paddingHorizontal: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.mintSoft, fontFamily: fonts.body, fontSize: 13, color: colors.text,
+  },
+  correctSave: {
+    height: 40, borderRadius: radius.pill, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+  },
+  correctSaveText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
   skelCard: {
     backgroundColor: colors.cardSolid, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
     padding: 14, gap: 12,

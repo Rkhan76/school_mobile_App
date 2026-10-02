@@ -4,15 +4,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { colors, fonts, radius, shadow } from '../../theme/tokens';
-import { STAFF_STATUSES, STUDENT_STATUSES, type AttendanceStatus, type StaffMember, type StudentRecord } from './mockAttendance';
+import { STAFF_STATUSES, type AttendanceStatus, type StaffMember } from './mockAttendance';
 import { StatusControl } from './parts';
+import { STUDENT_STATUSES, type StudentRecord } from './types';
 
 type Common = {
   onStatus: (id: string, s: AttendanceStatus | null) => void;
   onRemarks: (id: string, v: string) => void;
 };
 
-function RemarksRow({ id, value, open, onRemarks }: { id: string; value: string; open: boolean; onRemarks: Common['onRemarks'] }) {
+function RemarksRow({ id, value, open, onRemarks, disabled }: { id: string; value: string; open: boolean; onRemarks: Common['onRemarks']; disabled?: boolean }) {
   if (!open) return null;
   return (
     <TextInput
@@ -22,6 +23,7 @@ function RemarksRow({ id, value, open, onRemarks }: { id: string; value: string;
       placeholderTextColor={colors.textHint}
       style={styles.remarks}
       maxLength={200}
+      editable={!disabled}
     />
   );
 }
@@ -68,8 +70,8 @@ export const StaffCard = memo(function StaffCard({
 });
 
 export const StudentCard = memo(function StudentCard({
-  item, onStatus, onRemarks, onHistory,
-}: Common & { item: StudentRecord; onHistory: (m: StudentRecord) => void }) {
+  item, onStatus, onRemarks, onHistory, disabled,
+}: Common & { item: StudentRecord; onHistory: (m: StudentRecord) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(item.remarks.length > 0);
   return (
     <View style={styles.card}>
@@ -84,8 +86,8 @@ export const StudentCard = memo(function StudentCard({
         </View>
         <CardActions hasRemarks={item.remarks.length > 0} open={open} onToggle={() => setOpen((o) => !o)} onHistory={() => onHistory(item)} />
       </View>
-      <StatusControl value={item.status} options={STUDENT_STATUSES} onChange={(s) => onStatus(item.id, s)} />
-      <RemarksRow id={item.id} value={item.remarks} open={open} onRemarks={onRemarks} />
+      <StatusControl value={item.status} options={STUDENT_STATUSES} onChange={(s) => onStatus(item.id, s)} disabled={disabled} />
+      <RemarksRow id={item.id} value={item.remarks} open={open} onRemarks={onRemarks} disabled={disabled} />
     </View>
   );
 });

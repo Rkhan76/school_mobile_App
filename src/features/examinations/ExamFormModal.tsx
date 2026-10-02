@@ -1,39 +1,41 @@
 import { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import {
-  CLASS_OPTIONS, EXAM_TYPES, EXAM_TYPE_NAMES, SECTION_OPTIONS, SUBJECT_OPTIONS,
-  formatDate, parseDate, type ExamInput, type ExamSchedule,
-} from './mockExams';
+import { getAcademicYearsMaster, getClassesMaster } from '../common/api';
+import type { AcademicYearLean, ClassWithSections } from '../common/types';
+import { listExamTypes, lookupSubjects, lookupTeachersForPicker } from './api';
+import { OptionSheet } from './OptionSheet';
+import { formatDate, parseDate } from './types';
+import type { ExamInput, ExamSchedule, ExamType, LookupItem, MutationResult, TeacherLookupItem } from './types';
 
 type Props = {
   visible: boolean;
   /** When set the form edits this exam, otherwise it creates one. */
   exam: ExamSchedule | null;
-  onSubmit: (input: ExamInput) => void;
+  onSubmit: (input: ExamInput) => Promise<MutationResult>;
   onClose: () => void;
 };
 
 type Form = {
-  title: string; examType: string; className: string; sectionName: string; subject: string;
-  date: string; maxMarks: string; passingMarks: string; duration: string;
+  title: string; examTypeId: string; classId: string; sectionId: string; subjectId: string;
+  date: string; maxMarks: string; passingMarks: string; duration: string; invigilatorId: string;
 };
 type Errors = Partial<Record<keyof Form, string>>;
 
 const EMPTY: Form = {
-  title: '', examType: '', className: '', sectionName: 'A', subject: '',
-  date: '', maxMarks: '', passingMarks: '', duration: '',
+  title: '', examTypeId: '', classId: '', sectionId: '', subjectId: '',
+  date: '', maxMarks: '', passingMarks: '', duration: '', invigilatorId: '',
 };
 
 function toForm(e: ExamSchedule): Form {
   return {
-    title: e.title, examType: e.examType, className: e.className, sectionName: e.sectionName, subject: e.subject,
+    title: e.title, examTypeId: e.examTypeId, classId: e.classId, sectionId: e.sectionId ?? '', subjectId: e.subjectId,
     date: formatDate(e.examDate), maxMarks: String(e.maxMarks), passingMarks: String(e.passingMarks),
-    duration: String(e.durationMinutes),
+    duration: String(e.durationMinutes), invigilatorId: e.invigilatorId ?? '',
   };
 }
 
@@ -42,10 +44,9 @@ const isPosInt = (s: string) => /^\d+$/.test(s.trim()) && Number(s) > 0;
 function validate(f: Form): Errors {
   const e: Errors = {};
   if (!f.title.trim()) e.title = 'Title is required';
-  if (!f.examType) e.examType = 'Select an exam type';
-  if (!f.className) e.className = 'Select a class';
-  if (!f.sectionName) e.sectionName = 'Select a section';
-  if (!f.subject) e.subject = 'Select a subject';
+  if (!f.examTypeId) e.examTypeId = 'Select an exam type';
+  if (!f.classId) e.classId = 'Select a class';
+  if (!f.subjectId) e.subjectId = 'Select a subject';
   if (!f.date.trim()) e.date = 'Date is required';
   else if (!parseDate(f.date)) e.date = 'Use a valid DD/MM/YYYY date';
   if (!isPosInt(f.maxMarks)) e.maxMarks = 'Enter max marks';
@@ -55,18 +56,19 @@ function validate(f: Form): Errors {
   return e;
 }
 
-function ChipField({ label, options, value, onChange, error }: {
-  label: string; options: string[]; value: string; onChange: (v: string) => void; error?: string;
+function ChipField({ label, options, value, onChange, error, optional }: {
+  label: string; options: { value: string; label: string }[]; value: string; onChange: (v: string) => void;
+  error?: string; optional?: boolean;
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label} *</Text>
+      <Text style={styles.label}>{label}{optional ? '' : ' *'}</Text>
       <View style={styles.chips}>
         {options.map((o) => {
-          const active = o === value;
+          const active = o.value === value;
           return (
-            <Pressable key={o} onPress={() => onChange(o)} style={[styles.chip, active && styles.chipActive]}>
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{o}</Text>
+            <Pressable key={o.value} onPress={() => onChange(o.value)} style={[styles.chip, active && styles.chipActive]}>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{o.label}</Text>
             </Pressable>
           );
         })}
@@ -99,47 +101,105 @@ export function ExamFormModal({ visible, exam, onSubmit, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<Form>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [examTypes, setExamTypes] = useState<ExamType[]>([]);
+  const [classes, setClasses] = useState<ClassWithSections[]>([]);
+  const [subjects, setSubjects] = useState<LookupItem[]>([]);
+  const [teachers, setTeachers] = useState<TeacherLookupItem[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYearLean[]>([]);
+  const [academicYearId, setAcademicYearId] = useState<string | null>(null);
+  const [loadingOptions, setLoadingOptions] = useState(true);
+  const [invigilatorPickerOpen, setInvigilatorPickerOpen] = useState(false);
+
+  useEffect(() => {
+    setLoadingOptions(true);
+    Promise.all([
+      listExamTypes(),
+      getClassesMaster(),
+      lookupSubjects(),
+      lookupTeachersForPicker(),
+      getAcademicYearsMaster(),
+    ])
+      .then(([types, cls, subs, tchrs, years]) => {
+        setExamTypes(types);
+        setClasses(cls);
+        setSubjects(subs);
+        setTeachers(tchrs);
+        setAcademicYears(years);
+      })
+      .catch(() => {
+        /* chips just render empty; the inline validation will catch missing selections */
+      })
+      .finally(() => setLoadingOptions(false));
+  }, []);
 
   useEffect(() => {
     if (visible) {
       setForm(exam ? toForm(exam) : EMPTY);
       setErrors({});
+      setApiError(null);
     }
   }, [visible, exam]);
+
+  useEffect(() => {
+    if (!visible) return;
+    if (exam) {
+      setAcademicYearId(exam.academicYearId);
+      return;
+    }
+    const active = academicYears.find((y) => y.isActive) ?? academicYears[0];
+    setAcademicYearId(active ? active.id : null);
+  }, [visible, exam, academicYears]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k]: undefined }));
   };
 
-  const pickType = (name: string) => {
-    const t = EXAM_TYPES.find((x) => x.name === name);
-    setForm((f) => ({
-      ...f,
-      examType: name,
-      maxMarks: !exam && t && !f.maxMarks ? String(t.max) : f.maxMarks,
-      passingMarks: !exam && t && !f.passingMarks ? String(t.pass) : f.passingMarks,
-      duration: !exam && t && !f.duration ? String(t.minutes) : f.duration,
-    }));
-    setErrors((e) => ({ ...e, examType: undefined }));
+  const selectedClass = classes.find((c) => c.id === form.classId);
+  const sectionOptions = [
+    { value: '', label: 'Whole class' },
+    ...(selectedClass?.sections ?? []).map((s) => ({ value: s.id, label: s.name })),
+  ];
+
+  const pickClass = (classId: string) => {
+    setForm((f) => ({ ...f, classId, sectionId: '' }));
+    setErrors((e) => ({ ...e, classId: undefined }));
   };
 
-  const submit = () => {
+  const invigilatorLabel = form.invigilatorId
+    ? teachers.find((t) => t.id === form.invigilatorId)?.fullName ?? 'Selected'
+    : 'None';
+
+  const submit = async () => {
     const errs = validate(form);
     setErrors(errs);
     const iso = parseDate(form.date);
     if (Object.keys(errs).length > 0 || !iso) return;
-    onSubmit({
+    if (!academicYearId) {
+      setApiError('No academic year is set up for this school yet.');
+      return;
+    }
+    setApiError(null);
+    setSubmitting(true);
+    const result = await onSubmit({
+      academicYearId,
+      examTypeId: form.examTypeId,
       title: form.title.trim(),
-      examType: form.examType,
-      className: form.className,
-      sectionName: form.sectionName,
-      subject: form.subject,
+      classId: form.classId,
+      sectionId: form.sectionId ? form.sectionId : null,
+      subjectId: form.subjectId,
       examDate: iso,
       maxMarks: Number(form.maxMarks),
       passingMarks: Number(form.passingMarks),
       durationMinutes: Number(form.duration),
+      invigilatorId: form.invigilatorId ? form.invigilatorId : null,
     });
+    setSubmitting(false);
+    if (result.ok) onClose();
+    else setApiError(result.message);
   };
 
   return (
@@ -155,11 +215,48 @@ export function ExamFormModal({ visible, exam, onSubmit, onClose }: Props) {
           contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 24 }]}
           keyboardShouldPersistTaps="handled"
         >
+          {loadingOptions ? <ActivityIndicator color={colors.primary} /> : null}
+          {apiError ? (
+            <View style={styles.apiErrBox}>
+              <Text style={styles.apiErrText}>{apiError}</Text>
+            </View>
+          ) : null}
           <TextField label="Title" value={form.title} onChangeText={(v) => set('title', v)} error={errors.title} placeholder="e.g. Unit Test 1 — Maths" />
-          <ChipField label="Exam type" options={EXAM_TYPE_NAMES} value={form.examType} onChange={pickType} error={errors.examType} />
-          <ChipField label="Class" options={CLASS_OPTIONS} value={form.className} onChange={(v) => set('className', v)} error={errors.className} />
-          <ChipField label="Section" options={SECTION_OPTIONS} value={form.sectionName} onChange={(v) => set('sectionName', v)} error={errors.sectionName} />
-          <ChipField label="Subject" options={SUBJECT_OPTIONS} value={form.subject} onChange={(v) => set('subject', v)} error={errors.subject} />
+          <ChipField
+            label="Exam type"
+            options={examTypes.map((t) => ({ value: t.id, label: t.name }))}
+            value={form.examTypeId}
+            onChange={(v) => set('examTypeId', v)}
+            error={errors.examTypeId}
+          />
+          <ChipField
+            label="Class"
+            options={classes.map((c) => ({ value: c.id, label: c.name }))}
+            value={form.classId}
+            onChange={pickClass}
+            error={errors.classId}
+          />
+          <ChipField
+            label="Section"
+            options={sectionOptions}
+            value={form.sectionId}
+            onChange={(v) => set('sectionId', v)}
+            optional
+          />
+          <ChipField
+            label="Subject"
+            options={subjects.map((s) => ({ value: s.id, label: s.name }))}
+            value={form.subjectId}
+            onChange={(v) => set('subjectId', v)}
+            error={errors.subjectId}
+          />
+          <View style={styles.field}>
+            <Text style={styles.label}>Invigilator</Text>
+            <Pressable style={styles.picker} onPress={() => setInvigilatorPickerOpen(true)}>
+              <Text style={styles.pickerText}>{invigilatorLabel}</Text>
+              <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
           <TextField label="Exam date" value={form.date} onChangeText={(v) => set('date', v)} error={errors.date} placeholder="DD/MM/YYYY" />
           <View style={styles.pair}>
             <TextField numeric label="Max marks" value={form.maxMarks} onChangeText={(v) => set('maxMarks', v)} error={errors.maxMarks} />
@@ -170,12 +267,24 @@ export function ExamFormModal({ visible, exam, onSubmit, onClose }: Props) {
             <Pressable style={[styles.btn, styles.cancel]} onPress={onClose}>
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
-            <Pressable style={[styles.btn, styles.save]} onPress={submit}>
-              <Text style={styles.saveText}>{exam ? 'Save changes' : 'Add schedule'}</Text>
+            <Pressable style={[styles.btn, styles.save, submitting && styles.saveOff]} onPress={submit} disabled={submitting}>
+              {submitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.saveText}>{exam ? 'Save changes' : 'Add schedule'}</Text>
+              )}
             </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <OptionSheet
+        visible={invigilatorPickerOpen}
+        title="Select invigilator"
+        value={form.invigilatorId || null}
+        options={[{ value: '', label: 'None' }, ...teachers.map((t) => ({ value: t.id, label: t.fullName }))]}
+        onClose={() => setInvigilatorPickerOpen(false)}
+        onSelect={(v) => { set('invigilatorId', v); setInvigilatorPickerOpen(false); }}
+      />
     </Modal>
   );
 }
@@ -201,10 +310,18 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.textSecondary },
   chipTextActive: { color: colors.white },
+  picker: {
+    height: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.cardSolid,
+  },
+  pickerText: { fontFamily: fonts.body, fontSize: 14, color: colors.text },
+  apiErrBox: { padding: 12, borderRadius: radius.md, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder },
+  apiErrText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.danger },
   actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   btn: { flex: 1, height: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   cancel: { backgroundColor: colors.mint },
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
+  saveOff: { opacity: 0.6 },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
 });

@@ -48,10 +48,6 @@ const RANGE_ONLY: ReportCapabilities = {
 
 const CLASSES = ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8'];
 
-export const CLASS_OPTIONS = [...CLASSES, 'Class 9', 'Class 10'];
-export const SECTION_OPTIONS = ['A', 'B', 'C'];
-export const YEAR_OPTIONS = ['2026-2027', '2025-2026', '2024-2025'];
-
 const sum = (label: string, series: number, format: KpiFormat, lowerIsBetter?: boolean): KpiSpec => ({ label, series, agg: 'sum', format, lowerIsBetter });
 const agg = (label: string, series: number, a: KpiSpec['agg'], format: KpiFormat, lowerIsBetter?: boolean): KpiSpec => ({ label, series, agg: a, format, lowerIsBetter });
 const ratio = (label: string, series: number, den: number, lowerIsBetter?: boolean): KpiSpec => ({ label, series, agg: 'ratio', den, format: 'percent', lowerIsBetter });

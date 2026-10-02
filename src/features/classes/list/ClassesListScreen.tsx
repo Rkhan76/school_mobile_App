@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,6 @@ import { colors, fonts, radius } from '../../../theme/tokens';
 import { useClasses, type AcademicClass, type ClassInput } from '../mockClasses';
 import { ClassCard } from './ClassCard';
 import { ClassFormModal } from './ClassFormModal';
-import { Pagination } from './Pagination';
 import { StatsGrid } from './StatsGrid';
 
 const PAGE_SIZE = 10;
@@ -34,32 +33,22 @@ export function ClassesListScreen() {
   const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState('');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AcademicClass | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setSearch(searchText);
-      setPage(1);
-    }, 300);
+    const t = setTimeout(() => setSearch(searchText), 300);
     return () => clearTimeout(t);
   }, [searchText]);
 
-  const { data, total, stats, isLoading, refetch, add, update, remove } = useClasses({
-    search, page, pageSize: PAGE_SIZE,
+  const { data, hasMore, isLoadingMore, loadMore, stats, isLoading, refetch, add, update, remove } = useClasses({
+    search, pageSize: PAGE_SIZE,
   });
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
-
-  // Keep the page valid after deletes.
-  useEffect(() => {
-    const last = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    if (page > last) setPage(last);
-  }, [total, page]);
 
   const onOpen = useCallback(
     (id: string) => router.push({ pathname: '/classes/[id]', params: { id } }),
@@ -154,12 +143,14 @@ export function ClassesListScreen() {
           )
         }
         ListFooterComponent={
-          showSkeleton ? null : (
-            <View style={{ marginTop: 16 }}>
-              <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-            </View>
-          )
+          showSkeleton ? null : isLoadingMore ? (
+            <ActivityIndicator style={{ marginTop: 16 }} color={colors.primary} />
+          ) : !hasMore && data.length > 0 ? (
+            <Text style={styles.endText}>You've reached the end</Text>
+          ) : null
         }
+        onEndReached={hasMore ? loadMore : undefined}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
@@ -192,6 +183,7 @@ const styles = StyleSheet.create({
   },
   addText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.white },
   empty: { alignItems: 'center', gap: 10, paddingVertical: 48 },
+  endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginTop: 16 },
   emptyText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.textSecondary },
   skel: {
     backgroundColor: colors.card, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border,

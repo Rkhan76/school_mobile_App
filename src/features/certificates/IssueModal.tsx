@@ -1,73 +1,144 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
+import { ApiError } from '../../lib/apiClient';
 import { colors, fonts, radius } from '../../theme/tokens';
-import {
-  CERTIFICATE_KINDS, KIND_DEFAULT_TITLE, KIND_LABEL, RECIPIENTS, TODAY_ISO, inputToIso, isoToInput,
-  type CertificateKind, type IssueInput, type Recipient,
-} from './mockCertificates';
+import { getAcademicYearsMaster } from '../common/api';
+import type { AcademicYearLean } from '../common/types';
+import { lookupNonTeachingStaff, lookupStudents, lookupTeachers, type IssueCertificateInput } from './api';
+import { RECIPIENT_TYPES, RECIPIENT_TYPE_LABEL, inputToIso, isoToInput, todayIso, type RecipientType } from './types';
 
-type Props = { visible: boolean; onSubmit: (input: IssueInput) => void; onClose: () => void };
+type Props = { visible: boolean; onSubmit: (input: IssueCertificateInput) => Promise<void>; onClose: () => void };
 type Errors = Partial<Record<'recipient' | 'title' | 'issueDate', string>>;
+type PickerOption = { id: string; label: string };
+
+/** Driver has no lookup/list endpoint anywhere in the API — fall back to a free-text id field for it. */
+const PICKER_BACKED: RecipientType[] = ['STUDENT', 'TEACHER', 'NON_TEACHING_STAFF'];
+
+async function lookup(kind: RecipientType, search: string): Promise<PickerOption[]> {
+  if (kind === 'STUDENT') {
+    const rows = await lookupStudents(search);
+    return rows.map((r) => ({ id: r.id, label: r.name }));
+  }
+  if (kind === 'TEACHER') {
+    const rows = await lookupTeachers(search);
+    return rows.map((r) => ({ id: r.id, label: r.fullName }));
+  }
+  if (kind === 'NON_TEACHING_STAFF') {
+    const rows = await lookupNonTeachingStaff(search);
+    return rows.map((r) => ({ id: r.id, label: r.fullName }));
+  }
+  return [];
+}
 
 export function IssueModal({ visible, onSubmit, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const [kind, setKind] = useState<CertificateKind>('Bonafide');
-  const [recipientKind, setRecipientKind] = useState<'Student' | 'Staff'>('Student');
+  const [recipientKind, setRecipientKind] = useState<RecipientType>('STUDENT');
   const [query, setQuery] = useState('');
-  const [recipient, setRecipient] = useState<Recipient | null>(null);
-  const [title, setTitle] = useState(KIND_DEFAULT_TITLE.Bonafide);
-  const [date, setDate] = useState(isoToInput(TODAY_ISO));
-  const [remarks, setRemarks] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [options, setOptions] = useState<PickerOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [recipient, setRecipient] = useState<PickerOption | null>(null);
+  const [driverRecipientId, setDriverRecipientId] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState(isoToInput(todayIso()));
+  const [signatoryName, setSignatoryName] = useState('');
+  const [signatoryTitle, setSignatoryTitle] = useState('');
+  const [academicYears, setAcademicYears] = useState<AcademicYearLean[]>([]);
+  const [academicYearId, setAcademicYearId] = useState('');
   const [errors, setErrors] = useState<Errors>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const requestId = useRef(0);
 
   useEffect(() => {
     if (visible) {
-      setKind('Bonafide');
-      setRecipientKind('Student');
+      setRecipientKind('STUDENT');
       setQuery('');
+      setDebouncedQuery('');
+      setOptions([]);
       setRecipient(null);
-      setTitle(KIND_DEFAULT_TITLE.Bonafide);
-      setDate(isoToInput(TODAY_ISO));
-      setRemarks('');
+      setDriverRecipientId('');
+      setTitle('');
+      setDescription('');
+      setDate(isoToInput(todayIso()));
+      setSignatoryName('');
+      setSignatoryTitle('');
+      setAcademicYearId('');
       setErrors({});
+      setSubmitError('');
+      setSubmitting(false);
+      getAcademicYearsMaster().then(setAcademicYears).catch(() => setAcademicYears([]));
     }
   }, [visible]);
 
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return RECIPIENTS.filter((r) => r.kind === recipientKind && (!q || r.name.toLowerCase().includes(q)));
-  }, [query, recipientKind]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
-  const pickKind = (k: CertificateKind) => {
-    setKind(k);
-    setTitle(KIND_DEFAULT_TITLE[k]);
-  };
+  useEffect(() => {
+    if (!visible || !PICKER_BACKED.includes(recipientKind)) return;
+    const myRequest = ++requestId.current;
+    setSearching(true);
+    lookup(recipientKind, debouncedQuery)
+      .then((rows) => {
+        if (myRequest !== requestId.current) return;
+        setOptions(rows);
+      })
+      .catch(() => {
+        if (myRequest === requestId.current) setOptions([]);
+      })
+      .finally(() => {
+        if (myRequest === requestId.current) setSearching(false);
+      });
+  }, [visible, recipientKind, debouncedQuery]);
 
-  const pickRecipientKind = (k: 'Student' | 'Staff') => {
+  const pickRecipientKind = (k: RecipientType) => {
     setRecipientKind(k);
     setRecipient(null);
+    setDriverRecipientId('');
     setQuery('');
+    setOptions([]);
   };
 
-  const submit = () => {
+  const submit = async () => {
+    if (submitting) return;
     const e: Errors = {};
-    if (!recipient) e.recipient = 'Select a recipient.';
+    const recipientId = recipientKind === 'DRIVER' ? driverRecipientId.trim() : recipient?.id;
+    if (!recipientId) e.recipient = recipientKind === 'DRIVER' ? 'Enter the driver’s recipient id.' : 'Select a recipient.';
     if (!title.trim()) e.title = 'Title is required.';
     const iso = inputToIso(date);
     if (!iso) e.issueDate = 'Enter a valid date as DD/MM/YYYY.';
+    else if (iso > todayIso()) e.issueDate = 'Issue date cannot be in the future.';
     setErrors(e);
-    if (Object.keys(e).length === 0 && recipient && iso) {
-      onSubmit({
-        type: kind, recipientName: recipient.name, recipientType: recipient.recipientType,
-        title: title.trim(), issueDate: iso, remarks: remarks.trim() || undefined,
+    if (Object.keys(e).length > 0 || !recipientId || !iso) return;
+
+    setSubmitError('');
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        recipientType: recipientKind,
+        recipientId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        issueDate: iso,
+        signatoryName: signatoryName.trim() || undefined,
+        signatoryTitle: signatoryTitle.trim() || undefined,
+        academicYearId: academicYearId || undefined,
       });
+    } catch (err) {
+      setSubmitError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      setSubmitting(false);
     }
   };
+
+  const isPickerBacked = PICKER_BACKED.includes(recipientKind);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -79,65 +150,77 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
           <Text style={styles.heading}>Issue certificate</Text>
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.form}>
-          <Text style={styles.label}>Certificate type</Text>
+          <Text style={styles.label}>Recipient *</Text>
           <View style={styles.chips}>
-            {CERTIFICATE_KINDS.map((k) => {
-              const on = k === kind;
+            {RECIPIENT_TYPES.map((k) => {
+              const on = k === recipientKind;
               return (
-                <Pressable key={k} onPress={() => pickKind(k)} style={[styles.chip, on && styles.chipOn]}>
-                  <Text style={[styles.chipText, on && styles.chipTextOn]}>{KIND_LABEL[k]}</Text>
+                <Pressable key={k} onPress={() => pickRecipientKind(k)} style={[styles.chip, on && styles.chipOn]}>
+                  <Text style={[styles.chipText, on && styles.chipTextOn]}>{RECIPIENT_TYPE_LABEL[k]}</Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <Text style={styles.label}>Recipient *</Text>
-          <View style={styles.segment}>
-            {(['Student', 'Staff'] as const).map((k) => {
-              const on = k === recipientKind;
-              return (
-                <Pressable key={k} onPress={() => pickRecipientKind(k)} style={[styles.segBtn, on && styles.segOn]}>
-                  <Text style={[styles.segText, on && styles.segTextOn]}>{k}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <View style={styles.searchField}>
-            <Ionicons name="search-outline" size={18} color={colors.textHint} />
-            <TextInput
-              value={query} onChangeText={setQuery} placeholder={`Search ${recipientKind.toLowerCase()}s...`}
-              placeholderTextColor={colors.textHint} style={styles.searchInput} autoCorrect={false}
-            />
-          </View>
-          <View style={[styles.list, !!errors.recipient && styles.inputErr]}>
-            {matches.length === 0 ? (
-              <Text style={styles.none}>No matches found.</Text>
-            ) : (
-              <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                {matches.map((r) => {
-                  const on = recipient?.id === r.id;
-                  return (
-                    <Pressable key={r.id} onPress={() => setRecipient(r)} style={[styles.row, on && styles.rowOn]}>
-                      <Avatar name={r.name} size={32} />
-                      <View style={styles.rowText}>
-                        <Text style={styles.rowName}>{r.name}</Text>
-                        <Text style={styles.rowSub}>{r.detail}</Text>
-                      </View>
-                      {on && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            )}
-          </View>
+          {isPickerBacked ? (
+            <>
+              <View style={styles.searchField}>
+                <Ionicons name="search-outline" size={18} color={colors.textHint} />
+                <TextInput
+                  value={query} onChangeText={setQuery}
+                  placeholder={`Search ${RECIPIENT_TYPE_LABEL[recipientKind].toLowerCase()}s...`}
+                  placeholderTextColor={colors.textHint} style={styles.searchInput} autoCorrect={false}
+                />
+                {searching ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+              </View>
+              <View style={[styles.list, !!errors.recipient && styles.inputErr]}>
+                {options.length === 0 ? (
+                  <Text style={styles.none}>{searching ? 'Searching...' : 'No matches found.'}</Text>
+                ) : (
+                  <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                    {options.map((r) => {
+                      const on = recipient?.id === r.id;
+                      return (
+                        <Pressable key={r.id} onPress={() => setRecipient(r)} style={[styles.row, on && styles.rowOn]}>
+                          <Avatar name={r.label} size={32} />
+                          <View style={styles.rowText}>
+                            <Text style={styles.rowName}>{r.label}</Text>
+                          </View>
+                          {on && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.hint}>
+                No lookup is available for drivers yet — enter their recipient id directly.
+              </Text>
+              <TextInput
+                value={driverRecipientId} onChangeText={setDriverRecipientId}
+                placeholder="Driver recipient id (uuid)" placeholderTextColor={colors.textHint}
+                style={[styles.input, !!errors.recipient && styles.inputErr]}
+                autoCapitalize="none" autoCorrect={false}
+              />
+            </>
+          )}
           {errors.recipient ? <Text style={styles.err}>{errors.recipient}</Text> : null}
 
           <Text style={styles.label}>Title *</Text>
           <TextInput
-            value={title} onChangeText={setTitle} placeholder="Certificate title" placeholderTextColor={colors.textHint}
+            value={title} onChangeText={setTitle} placeholder="e.g. Best Teacher of the Year" placeholderTextColor={colors.textHint}
             style={[styles.input, !!errors.title && styles.inputErr]}
           />
           {errors.title ? <Text style={styles.err}>{errors.title}</Text> : null}
+
+          <Text style={styles.label}>Description / citation (optional)</Text>
+          <TextInput
+            value={description} onChangeText={setDescription} placeholder="Citation text to print on the certificate"
+            placeholderTextColor={colors.textHint} multiline style={[styles.input, styles.multi]}
+          />
 
           <Text style={styles.label}>Issue date</Text>
           <TextInput
@@ -146,18 +229,47 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
           />
           {errors.issueDate ? <Text style={styles.err}>{errors.issueDate}</Text> : null}
 
-          <Text style={styles.label}>Remarks (optional)</Text>
+          <Text style={styles.label}>Signatory name (optional)</Text>
           <TextInput
-            value={remarks} onChangeText={setRemarks} placeholder="Any additional notes" placeholderTextColor={colors.textHint}
-            multiline style={[styles.input, styles.multi]}
+            value={signatoryName} onChangeText={setSignatoryName} placeholder="e.g. Dr. Anita Sharma"
+            placeholderTextColor={colors.textHint} style={styles.input}
           />
+
+          <Text style={styles.label}>Signatory title (optional)</Text>
+          <TextInput
+            value={signatoryTitle} onChangeText={setSignatoryTitle} placeholder="e.g. Principal"
+            placeholderTextColor={colors.textHint} style={styles.input}
+          />
+
+          {academicYears.length > 0 ? (
+            <>
+              <Text style={styles.label}>Academic year (optional, defaults to active year)</Text>
+              <View style={styles.chips}>
+                <Pressable
+                  onPress={() => setAcademicYearId('')}
+                  style={[styles.chip, academicYearId === '' && styles.chipOn]}
+                >
+                  <Text style={[styles.chipText, academicYearId === '' && styles.chipTextOn]}>Default</Text>
+                </Pressable>
+                {academicYears.map((y) => {
+                  const on = academicYearId === y.id;
+                  return (
+                    <Pressable key={y.id} onPress={() => setAcademicYearId(y.id)} style={[styles.chip, on && styles.chipOn]}>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{y.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
         </ScrollView>
+        {submitError ? <Text style={[styles.err, styles.submitErr]}>{submitError}</Text> : null}
         <View style={[styles.actions, { paddingBottom: insets.bottom + 12 }]}>
-          <Pressable style={[styles.btn, styles.cancel]} onPress={onClose}>
+          <Pressable style={[styles.btn, styles.cancel]} onPress={onClose} disabled={submitting}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
-          <Pressable style={[styles.btn, styles.save]} onPress={submit}>
-            <Text style={styles.saveText}>Issue certificate</Text>
+          <Pressable style={[styles.btn, styles.save, submitting && styles.off]} onPress={submit} disabled={submitting}>
+            {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveText}>Issue certificate</Text>}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -172,6 +284,7 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.heading, fontSize: 20, color: colors.text },
   form: { paddingHorizontal: 16, paddingBottom: 16, gap: 6 },
   label: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary, marginTop: 8 },
+  hint: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
   input: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 12, height: 46,
     fontFamily: fonts.body, fontSize: 14, color: colors.text, backgroundColor: colors.cardSolid,
@@ -179,6 +292,7 @@ const styles = StyleSheet.create({
   multi: { height: 100, paddingTop: 12, textAlignVertical: 'top' },
   inputErr: { borderColor: colors.danger },
   err: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
+  submitErr: { textAlign: 'center', paddingHorizontal: 16, paddingTop: 8, backgroundColor: colors.cardSolid },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: radius.pill,
@@ -187,11 +301,6 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary },
   chipTextOn: { color: colors.white },
-  segment: { flexDirection: 'row', padding: 3, borderRadius: radius.pill, backgroundColor: colors.mint },
-  segBtn: { flex: 1, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
-  segOn: { backgroundColor: colors.cardSolid },
-  segText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
-  segTextOn: { color: colors.primaryDeep },
   searchField: {
     flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 12,
     backgroundColor: colors.cardSolid, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
@@ -205,7 +314,6 @@ const styles = StyleSheet.create({
   rowOn: { backgroundColor: colors.mintSoft },
   rowText: { flex: 1 },
   rowName: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
-  rowSub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   none: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, padding: 14, textAlign: 'center' },
   actions: {
     flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10,
@@ -216,4 +324,5 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
+  off: { opacity: 0.6 },
 });

@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { Confidentiality, ExpiryFilter } from './mockSchoolDocuments';
+import type { ConfidentialityFilter, ExpiryFilter } from './useSchoolDocuments';
 
-export type DocFilters = { confidentiality: Confidentiality; expiry: ExpiryFilter };
+export type DocFilters = { confidentiality: ConfidentialityFilter; expiry: ExpiryFilter };
 
 export const DEFAULT_FILTERS: DocFilters = { confidentiality: 'all', expiry: 'any' };
 
-const CONF: { value: Confidentiality; label: string }[] = [
+const CONF: { value: ConfidentialityFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'classified', label: 'Classified' },
-  { value: 'standard', label: 'Standard' },
+  { value: 'CLASSIFIED', label: 'Classified' },
+  { value: 'NORMAL', label: 'Standard' },
 ];
 const EXPIRY: { value: ExpiryFilter; label: string }[] = [
   { value: 'any', label: 'Any' },

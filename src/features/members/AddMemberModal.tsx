@@ -1,85 +1,45 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput } from 'react-native';
-import { View } from 'react-native';
-import { colors } from '../../theme/tokens';
-import type { MemberInput, Role } from './mockMembers';
-import { Chip, FooterButtons, FullModal, formStyles as f } from './parts';
+import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, fonts, radius } from '../../theme/tokens';
+import { FooterButtons, FullModal } from './parts';
 
-type Props = { visible: boolean; roles: Role[]; onClose: () => void; onSubmit: (input: MemberInput) => void };
-type Errors = Partial<Record<'firstName' | 'lastName' | 'email' | 'phone' | 'roleId', string>>;
+type Props = { visible: boolean; onClose: () => void };
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-export function AddMemberModal({ visible, roles, onClose, onSubmit }: Props) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [roleId, setRoleId] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
-
-  useEffect(() => {
-    if (visible) {
-      setFirstName(''); setLastName(''); setEmail(''); setPhone(''); setRoleId(''); setErrors({});
-    }
-  }, [visible]);
-
-  const submit = () => {
-    const e: Errors = {};
-    if (!firstName.trim()) e.firstName = 'First name is required.';
-    if (!lastName.trim()) e.lastName = 'Last name is required.';
-    if (!email.trim()) e.email = 'Email is required.';
-    else if (!EMAIL_RE.test(email.trim())) e.email = 'Enter a valid email address.';
-    if (!/^\d{10}$/.test(phone)) e.phone = 'Phone must be exactly 10 digits.';
-    if (!roleId) e.roleId = 'Choose a role.';
-    setErrors(e);
-    if (Object.keys(e).length === 0) onSubmit({ firstName, lastName, email, phone, roleId });
-  };
-
+/**
+ * There is no "create account" endpoint for this module — a portal account
+ * (school_user) is only ever created as a side effect of adding a Student,
+ * Teacher, or Non-teaching-staff profile (see MOBILE_API_DOCS §3/§4/§5). This
+ * replaces the old mock "add member" form with a short explainer instead.
+ */
+export function AddMemberModal({ visible, onClose }: Props) {
   return (
     <FullModal
       visible={visible}
       title="Add member"
       onClose={onClose}
-      footer={<FooterButtons saveLabel="Add member" onCancel={onClose} onSave={submit} />}
+      footer={<FooterButtons cancelLabel="Close" saveLabel="Got it" onCancel={onClose} onSave={onClose} />}
     >
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={f.form}>
-        <Text style={f.label}>First name *</Text>
-        <TextInput
-          value={firstName} onChangeText={setFirstName} placeholder="First name" placeholderTextColor={colors.textHint}
-          style={[f.input, !!errors.firstName && f.inputErr]}
-        />
-        {errors.firstName ? <Text style={f.err}>{errors.firstName}</Text> : null}
-
-        <Text style={f.label}>Last name *</Text>
-        <TextInput
-          value={lastName} onChangeText={setLastName} placeholder="Last name" placeholderTextColor={colors.textHint}
-          style={[f.input, !!errors.lastName && f.inputErr]}
-        />
-        {errors.lastName ? <Text style={f.err}>{errors.lastName}</Text> : null}
-
-        <Text style={f.label}>Email *</Text>
-        <TextInput
-          value={email} onChangeText={setEmail} placeholder="name@example.com" placeholderTextColor={colors.textHint}
-          keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
-          style={[f.input, !!errors.email && f.inputErr]}
-        />
-        {errors.email ? <Text style={f.err}>{errors.email}</Text> : null}
-
-        <Text style={f.label}>Phone (10 digits) *</Text>
-        <TextInput
-          value={phone} onChangeText={(v) => setPhone(v.replace(/\D/g, '').slice(0, 10))} placeholder="9800000000"
-          placeholderTextColor={colors.textHint} keyboardType="number-pad" maxLength={10}
-          style={[f.input, !!errors.phone && f.inputErr]}
-        />
-        {errors.phone ? <Text style={f.err}>{errors.phone}</Text> : null}
-
-        <Text style={f.label}>Role *</Text>
-        <View style={f.chips}>
-          {roles.map((r) => <Chip key={r.id} label={r.name} on={r.id === roleId} onPress={() => setRoleId(r.id)} />)}
+      <View style={styles.wrap}>
+        <View style={styles.iconWrap}>
+          <Ionicons name="information-circle-outline" size={40} color={colors.primaryDeep} />
         </View>
-        {errors.roleId ? <Text style={f.err}>{errors.roleId}</Text> : null}
-      </ScrollView>
+        <Text style={styles.title}>Accounts are created automatically</Text>
+        <Text style={styles.body}>
+          There's no standalone "add member" action here — a portal account is created
+          automatically whenever you add a Student, Teacher, or Non-teaching Staff member.
+          Go to those sections to create one; it will then show up in this list.
+        </Text>
+      </View>
     </FullModal>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, gap: 12 },
+  iconWrap: {
+    width: 72, height: 72, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.mintSoft, marginBottom: 6,
+  },
+  title: { fontFamily: fonts.heading, fontSize: 17, color: colors.text, textAlign: 'center' },
+  body: { fontFamily: fonts.body, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+});

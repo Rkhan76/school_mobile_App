@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius } from '../../theme/tokens';
 import { CONFIGS, TAB_ORDER } from './config';
-import type { TabKey } from './mockMaster';
+import type { TabKey } from './types';
 
 export function MasterTabChips({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) {
   return (

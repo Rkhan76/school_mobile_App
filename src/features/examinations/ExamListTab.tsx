@@ -5,46 +5,40 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
 import { ExamCard } from './ExamCard';
-import { DEFAULT_FILTERS, ExamFilterSheet, type ExamFilters } from './ExamFilterSheet';
+import { DEFAULT_FILTERS, ExamFilterSheet } from './ExamFilterSheet';
 import { ExamFormModal } from './ExamFormModal';
-import { Pagination } from './Pagination';
-import { useExams, type ExamInput, type ExamSchedule } from './mockExams';
-
-const PAGE_SIZE = 12;
+import type { ExamFilters, ExamInput, ExamSchedule } from './types';
+import { useExams } from './useExams';
 
 export function ExamListTab() {
   const insets = useSafeAreaInsets();
+  const permissions = useSession((s) => s.permissions);
+  const canCreate = permissions.includes('exam-schedule.record.create');
+  const canUpdate = permissions.includes('exam-schedule.record.update');
+  const canDelete = permissions.includes('exam-schedule.record.delete');
+
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [filters, setFilters] = useState<ExamFilters>(DEFAULT_FILTERS);
-  const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ExamSchedule | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setDebounced(search);
-      setPage(1);
-    }, 300);
+    const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
   const { data, total, stats, isLoading, refetch, add, update, remove } = useExams({
-    search: debounced, ...filters, page, pageSize: PAGE_SIZE,
+    search: debounced, ...filters,
   });
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
-
-  // Keep the page valid after deletes / filter changes.
-  useEffect(() => {
-    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    if (page > pages) setPage(pages);
-  }, [total, page]);
 
   const doRefresh = useCallback(() => { setRefreshing(true); refetch(); }, [refetch]);
 
@@ -57,22 +51,23 @@ export function ExamListTab() {
     ]);
   }, [remove]);
 
-  const onSubmit = useCallback((input: ExamInput) => {
-    if (editing) update(editing.id, input);
-    else add(input);
-    setFormOpen(false);
-  }, [editing, add, update]);
+  const onSubmit = useCallback(
+    (input: ExamInput) => (editing ? update(editing.id, input) : add(input)),
+    [editing, add, update],
+  );
 
   const activeFilters =
-    (filters.examType !== 'All' ? 1 : 0) + (filters.status !== 'all' ? 1 : 0) + (filters.className !== 'All' ? 1 : 0);
+    (filters.examTypeId !== 'all' ? 1 : 0) + (filters.status !== 'all' ? 1 : 0) + (filters.classId !== 'all' ? 1 : 0);
   const showSkeleton = isLoading && !refreshing;
 
   const header = (
     <View style={styles.headerWrap}>
-      <Pressable style={styles.addBtn} onPress={openAdd} accessibilityLabel="Add schedule">
-        <Ionicons name="add" size={20} color={colors.white} />
-        <Text style={styles.addText}>Add Schedule</Text>
-      </Pressable>
+      {canCreate ? (
+        <Pressable style={styles.addBtn} onPress={openAdd} accessibilityLabel="Add schedule">
+          <Ionicons name="add" size={20} color={colors.white} />
+          <Text style={styles.addText}>Add Schedule</Text>
+        </Pressable>
+      ) : null}
       <View style={styles.stats}>
         <StatTile label="Total Exams" value={String(stats.total)} icon="clipboard-outline" tint={colors.primary} />
         <StatTile label="Upcoming" value={String(stats.upcoming)} icon="calendar-outline" tint={colors.blue} />
@@ -111,7 +106,7 @@ export function ExamListTab() {
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View style={styles.itemWrap}>
-            <ExamCard item={item} onEdit={onEdit} onDelete={onDelete} />
+            <ExamCard item={item} canEdit={canUpdate} canDelete={canDelete} onEdit={onEdit} onDelete={onDelete} />
           </View>
         )}
         ListEmptyComponent={
@@ -125,7 +120,7 @@ export function ExamListTab() {
         }
         ListFooterComponent={
           !isLoading && total > 0 ? (
-            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+            <Text style={styles.footerCount}>{total} schedule{total === 1 ? '' : 's'}</Text>
           ) : isLoading && refreshing ? <ActivityIndicator color={colors.primary} /> : null
         }
         refreshControl={
@@ -141,7 +136,7 @@ export function ExamListTab() {
         visible={sheetOpen}
         value={filters}
         onClose={() => setSheetOpen(false)}
-        onApply={(v) => { setFilters(v); setPage(1); setSheetOpen(false); }}
+        onApply={(v) => { setFilters(v); setSheetOpen(false); }}
       />
       <ExamFormModal visible={formOpen} exam={editing} onSubmit={onSubmit} onClose={() => setFormOpen(false)} />
     </>
@@ -168,4 +163,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48, gap: 6 },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
+  footerCount: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, paddingVertical: 14 },
 });

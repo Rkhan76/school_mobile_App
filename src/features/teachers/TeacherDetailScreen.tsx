@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,18 +7,44 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { StatTile } from '../../components/ui/StatTile';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
 import { AppBar } from '../dashboard/AppBar';
+import { EditTeacherModal } from './EditTeacherModal';
 import { OverviewTab } from './OverviewTab';
 import { AttendanceTab, DocumentsTab, PayrollTab, ReportsTab, SubjectsTab, TimetableTab } from './OtherTabs';
 import { TeacherBottomActions } from './TeacherBottomActions';
 import { TeacherProfileCard } from './TeacherProfileCard';
 import { TeacherSubBar } from './TeacherSubBar';
 import { TeacherTabs, type TeacherTab } from './TeacherTabs';
-import { useTeacherDetail, type TeacherDetail } from './teacherDetail';
+import {
+  useTeacherDetail,
+  type EmploymentHistoryRow,
+  type TeacherDetail,
+} from './teacherDetail';
 
-function TabContent({ tab, t }: { tab: TeacherTab; t: TeacherDetail }) {
+function TabContent({
+  tab,
+  t,
+  employmentHistory,
+  employmentHistoryLoading,
+  onLoadEmploymentHistory,
+}: {
+  tab: TeacherTab;
+  t: TeacherDetail;
+  employmentHistory: EmploymentHistoryRow[] | null;
+  employmentHistoryLoading: boolean;
+  onLoadEmploymentHistory: () => void;
+}) {
   switch (tab) {
-    case 'Overview': return <OverviewTab t={t} />;
+    case 'Overview':
+      return (
+        <OverviewTab
+          t={t}
+          employmentHistory={employmentHistory}
+          employmentHistoryLoading={employmentHistoryLoading}
+          onLoadEmploymentHistory={onLoadEmploymentHistory}
+        />
+      );
     case 'Subjects & Classes': return <SubjectsTab t={t} />;
     case 'Timetable': return <TimetableTab t={t} />;
     case 'Attendance': return <AttendanceTab t={t} />;
@@ -59,11 +85,93 @@ export function TeacherDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data, isLoading, error } = useTeacherDetail(id);
+  const permissions = useSession((s) => s.permissions);
+  const {
+    data,
+    isLoading,
+    error,
+    mutating,
+    employmentHistory,
+    employmentHistoryLoading,
+    loadEmploymentHistory,
+    updateProfile,
+    setStatus,
+    toggleBlock,
+  } = useTeacherDetail(id);
   const [tab, setTab] = useState<TeacherTab>('Overview');
+  const [editOpen, setEditOpen] = useState(false);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
-  const attendedPct = data ? `${data.attendance.percentage}%` : '';
+  const can = useCallback((perm: string) => permissions.includes(perm), [permissions]);
+
+  const docsVerified = data ? `${data.documents.filter((d) => d.verified).length}/${data.documents.length}` : '';
+
+  const confirmToggleStatus = useCallback(() => {
+    if (!data) return;
+    const next = data.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const title = next === 'INACTIVE' ? 'Deactivate teacher' : 'Reactivate teacher';
+    const message =
+      next === 'INACTIVE'
+        ? 'This immediately kills their portal login and revokes all active sessions. Reactivating later does NOT automatically restore the login — someone will need to re-invite them separately. Continue?'
+        : 'This sets the teacher back to ACTIVE, but it does NOT automatically restore their portal login — they will need to be re-invited separately to log in again. Continue?';
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: next === 'INACTIVE' ? 'Deactivate' : 'Reactivate',
+        style: next === 'INACTIVE' ? 'destructive' : 'default',
+        onPress: async () => {
+          try {
+            await setStatus(next);
+          } catch (err) {
+            Alert.alert('Could not update status', err instanceof Error ? err.message : 'Something went wrong.');
+          }
+        },
+      },
+    ]);
+  }, [data, setStatus]);
+
+  const confirmToggleBlock = useCallback(() => {
+    if (!data) return;
+    const blocking = !data.blocked;
+    const title = blocking ? 'Block teacher' : 'Unblock teacher';
+    const message = blocking
+      ? 'This soft-deletes the teacher/staff record, sets their portal login to INACTIVE, and revokes all sessions. Unlike a plain status change, unblocking later DOES automatically restore the login. Continue?'
+      : 'This restores the teacher/staff record and automatically re-activates their portal login (subject to available staff seats). Continue?';
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: blocking ? 'Block' : 'Unblock',
+        style: blocking ? 'destructive' : 'default',
+        onPress: async () => {
+          try {
+            await toggleBlock();
+          } catch (err) {
+            Alert.alert('Could not update', err instanceof Error ? err.message : 'Something went wrong.');
+          }
+        },
+      },
+    ]);
+  }, [data, toggleBlock]);
+
+  const openMoreActions = useCallback(() => {
+    if (!data) return;
+    Alert.alert('More actions', undefined, [
+      { text: data.blocked ? 'Unblock teacher' : 'Block teacher', style: data.blocked ? 'default' : 'destructive', onPress: confirmToggleBlock },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [data, confirmToggleBlock]);
+
+  const submitEdit = useCallback(
+    async (partial: Parameters<typeof updateProfile>[0]) => {
+      try {
+        await updateProfile(partial);
+        setEditOpen(false);
+      } catch (err) {
+        Alert.alert('Could not save changes', err instanceof Error ? err.message : 'Something went wrong.');
+      }
+    },
+    [updateProfile]
+  );
 
   return (
     <ScreenBackground>
@@ -75,7 +183,16 @@ export function TeacherDetailScreen() {
           <AppBar academicYear="26-27" hasUnread />
         </View>
         <View style={styles.pad}>
-          <TeacherSubBar active={data ? data.status === 'ACTIVE' : true} />
+          <TeacherSubBar
+            active={data ? data.status === 'ACTIVE' : true}
+            busy={mutating}
+            canToggleStatus={!!data && can('teacher.status.update')}
+            onToggleStatus={confirmToggleStatus}
+            canEdit={!!data && can('teacher.profile.update')}
+            onEdit={() => setEditOpen(true)}
+            canBlock={!!data && can('teacher.profile.delete')}
+            onMore={openMoreActions}
+          />
         </View>
 
         {isLoading ? (
@@ -88,18 +205,33 @@ export function TeacherDetailScreen() {
           <>
             <View style={styles.pad}><TeacherProfileCard t={data} /></View>
             <View style={[styles.pad, styles.statsRow]}>
-              <StatTile label="Experience" value={`${data.experienceYears} yrs`} icon="briefcase-outline" />
+              <StatTile label="Experience" value={data.experience} icon="briefcase-outline" />
               <StatTile label="Classes" value={String(data.assignments.length)} icon="easel-outline" tint={colors.blue} />
-              <StatTile label="Attd. (month)" value={attendedPct} icon="checkmark-done-outline" tint={colors.success} />
+              <StatTile label="Docs verified" value={docsVerified} icon="checkmark-done-outline" tint={colors.success} />
             </View>
             <TeacherTabs active={tab} onChange={setTab} />
             <View style={[styles.pad, styles.gap]}>
-              <TabContent tab={tab} t={data} />
+              <TabContent
+                tab={tab}
+                t={data}
+                employmentHistory={employmentHistory}
+                employmentHistoryLoading={employmentHistoryLoading}
+                onLoadEmploymentHistory={loadEmploymentHistory}
+              />
             </View>
           </>
         )}
       </ScrollView>
       {data ? <TeacherBottomActions phone={data.phone} /> : null}
+      {data ? (
+        <EditTeacherModal
+          visible={editOpen}
+          teacher={data}
+          busy={mutating}
+          onSubmit={submitEdit}
+          onClose={() => setEditOpen(false)}
+        />
+      ) : null}
     </ScreenBackground>
   );
 }

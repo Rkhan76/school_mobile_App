@@ -1,16 +1,16 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { DAYS, MOCK_TODAY, type Day } from './mockTimetable';
+import { DAYS, type Day } from './types';
 
-type Props = { value: Day; onChange: (d: Day) => void };
+type Props = { value: Day; onChange: (d: Day) => void; today?: Day | null };
 
 /** Horizontally scrollable MON-SAT chips; today's weekday gets a dot. */
-export function DaySelector({ value, onChange }: Props) {
+export function DaySelector({ value, onChange, today: todayCode }: Props) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {DAYS.map((d) => {
         const active = d === value;
-        const today = d === MOCK_TODAY;
+        const today = d === todayCode;
         return (
           <Pressable
             key={d}

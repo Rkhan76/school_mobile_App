@@ -5,8 +5,10 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts } from '../../theme/tokens';
+import { daysFromToday, formatDate } from './dateUtils';
 import { ActionBtn, Chip, EmptyState, InfoRow, RoleTag, SkeletonList, infoText } from './parts';
-import { daysFromToday, formatDate, useExpiring, type ExpiringDoc } from './mockDocuments';
+import { ENTITY_LABELS, type EntityDocument } from './types';
+import { useExpiring } from './useDocuments';
 
 const WINDOWS = [30, 60, 90] as const;
 
@@ -22,14 +24,14 @@ export function ExpiringTab() {
   const insets = useSafeAreaInsets();
   const [days, setDays] = useState<number>(30);
   const [refreshing, setRefreshing] = useState(false);
-  const { data, isLoading, refetch, requestRenewal } = useExpiring(days);
+  const { data, isLoading, refetch, requestRenewal, isRenewed } = useExpiring(days);
 
   useEffect(() => { if (!isLoading) setRefreshing(false); }, [isLoading]);
   const doRefresh = useCallback(() => { setRefreshing(true); refetch(); }, [refetch]);
 
-  const onRenew = useCallback((d: ExpiringDoc) => {
-    requestRenewal(d.id);
-    Alert.alert('Renewal requested', `A renewal request for ${d.documentName} was sent to ${d.personName}.`);
+  const onRenew = useCallback((d: EntityDocument) => {
+    requestRenewal(d);
+    Alert.alert('Renewal requested', `A new ${d.documentTypeName} request was sent to ${d.entityName}.`);
   }, [requestRenewal]);
 
   const showSkeleton = isLoading && !refreshing;
@@ -51,27 +53,27 @@ export function ExpiringTab() {
         </View>
       }
       renderItem={({ item }) => {
-        const left = daysFromToday(item.expiresAt);
+        const left = item.expiryDate ? daysFromToday(item.expiryDate) : 0;
         const u = urgency(left);
         return (
           <View style={styles.itemWrap}>
             <Card style={{ gap: 12 }}>
               <View style={styles.top}>
-                <Avatar name={item.personName} size={40} />
+                <Avatar name={item.entityName} size={40} />
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Text style={styles.name} numberOfLines={1}>{item.personName}</Text>
-                  <View style={{ flexDirection: 'row' }}><RoleTag role={item.role} /></View>
+                  <Text style={styles.name} numberOfLines={1}>{item.entityName}</Text>
+                  <View style={{ flexDirection: 'row' }}><RoleTag role={ENTITY_LABELS[item.entityType]} /></View>
                 </View>
                 <Badge label={u.label} tone={u.tone} />
               </View>
               <View style={{ gap: 8 }}>
-                <InfoRow label="Document"><Text style={infoText}>{item.documentName}</Text></InfoRow>
+                <InfoRow label="Document"><Text style={infoText}>{item.documentTypeName}</Text></InfoRow>
                 <InfoRow label="Expires">
-                  <Text style={[infoText, left < 0 && { color: colors.danger }]}>{formatDate(item.expiresAt)}</Text>
+                  <Text style={[infoText, left < 0 && { color: colors.danger }]}>{formatDate(item.expiryDate)}</Text>
                 </InfoRow>
               </View>
               <View style={styles.actions}>
-                {item.renewalRequested ? (
+                {isRenewed(item.id) ? (
                   <Badge label="Renewal requested" tone="primary" />
                 ) : (
                   <ActionBtn label="Request renewal" icon="refresh-outline" tone="primary" onPress={() => onRenew(item)} />

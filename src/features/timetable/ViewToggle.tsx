@@ -6,7 +6,7 @@ export type ViewMode = 'class' | 'teacher';
 
 const TABS: { key: ViewMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'class', label: 'Class view', icon: 'people-outline' },
-  { key: 'teacher', label: 'Teacher view', icon: 'school-outline' },
+  { key: 'teacher', label: 'My schedule', icon: 'person-circle-outline' },
 ];
 
 /** Segmented toggle: Class view | Teacher view. */

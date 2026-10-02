@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { formatTime, type Period } from './mockTimetable';
+import { formatTime, type Period } from './types';
 
 /** Full-width orange "Break" row (Recess / Lunch). */
 export function BreakRow({ period, isNow }: { period: Period; isNow?: boolean }) {

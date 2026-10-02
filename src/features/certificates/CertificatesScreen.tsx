@@ -7,48 +7,48 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useSession } from '../auth/session';
 import { CertificateCard } from './CertificateCard';
 import { CertificatePreview } from './CertificatePreview';
 import { EMPTY_FILTERS, FilterSheet, type Filters } from './FilterSheet';
 import { IssueModal } from './IssueModal';
-import { Pagination } from './Pagination';
 import { RevokeModal } from './RevokeModal';
-import { useCertificates, type Certificate } from './mockCertificates';
+import type { Certificate } from './types';
+import { useCertificates } from './useCertificates';
 
-const PAGE_SIZE = 10;
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
+}
 
 export function CertificatesScreen() {
   const insets = useSafeAreaInsets();
+  const permissions = useSession((s) => s.permissions);
+  const canIssue = permissions.includes('certificate.record.create');
+  const canRevoke = permissions.includes('certificate.revocation.update');
+
   const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
+  const debounced = useDebounced(search, 300);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [issueOpen, setIssueOpen] = useState(false);
   const [viewing, setViewing] = useState<Certificate | null>(null);
   const [revoking, setRevoking] = useState<Certificate | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setDebounced(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data, total, stats, isLoading, refetch, issue, revoke } = useCertificates({
-    search: debounced, ...filters, page, pageSize: PAGE_SIZE,
+  const { data, isLoading, isLoadingMore, hasMore, loadMore, refetch, stats, issue, revoke } = useCertificates({
+    search: debounced,
+    recipientType: filters.recipientType,
+    status: filters.status,
   });
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
-
-  useEffect(() => {
-    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    if (page > pages) setPage(pages);
-  }, [total, page]);
 
   const doRefresh = useCallback(() => {
     setRefreshing(true);
@@ -58,7 +58,7 @@ export function CertificatesScreen() {
   const onView = useCallback((c: Certificate) => setViewing(c), []);
   const onRevoke = useCallback((c: Certificate) => setRevoking(c), []);
 
-  const filterCount = (filters.recipientType ? 1 : 0) + (filters.kind ? 1 : 0) + (filters.status ? 1 : 0);
+  const filterCount = (filters.recipientType ? 1 : 0) + (filters.status ? 1 : 0);
   const showSkeleton = isLoading && !refreshing;
 
   const header = (
@@ -91,10 +91,12 @@ export function CertificatesScreen() {
             <Pressable style={styles.iconBtn} onPress={doRefresh} accessibilityLabel="Refresh">
               <Ionicons name="refresh" size={20} color={colors.textSecondary} />
             </Pressable>
-            <Pressable style={styles.newBtn} onPress={() => setIssueOpen(true)} accessibilityLabel="Issue certificate">
-              <Ionicons name="add" size={18} color={colors.white} />
-              <Text style={styles.newText}>Issue</Text>
-            </Pressable>
+            {canIssue ? (
+              <Pressable style={styles.newBtn} onPress={() => setIssueOpen(true)} accessibilityLabel="Issue certificate">
+                <Ionicons name="add" size={18} color={colors.white} />
+                <Text style={styles.newText}>Issue</Text>
+              </Pressable>
+            ) : null}
           </>
         }
       />
@@ -104,9 +106,11 @@ export function CertificatesScreen() {
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View style={styles.itemWrap}>
-            <CertificateCard item={item} onView={onView} onRevoke={onRevoke} />
+            <CertificateCard item={item} canRevoke={canRevoke} onView={onView} onRevoke={onRevoke} />
           </View>
         )}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
           showSkeleton ? null : (
             <View style={styles.empty}>
@@ -117,9 +121,11 @@ export function CertificatesScreen() {
           )
         }
         ListFooterComponent={
-          !isLoading && total > 0 ? (
-            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-          ) : isLoading && refreshing ? <ActivityIndicator color={colors.primary} /> : null
+          !showSkeleton && isLoadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : null
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={doRefresh} tintColor={colors.primary} colors={[colors.primary]} />
@@ -135,24 +141,28 @@ export function CertificatesScreen() {
         visible={filterOpen}
         value={filters}
         onClose={() => setFilterOpen(false)}
-        onApply={(f) => { setFilters(f); setPage(1); setFilterOpen(false); }}
+        onApply={(f) => { setFilters(f); setFilterOpen(false); }}
       />
       <CertificatePreview certificate={viewing} onClose={() => setViewing(null)} />
       <RevokeModal
         certificate={revoking}
         onClose={() => setRevoking(null)}
-        onConfirm={(id, reason) => { revoke(id, reason); setRevoking(null); }}
-      />
-      <IssueModal
-        visible={issueOpen}
-        onClose={() => setIssueOpen(false)}
-        onSubmit={(input) => {
-          const created = issue(input);
-          setIssueOpen(false);
-          setPage(1);
-          Alert.alert('Certificate issued', `${created.referenceNo} was issued to ${created.recipientName}.`);
+        onConfirm={async (id, reason) => {
+          await revoke(id, reason);
+          setRevoking(null);
         }}
       />
+      {canIssue ? (
+        <IssueModal
+          visible={issueOpen}
+          onClose={() => setIssueOpen(false)}
+          onSubmit={async (input) => {
+            const created = await issue(input);
+            setIssueOpen(false);
+            Alert.alert('Certificate issued', `${created.referenceNo} was issued to ${created.recipientName}.`);
+          }}
+        />
+      ) : null}
     </ScreenBackground>
   );
 }
@@ -166,6 +176,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48, gap: 6 },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
+  footerLoader: { paddingVertical: 20 },
   iconBtn: {
     width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,

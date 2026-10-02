@@ -1,26 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { CLASS_LIST, sectionsOfClass, type Subject } from './mockSubjects';
+import type { ClassWithSections } from '../common/types';
+import type { SubjectWithAssignments } from './types';
 
 type Props = {
-  subject: Subject | null;
+  subject: SubjectWithAssignments | null;
+  classes: ClassWithSections[];
+  /** Section assignments are synced for this academic year only. */
+  activeYearId: string;
+  activeYearLabel?: string;
   onClose: () => void;
   onSave: (id: string, sectionIds: string[]) => void;
 };
 
 /** Bottom sheet to add / remove the class-sections a subject is assigned to (local state until Save). */
-export function ManageSheet({ subject, onClose, onSave }: Props) {
+export function ManageSheet({ subject, classes, activeYearId, activeYearLabel, onClose, onSave }: Props) {
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
-    if (subject) setSelected(subject.assignments.map((a) => a.sectionId));
-  }, [subject]);
+    if (subject) {
+      setSelected(
+        subject.assignments.filter((a) => a.academicYearId === activeYearId).map((a) => a.sectionId),
+      );
+    }
+  }, [subject, activeYearId]);
 
-  const groups = useMemo(() => CLASS_LIST.map((c) => ({ cls: c, sections: sectionsOfClass(c.id) })), []);
+  const groups = classes.map((c) => ({ cls: c, sections: c.sections }));
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -33,6 +42,7 @@ export function ManageSheet({ subject, onClose, onSave }: Props) {
         <Text style={styles.title}>Manage assignments</Text>
         <Text style={styles.sub}>
           {subject ? `${subject.name} (${subject.subjectCode})` : ''} · {selected.length} selected
+          {activeYearLabel ? ` · ${activeYearLabel}` : ''}
         </Text>
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
           {groups.map(({ cls, sections }) => (
@@ -40,20 +50,20 @@ export function ManageSheet({ subject, onClose, onSave }: Props) {
               <Text style={styles.groupTitle}>{cls.name}</Text>
               <View style={styles.sectionRow}>
                 {sections.map((s) => {
-                  const on = selected.includes(s.sectionId);
+                  const on = selected.includes(s.id);
                   return (
                     <Pressable
-                      key={s.sectionId}
-                      onPress={() => toggle(s.sectionId)}
+                      key={s.id}
+                      onPress={() => toggle(s.id)}
                       style={[styles.item, on && styles.itemOn]}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: on }}
-                      accessibilityLabel={s.label}
+                      accessibilityLabel={`${cls.name} · Section ${s.name}`}
                     >
                       <View style={[styles.box, on && styles.boxOn]}>
                         {on ? <Ionicons name="checkmark" size={14} color={colors.white} /> : null}
                       </View>
-                      <Text style={[styles.itemText, on && styles.itemTextOn]}>Section {s.sectionName}</Text>
+                      <Text style={[styles.itemText, on && styles.itemTextOn]}>Section {s.name}</Text>
                     </Pressable>
                   );
                 })}
@@ -61,12 +71,16 @@ export function ManageSheet({ subject, onClose, onSave }: Props) {
             </View>
           ))}
         </ScrollView>
+        {!activeYearId ? (
+          <Text style={styles.warn}>No academic year is configured — saving is disabled.</Text>
+        ) : null}
         <View style={styles.actions}>
           <Pressable style={[styles.btn, styles.cancel]} onPress={onClose}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
           <Pressable
-            style={[styles.btn, styles.save]}
+            style={[styles.btn, styles.save, !activeYearId && styles.saveDisabled]}
+            disabled={!activeYearId}
             onPress={() => {
               if (subject) onSave(subject.id, selected);
               onClose();
@@ -107,5 +121,7 @@ const styles = StyleSheet.create({
   cancel: { backgroundColor: colors.mint },
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
+  saveDisabled: { opacity: 0.5 },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
+  warn: { fontFamily: fonts.body, fontSize: 12, color: colors.danger, marginTop: 8 },
 });

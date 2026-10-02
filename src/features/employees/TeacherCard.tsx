@@ -4,18 +4,28 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors } from '../../theme/tokens';
 import { cardStyles, IconBtn, IdPill, InfoRow, Name } from './cardParts';
-import type { Teacher } from './mockEmployees';
+import type { EmployeeStatus, TeacherEntity } from './types';
 
 type Props = {
-  teacher: Teacher;
-  onView: (t: Teacher) => void;
-  onToggle: (t: Teacher, active: boolean) => void;
-  onDelete: (t: Teacher) => void;
+  teacher: TeacherEntity;
+  onView: (t: TeacherEntity) => void;
+  onToggleStatus: (t: TeacherEntity, next: EmployeeStatus) => void;
+  onToggleBlock: (t: TeacherEntity) => void;
+  canUpdateStatus: boolean;
+  canToggleBlock: boolean;
 };
 
-export function TeacherCard({ teacher: t, onView, onToggle, onDelete }: Props) {
-  const klass = t.class ? `Class ${t.class} • Sec ${t.section ?? '-'}` : 'Unassigned';
-  const active = t.status === 'Active';
+const STATUS_TONE: Record<EmployeeStatus, 'success' | 'warning' | 'danger'> = {
+  ACTIVE: 'success',
+  INACTIVE: 'warning',
+  TERMINATED: 'danger',
+};
+
+export function TeacherCard({ teacher: t, onView, onToggleStatus, onToggleBlock, canUpdateStatus, canToggleBlock }: Props) {
+  const status = t.status ?? 'ACTIVE';
+  const active = status === 'ACTIVE';
+  const designation = t.designation || t.workLocation;
+
   return (
     <Pressable onPress={() => onView(t)}>
       <Card style={cardStyles.card}>
@@ -23,29 +33,43 @@ export function TeacherCard({ teacher: t, onView, onToggle, onDelete }: Props) {
           <Avatar name={t.fullName} size={46} />
           <View style={cardStyles.headText}>
             <Name>{t.fullName}</Name>
-            <IdPill id={t.staffId} />
+            <IdPill id={t.employeeCode || t.staffId || t.id} />
           </View>
-          <Badge label={t.status} tone={active ? 'success' : 'danger'} />
+          <Badge label={status} tone={STATUS_TONE[status]} />
         </View>
         <View style={cardStyles.info}>
-          <InfoRow icon="book-outline" text={t.subject} />
-          <InfoRow icon="school-outline" text={klass} />
-          <InfoRow icon="ribbon-outline" text={`${t.qualification} • ${t.experience} yrs`} />
-          <InfoRow icon="time-outline" text={`${t.shift} shift`} />
-          <InfoRow icon="call-outline" text={t.phone} />
-          <InfoRow icon="mail-outline" text={t.email} />
+          {designation ? <InfoRow icon="briefcase-outline" text={designation} /> : null}
+          {t.qualification || t.experience ? (
+            <InfoRow
+              icon="ribbon-outline"
+              text={[t.qualification, t.experience ? `${t.experience}` : null].filter(Boolean).join(' • ')}
+            />
+          ) : null}
+          {t.shift ? <InfoRow icon="time-outline" text={`${t.shift} shift`} /> : null}
+          {t.phone ? <InfoRow icon="call-outline" text={t.phone} /> : null}
+          {t.email ? <InfoRow icon="mail-outline" text={t.email} /> : null}
         </View>
         <View style={cardStyles.actions}>
           <IconBtn icon="eye-outline" label="View teacher" onPress={() => onView(t)} />
-          <IconBtn icon="call-outline" label="Call teacher" onPress={() => void Linking.openURL(`tel:${t.phone.replace(/\s/g, '')}`)} />
+          {t.phone ? (
+            <IconBtn
+              icon="call-outline"
+              label="Call teacher"
+              onPress={() => void Linking.openURL(`tel:${t.phone!.replace(/\s/g, '')}`)}
+            />
+          ) : null}
           <View style={cardStyles.spacer} />
-          <Switch
-            value={active}
-            onValueChange={(v) => onToggle(t, v)}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={colors.white}
-          />
-          <IconBtn icon="trash-outline" label="Delete teacher" danger onPress={() => onDelete(t)} />
+          {canUpdateStatus ? (
+            <Switch
+              value={active}
+              onValueChange={(v) => onToggleStatus(t, v ? 'ACTIVE' : 'INACTIVE')}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.white}
+            />
+          ) : null}
+          {canToggleBlock ? (
+            <IconBtn icon="trash-outline" label="Block teacher" danger onPress={() => onToggleBlock(t)} />
+          ) : null}
         </View>
       </Card>
     </Pressable>

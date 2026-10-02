@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
@@ -8,7 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { BottomSheet, Button, EmptyState, OptionSheet, Pagination, SkeletonCard } from './parts';
+import { BottomSheet, Button, EmptyState, OptionSheet, SkeletonCard } from './parts';
 import { CLASSES, formatINR, useAssignments, type AssignmentRow } from './mockFees';
 
 const PAGE_SIZE = 10;
@@ -38,7 +38,12 @@ export function AssignmentsTab({ top }: { top: ReactElement }) {
 
   useEffect(() => { if (!isLoading) setRefreshing(false); }, [isLoading]);
 
-  const onRefresh = useCallback(() => { setRefreshing(true); refetch(); }, [refetch]);
+  const onRefresh = useCallback(() => { setRefreshing(true); setPage(1); refetch(); }, [refetch]);
+  const hasMore = data.length < total;
+  const loadMore = useCallback(() => {
+    if (isLoading || !hasMore) return;
+    setPage((p) => p + 1);
+  }, [isLoading, hasMore]);
 
   const classOptions = useMemo(() => CLASSES.map((c) => ({ value: c.id, label: c.name })), []);
   const structureOptions = useMemo(
@@ -118,7 +123,15 @@ export function AssignmentsTab({ top }: { top: ReactElement }) {
             <EmptyState icon="people-outline" title="No students found" sub="Try changing the search or class filter." />
           )
         }
-        ListFooterComponent={showSkeleton ? null : <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />}
+        ListFooterComponent={
+          showSkeleton ? null : isLoading && page > 1 ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
+          ) : !hasMore && data.length > 0 ? (
+            <Text style={styles.endText}>You've reached the end</Text>
+          ) : null
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
         contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: TAB_BAR_SPACE + insets.bottom }}
         showsVerticalScrollIndicator={false}
@@ -176,6 +189,7 @@ const styles = StyleSheet.create({
   header: { gap: 12, marginBottom: 14 },
   row: { flexDirection: 'row', gap: 10 },
   filterNote: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
+  endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   name: { fontFamily: fonts.heading, fontSize: 15, color: colors.text },
   sub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },

@@ -7,7 +7,7 @@ import { colors, fonts, radius } from '../../theme/tokens';
 import { MembersTab } from './MembersTab';
 import { PermissionsTab } from './PermissionsTab';
 import { RolesTab } from './RolesTab';
-import type { IconName } from './mockMembers';
+import type { IconName } from './parts';
 
 type TabKey = 'members' | 'roles' | 'permissions';
 const TABS: { key: TabKey; label: string; icon: IconName }[] = [

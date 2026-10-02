@@ -16,7 +16,7 @@ import { StatCard } from '../../src/features/dashboard/StatCard';
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const userName = useSession((s) => s.userName);
+  const userName = useSession((s) => s.user?.firstName ?? 'Admin');
   const { data, refreshing, refresh } = useDashboardData();
 
   return (

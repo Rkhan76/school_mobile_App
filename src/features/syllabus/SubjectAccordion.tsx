@@ -3,66 +3,70 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius } from '../../theme/tokens';
-import type { SubjectSyllabus } from './mockSyllabus';
+import type { SubjectEntry } from './types';
 
 type Props = {
-  item: SubjectSyllabus;
+  item: SubjectEntry;
   expanded: boolean;
-  /** chapter ids marked complete (passed so memo re-renders on change) */
-  doneIds: ReadonlySet<string>;
+  /** chapter ids marked as reviewed — LOCAL-ONLY, not a server field (see useSyllabus.ts) */
+  reviewedIds: ReadonlySet<string>;
   onToggleExpand: (id: string) => void;
   onToggleChapter: (chapterId: string) => void;
-  onEdit: (subject: SubjectSyllabus) => void;
+  /** omit to hide the "Edit plan" action (e.g. no `syllabus.plan.update` permission) */
+  onEdit?: (subject: SubjectEntry) => void;
 };
 
-function SubjectAccordionBase({ item, expanded, doneIds, onToggleExpand, onToggleChapter, onEdit }: Props) {
-  const n = item.chapters.length;
-  const doneCount = item.chapters.filter((c) => doneIds.has(c.id)).length;
+function SubjectAccordionBase({ item, expanded, reviewedIds, onToggleExpand, onToggleChapter, onEdit }: Props) {
+  const { subject, chapters } = item;
+  const n = chapters.length;
+  const reviewedCount = chapters.filter((c) => reviewedIds.has(c.id)).length;
   return (
     <Card style={styles.card}>
       <Pressable
         style={styles.head}
-        onPress={() => onToggleExpand(item.id)}
+        onPress={() => onToggleExpand(subject.id)}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${item.name}, ${n} chapters`}
+        accessibilityLabel={`${subject.name}, ${n} chapters`}
       >
         <Ionicons name={expanded ? 'chevron-down' : 'chevron-forward'} size={18} color={colors.textSecondary} />
         <View style={styles.iconBox}>
           <Ionicons name="book-outline" size={18} color={colors.primary} />
         </View>
         <View style={styles.flex}>
-          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.name} numberOfLines={1}>{subject.name}</Text>
           <Text style={styles.meta}>
-            {n} chapter{n === 1 ? '' : 's'}{n > 0 ? ` · ${doneCount}/${n} done` : ''}
+            {n} chapter{n === 1 ? '' : 's'}{n > 0 ? ` · ${reviewedCount}/${n} reviewed` : ''}
           </Text>
         </View>
-        <Pressable style={styles.editBtn} onPress={() => onEdit(item)} hitSlop={6} accessibilityLabel={`Edit plan for ${item.name}`}>
-          <Ionicons name="pencil-outline" size={14} color={colors.textSecondary} />
-          <Text style={styles.editText}>Edit plan</Text>
-        </Pressable>
+        {onEdit ? (
+          <Pressable style={styles.editBtn} onPress={() => onEdit(item)} hitSlop={6} accessibilityLabel={`Edit plan for ${subject.name}`}>
+            <Ionicons name="pencil-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.editText}>Edit plan</Text>
+          </Pressable>
+        ) : null}
       </Pressable>
 
       {expanded ? (
         <View style={styles.body}>
           {n === 0 ? <Text style={styles.empty}>No chapters planned yet.</Text> : null}
-          {item.chapters.map((c, i) => {
-            const done = doneIds.has(c.id);
+          {chapters.map((c, i) => {
+            const reviewed = reviewedIds.has(c.id);
             return (
               <Pressable
                 key={c.id}
                 style={styles.chapter}
                 onPress={() => onToggleChapter(c.id)}
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked: done }}
+                accessibilityState={{ checked: reviewed }}
                 accessibilityLabel={c.title}
               >
-                <View style={[styles.check, done && styles.checkOn]}>
-                  {done ? <Ionicons name="checkmark" size={14} color={colors.white} /> : null}
+                <View style={[styles.check, reviewed && styles.checkOn]}>
+                  {reviewed ? <Ionicons name="checkmark" size={14} color={colors.white} /> : null}
                 </View>
                 <Text style={styles.chNum}>{i + 1}</Text>
-                <Text style={[styles.chTitle, done && styles.chDone]} numberOfLines={2}>{c.title}</Text>
-                <Text style={styles.topics}>{c.topics} topic{c.topics === 1 ? '' : 's'}</Text>
+                <Text style={[styles.chTitle, reviewed && styles.chDone]} numberOfLines={2}>{c.title}</Text>
+                <Text style={styles.topics}>{c.topics.length} topic{c.topics.length === 1 ? '' : 's'}</Text>
               </Pressable>
             );
           })}

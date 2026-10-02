@@ -4,52 +4,52 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts } from '../../theme/tokens';
+import { formatDate, isOverdueRequest } from './dateUtils';
 import { ActionBtn, InfoRow, RoleTag, infoText } from './parts';
-import { formatDate, isOverdue, type DocumentRequest } from './mockDocuments';
+import { ENTITY_LABELS, type DocumentRequestRow } from './types';
 
 type Props = {
-  item: DocumentRequest;
-  onRemind: (r: DocumentRequest) => void;
-  onCancel: (r: DocumentRequest) => void;
+  item: DocumentRequestRow;
+  canUpdate: boolean;
+  onRemind: (r: DocumentRequestRow) => void;
+  onCancel: (r: DocumentRequestRow) => void;
 };
 
-const STATUS_LABEL = { OPEN: 'Open', FULFILLED: 'Fulfilled', CANCELLED: 'Cancelled' } as const;
-const STATUS_TONE = { OPEN: 'primary', FULFILLED: 'success', CANCELLED: 'neutral' } as const;
+const STATUS_LABEL = { OPEN: 'Open', SUBMITTED: 'Submitted', FULFILLED: 'Fulfilled', CANCELLED: 'Cancelled' } as const;
+const STATUS_TONE = { OPEN: 'primary', SUBMITTED: 'warning', FULFILLED: 'success', CANCELLED: 'neutral' } as const;
 
-function RequestCardBase({ item, onRemind, onCancel }: Props) {
-  const overdue = isOverdue(item);
+function RequestCardBase({ item, canUpdate, onRemind, onCancel }: Props) {
+  const overdue = isOverdueRequest(item);
+  const displayName = item.entityName ?? `${ENTITY_LABELS[item.entityType]} ${item.entityId.slice(0, 8)}`;
+
   return (
     <Card style={styles.card}>
       <View style={styles.top}>
-        <Avatar name={item.personName} size={40} />
+        <Avatar name={displayName} size={40} />
         <View style={styles.titles}>
-          <Text style={styles.name} numberOfLines={1}>{item.personName}</Text>
+          <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
           <View style={styles.sub}>
-            <RoleTag role={item.role} />
+            <RoleTag role={ENTITY_LABELS[item.entityType]} />
           </View>
         </View>
         {overdue ? <Badge label="Overdue" tone="danger" /> : <Badge label={STATUS_LABEL[item.status]} tone={STATUS_TONE[item.status]} />}
       </View>
 
       <View style={styles.doc}>
-        <Text style={styles.docName}>{item.documentName}</Text>
+        <Text style={styles.docName}>{item.documentTypeName}</Text>
         {item.note ? <Text style={styles.docNote}>{item.note}</Text> : null}
       </View>
 
       <View style={styles.rows}>
         <InfoRow label="Due">
-          <Text style={[infoText, overdue && { color: colors.danger }]}>{formatDate(item.dueDate)}</Text>
+          <Text style={[infoText, overdue && { color: colors.danger }]}>{item.dueDate ? formatDate(item.dueDate) : 'No due date'}</Text>
         </InfoRow>
         <InfoRow label="Status">
           <Badge label={STATUS_LABEL[item.status]} tone={STATUS_TONE[item.status]} />
         </InfoRow>
-        <InfoRow label="Requested by"><Text style={infoText}>{item.requestedBy}</Text></InfoRow>
-        <InfoRow label="Last reminded">
-          <Text style={infoText}>{item.lastRemindedAt ? formatDate(item.lastRemindedAt) : 'Never'}</Text>
-        </InfoRow>
       </View>
 
-      {item.status === 'OPEN' ? (
+      {item.status === 'OPEN' && canUpdate ? (
         <View style={styles.actions}>
           <ActionBtn label="Remind" icon="notifications-outline" onPress={() => onRemind(item)} />
           <ActionBtn label="Cancel" icon="close" tone="danger" onPress={() => onCancel(item)} />

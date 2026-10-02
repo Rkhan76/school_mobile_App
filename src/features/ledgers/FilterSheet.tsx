@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { PAGE_SIZES, inputToIso } from './mockLedgers';
+import { PAGE_SIZES, inputToIso } from './types';
 import { EMPTY_FILTERS, type Filters } from './parts';
+
+type Option = { value: string; label: string };
 
 type Props = {
   visible: boolean;
   title: string;
   filters: Filters;
-  typeOptions: { value: string; label: string }[];
-  categories: string[];
+  typeOptions: Option[];
+  categoryOptions: Option[];
   onClose: () => void;
   onApply: (f: Filters) => void;
 };
@@ -27,7 +29,7 @@ function validate(f: Filters): Errors {
   return e;
 }
 
-export function FilterSheet({ visible, title, filters, typeOptions, categories, onClose, onApply }: Props) {
+export function FilterSheet({ visible, title, filters, typeOptions, categoryOptions, onClose, onApply }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<Filters>(filters);
   const [errors, setErrors] = useState<Errors>({});
@@ -71,9 +73,9 @@ export function FilterSheet({ visible, title, filters, typeOptions, categories, 
             <Text style={styles.label}>Type</Text>
             <View style={styles.wrap}>
               {typeOptions.map((o) => {
-                const on = draft.type === o.value;
+                const on = draft.entryType === o.value;
                 return (
-                  <Pressable key={o.label} style={[styles.pill, on && styles.pillOn]} onPress={() => set('type', o.value)}>
+                  <Pressable key={o.label} style={[styles.pill, on && styles.pillOn]} onPress={() => set('entryType', o.value)}>
                     <Text style={[styles.pillText, on && styles.pillTextOn]}>{o.label}</Text>
                   </Pressable>
                 );
@@ -82,11 +84,11 @@ export function FilterSheet({ visible, title, filters, typeOptions, categories, 
 
             <Text style={styles.label}>Category</Text>
             <View style={styles.wrap}>
-              {['', ...categories].map((c) => {
-                const on = draft.category === c;
+              {categoryOptions.map((o) => {
+                const on = draft.category === o.value;
                 return (
-                  <Pressable key={c || 'all'} style={[styles.pill, on && styles.pillOn]} onPress={() => set('category', c)}>
-                    <Text style={[styles.pillText, on && styles.pillTextOn]}>{c || 'All categories'}</Text>
+                  <Pressable key={o.value || 'all'} style={[styles.pill, on && styles.pillOn]} onPress={() => set('category', o.value)}>
+                    <Text style={[styles.pillText, on && styles.pillTextOn]}>{o.label}</Text>
                   </Pressable>
                 );
               })}

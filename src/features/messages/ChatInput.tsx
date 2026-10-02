@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Alert, Keyboard, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '../../theme/tokens';
 
-type Props = { onSend: (text: string) => void };
+type Props = { onSend: (text: string) => void; onTyping?: () => void; disabled?: boolean };
 
-export function ChatInput({ onSend }: Props) {
+export function ChatInput({ onSend, onTyping, disabled }: Props) {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [kbVisible, setKbVisible] = useState(false);
@@ -19,12 +19,21 @@ export function ChatInput({ onSend }: Props) {
     return () => { a.remove(); b.remove(); };
   }, []);
 
-  const canSend = text.trim().length > 0;
+  const canSend = text.trim().length > 0 && !disabled;
   const submit = () => {
     if (!canSend) return;
     onSend(text);
     setText('');
   };
+
+  if (disabled) {
+    return (
+      <View style={[styles.bar, styles.disabledBar, { paddingBottom: insets.bottom + 8 }]}>
+        <Ionicons name="lock-closed-outline" size={16} color={colors.textHint} />
+        <Text style={styles.disabledText}>You don&apos;t have permission to send messages here.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.bar, { paddingBottom: kbVisible ? 8 : insets.bottom + 8 }]}>
@@ -37,7 +46,10 @@ export function ChatInput({ onSend }: Props) {
       </Pressable>
       <TextInput
         value={text}
-        onChangeText={setText}
+        onChangeText={(v) => {
+          setText(v);
+          onTyping?.();
+        }}
         placeholder="Write message"
         placeholderTextColor={colors.textHint}
         multiline
@@ -71,4 +83,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   sendDisabled: { opacity: 0.4 },
+  disabledBar: { alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
+  disabledText: { fontFamily: fonts.body, fontSize: 12, color: colors.textHint },
 });

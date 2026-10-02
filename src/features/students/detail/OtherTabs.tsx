@@ -6,7 +6,7 @@ import { CheckInCard } from './CheckInCard';
 import { DocumentsCard } from './DocumentsCard';
 import { downloadReceipt, InvoiceRow } from './FeeInvoiceCard';
 import { GuardianCard } from './GuardianCard';
-import type { StudentDetail } from './studentDetail';
+import type { StudentDetail, StudentEnrollmentRow } from './studentDetail';
 import { formatINR, LabelValue, SectionCard } from './ui';
 
 const gap = { gap: 14 } as const;
@@ -62,14 +62,13 @@ export function BankTab({ s }: { s: StudentDetail }) {
   return (
     <SectionCard icon="business-outline" title="Bank Details">
       <View style={styles.two}>
-        <LabelValue label="Account Holder" value={b.accountHolder} />
         <LabelValue label="Bank" value={b.bankName} />
+        <LabelValue label="Branch" value={b.bankBranch} />
       </View>
       <View style={styles.two}>
         <LabelValue label="Account No." value={b.accountNumber} mono />
-        <LabelValue label="IFSC" value={b.ifsc} mono />
+        <LabelValue label="IFSC" value={b.ifscCode} mono />
       </View>
-      <LabelValue label="Branch" value={b.branch} />
     </SectionCard>
   );
 }
@@ -82,9 +81,45 @@ export function HostelTab({ s }: { s: StudentDetail }) {
         <LabelValue label="Hostel" value={h.hostelName} />
         <LabelValue label="Room" value={h.room} />
       </View>
-      <View style={styles.two}>
-        <LabelValue label="Warden" value={h.warden} />
-        <LabelValue label="Mess Plan" value={h.messPlan} />
+    </SectionCard>
+  );
+}
+
+const historyTone = {
+  active: 'success', promoted: 'primary', graduated: 'primary',
+  failed: 'danger', transferred: 'neutral', withdrawn: 'neutral',
+} as const;
+
+export function HistoryTab({ rows, loading }: { rows: StudentEnrollmentRow[] | null; loading: boolean }) {
+  if (loading && !rows) {
+    return (
+      <SectionCard icon="time-outline" title="Enrollment History">
+        <Text style={styles.lineText}>Loading…</Text>
+      </SectionCard>
+    );
+  }
+  if (!rows || rows.length === 0) {
+    return (
+      <SectionCard icon="time-outline" title="Enrollment History">
+        <Text style={styles.lineText}>No enrollment history found.</Text>
+      </SectionCard>
+    );
+  }
+  return (
+    <SectionCard icon="time-outline" title="Enrollment History">
+      <View style={{ gap: 12 }}>
+        {rows.map((r, i) => (
+          <View key={`${r.academicYear?.id ?? i}-${i}`} style={styles.line}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.lineText}>
+                {r.academicYear?.label ?? '—'} • {r.class?.name ?? '—'}
+                {r.section ? ` - ${r.section.name}` : ''}
+              </Text>
+              <Text style={styles.rangeText}>Roll #{r.rollNumber ?? '—'}</Text>
+            </View>
+            <Badge label={r.status} tone={historyTone[r.status] ?? 'neutral'} />
+          </View>
+        ))}
       </View>
     </SectionCard>
   );

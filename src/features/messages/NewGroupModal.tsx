@@ -1,31 +1,77 @@
 import { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { colors, fonts, radius } from '../../theme/tokens';
-import { ME_ID, PEOPLE, type NewGroupInput } from './mockMessages';
+import { lookupSchoolUsers } from './api';
+import { cacheSchoolUsers } from './people';
+import type { NewGroupInput, SchoolUserLookupRow } from './types';
 
 type Props = { visible: boolean; onSubmit: (input: NewGroupInput) => void; onClose: () => void };
+
+function useDebounced<T>(value: T, delay = 350): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return v;
+}
 
 export function NewGroupModal({ visible, onSubmit, onClose }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
+  const [selectedNames, setSelectedNames] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<{ name?: string; members?: string }>({});
+
+  const [peopleSearch, setPeopleSearch] = useState('');
+  const debouncedSearch = useDebounced(peopleSearch);
+  const [people, setPeople] = useState<SchoolUserLookupRow[]>([]);
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const [peopleError, setPeopleError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setName('');
       setDescription('');
       setSelected([]);
+      setSelectedNames({});
       setErrors({});
+      setPeopleSearch('');
     }
   }, [visible]);
 
-  const toggle = (id: string) =>
-    setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  useEffect(() => {
+    if (!visible) return undefined;
+    let cancelled = false;
+    setPeopleLoading(true);
+    setPeopleError(null);
+    lookupSchoolUsers({ search: debouncedSearch || undefined, limit: 50 })
+      .then((page) => {
+        if (cancelled) return;
+        cacheSchoolUsers(page.data);
+        setPeople(page.data);
+      })
+      .catch(() => {
+        if (!cancelled) setPeopleError("Couldn't load people to add. You may not have access to the member directory.");
+      })
+      .finally(() => {
+        if (!cancelled) setPeopleLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, debouncedSearch]);
+
+  const toggle = (row: SchoolUserLookupRow) =>
+    setSelected((cur) => {
+      if (cur.includes(row.id)) return cur.filter((x) => x !== row.id);
+      setSelectedNames((names) => ({ ...names, [row.id]: `${row.firstName} ${row.lastName}`.trim() }));
+      return [...cur, row.id];
+    });
 
   const submit = () => {
     const e: { name?: string; members?: string } = {};
@@ -33,11 +79,9 @@ export function NewGroupModal({ visible, onSubmit, onClose }: Props) {
     if (selected.length === 0) e.members = 'Pick at least one member.';
     setErrors(e);
     if (Object.keys(e).length === 0) {
-      onSubmit({ name: name.trim(), description: description.trim(), memberIds: selected });
+      onSubmit({ name: name.trim(), description: description.trim() || undefined, memberSchoolUserIds: selected });
     }
   };
-
-  const people = PEOPLE.filter((p) => p.id !== ME_ID);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -61,23 +105,53 @@ export function NewGroupModal({ visible, onSubmit, onClose }: Props) {
             />
 
             <Text style={styles.label}>Members ({selected.length} selected)</Text>
-            {people.map((p) => {
-              const on = selected.includes(p.id);
-              return (
-                <Pressable key={p.id} style={styles.person} onPress={() => toggle(p.id)}>
-                  <Avatar name={p.name} size={36} />
-                  <View style={styles.personBody}>
-                    <Text style={styles.personName}>{p.name}</Text>
-                    <Text style={styles.personRole}>{p.role}</Text>
-                  </View>
-                  <Ionicons
-                    name={on ? 'checkbox' : 'square-outline'}
-                    size={24}
-                    color={on ? colors.primary : colors.textHint}
-                  />
-                </Pressable>
-              );
-            })}
+            <TextInput
+              value={peopleSearch} onChangeText={setPeopleSearch} placeholder="Search people"
+              placeholderTextColor={colors.textHint} style={styles.input}
+            />
+
+            {selected.length > 0 ? (
+              <View style={styles.chipsWrap}>
+                {selected.map((id) => (
+                  <Pressable key={id} style={styles.chip} onPress={() => setSelected((cur) => cur.filter((x) => x !== id))}>
+                    <Text style={styles.chipText} numberOfLines={1}>{selectedNames[id] ?? 'Selected'}</Text>
+                    <Ionicons name="close" size={14} color={colors.primaryDeep} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            {peopleLoading ? (
+              <View style={styles.peopleState}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : peopleError ? (
+              <View style={styles.peopleState}>
+                <Text style={styles.peopleErrText}>{peopleError}</Text>
+              </View>
+            ) : people.length === 0 ? (
+              <View style={styles.peopleState}>
+                <Text style={styles.peopleHint}>No people found.</Text>
+              </View>
+            ) : (
+              people.map((p) => {
+                const on = selected.includes(p.id);
+                return (
+                  <Pressable key={p.id} style={styles.person} onPress={() => toggle(p)}>
+                    <Avatar name={`${p.firstName} ${p.lastName}`} size={36} />
+                    <View style={styles.personBody}>
+                      <Text style={styles.personName}>{p.firstName} {p.lastName}</Text>
+                      <Text style={styles.personRole}>{p.roleName ?? p.role}</Text>
+                    </View>
+                    <Ionicons
+                      name={on ? 'checkbox' : 'square-outline'}
+                      size={24}
+                      color={on ? colors.primary : colors.textHint}
+                    />
+                  </Pressable>
+                );
+              })
+            )}
             {errors.members ? <Text style={styles.err}>{errors.members}</Text> : null}
           </ScrollView>
           <View style={styles.actions}>
@@ -112,10 +186,19 @@ const styles = StyleSheet.create({
   multi: { height: 80, paddingTop: 12, textAlignVertical: 'top' },
   inputErr: { borderColor: colors.danger },
   err: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: radius.pill, backgroundColor: colors.mint, maxWidth: 160,
+  },
+  chipText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
   person: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
   personBody: { flex: 1 },
   personName: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   personRole: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
+  peopleState: { paddingVertical: 16, alignItems: 'center' },
+  peopleErrText: { fontFamily: fonts.body, fontSize: 13, color: colors.danger, textAlign: 'center' },
+  peopleHint: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   btn: { flex: 1, height: 46, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   cancel: { backgroundColor: colors.mint },

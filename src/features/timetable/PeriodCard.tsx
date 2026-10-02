@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { colors, fonts, radius, shadow } from '../../theme/tokens';
-import { formatTime, subjectColor, type Period } from './mockTimetable';
+import { formatTime, subjectColor, type Period } from './types';
 
 type Props = {
   period: Period;
