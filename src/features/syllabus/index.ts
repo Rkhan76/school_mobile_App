@@ -1,0 +1,1 @@
+export { SyllabusScreen } from './SyllabusScreen';

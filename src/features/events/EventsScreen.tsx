@@ -1,0 +1,259 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScreenBackground } from '../../components/ui/Screen';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { SearchBar } from '../../components/ui/SearchBar';
+import { colors, fonts, radius } from '../../theme/tokens';
+import { EventCard } from './EventCard';
+import { EventDetailSheet } from './EventDetailSheet';
+import { EventForm } from './EventForm';
+import { FilterSheet } from './FilterSheet';
+import { MonthCalendar } from './MonthCalendar';
+import {
+  dayKey, eventOnDay, formatDay, MONTH_NAMES, parseIso, useEvents,
+  type EventAudience, type EventStatus, type SchoolEvent,
+} from './mockEvents';
+
+export function EventsScreen() {
+  const insets = useSafeAreaInsets();
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
+  const [selected, setSelected] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [status, setStatus] = useState<EventStatus | ''>('');
+  const [audience, setAudience] = useState<EventAudience | ''>('');
+  const [holidaysOnly, setHolidaysOnly] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<SchoolEvent | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading, refetch, add, update, remove } = useEvents({
+    search: debounced, status, audience, holidaysOnly,
+  });
+
+  useEffect(() => {
+    if (!isLoading) setRefreshing(false);
+  }, [isLoading]);
+
+  const list = useMemo(() => {
+    if (selected) return data.filter((e) => eventOnDay(e, selected));
+    const first = dayKey(new Date(year, month, 1));
+    const last = dayKey(new Date(year, month + 1, 0));
+    return data.filter(
+      (e) => dayKey(parseIso(e.startDate)) <= last && dayKey(parseIso(e.endDate)) >= first,
+    );
+  }, [data, selected, year, month]);
+
+  const detail = useMemo(() => data.find((e) => e.id === detailId) ?? null, [data, detailId]);
+
+  const filterCount = (status ? 1 : 0) + (audience ? 1 : 0);
+
+  const doRefresh = useCallback(() => {
+    setRefreshing(true);
+    refetch();
+  }, [refetch]);
+
+  const openCreate = useCallback(() => { setEditing(null); setFormOpen(true); }, []);
+  const onEdit = useCallback((e: SchoolEvent) => { setDetailId(null); setEditing(e); setFormOpen(true); }, []);
+  const onDelete = useCallback((e: SchoolEvent) => {
+    Alert.alert('Delete event', `Delete "${e.title}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => { setDetailId(null); remove(e.id); } },
+    ]);
+  }, [remove]);
+  const onOpen = useCallback((e: SchoolEvent) => setDetailId(e.id), []);
+
+  const onSelectDay = useCallback((key: string, date: Date) => {
+    if (date.getMonth() !== month || date.getFullYear() !== year) {
+      setYear(date.getFullYear());
+      setMonth(date.getMonth());
+    }
+    setSelected((prev) => (prev === key ? null : key));
+  }, [month, year]);
+
+  const onToday = useCallback(() => {
+    const d = new Date();
+    setYear(d.getFullYear());
+    setMonth(d.getMonth());
+    setSelected(dayKey(d));
+  }, []);
+
+  const onMonthChange = useCallback((y: number, m: number) => {
+    setYear(y);
+    setMonth(m);
+    setSelected(null);
+  }, []);
+
+  const showSkeleton = isLoading && !refreshing;
+  const listTitle = selected ? formatDay(parseIso(`${selected}T00:00`)) : `${MONTH_NAMES[month]} ${year}`;
+
+  const header = (
+    <View style={styles.headerWrap}>
+      <View style={styles.segment}>
+        {([false, true] as const).map((h) => (
+          <Pressable
+            key={String(h)}
+            style={[styles.segBtn, holidaysOnly === h && styles.segActive]}
+            onPress={() => setHolidaysOnly(h)}
+          >
+            <Ionicons
+              name={h ? 'sunny-outline' : 'calendar-outline'}
+              size={16}
+              color={holidaysOnly === h ? colors.white : colors.textSecondary}
+            />
+            <Text style={[styles.segText, holidaysOnly === h && styles.segTextActive]}>
+              {h ? 'All Holidays' : 'All Events'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <SearchBar
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Search events..."
+        onFilterPress={() => setFilterOpen(true)}
+        filterCount={filterCount}
+      />
+      <MonthCalendar
+        year={year}
+        month={month}
+        events={data}
+        selected={selected}
+        onSelect={onSelectDay}
+        onMonthChange={onMonthChange}
+        onToday={onToday}
+      />
+      <View style={styles.listHead}>
+        <Text style={styles.listTitle}>{listTitle}</Text>
+        <Text style={styles.count}>{list.length} event{list.length === 1 ? '' : 's'}</Text>
+      </View>
+      {showSkeleton ? (
+        <View style={styles.skeletons}>
+          {[0, 1, 2].map((i) => <View key={i} style={styles.skeleton} />)}
+        </View>
+      ) : null}
+    </View>
+  );
+
+  return (
+    <ScreenBackground>
+      <ScreenHeader
+        title="Events"
+        subtitle="School calendar"
+        back
+        right={
+          <>
+            <Pressable style={styles.iconBtn} onPress={doRefresh} accessibilityLabel="Refresh">
+              <Ionicons name="refresh" size={20} color={colors.textSecondary} />
+            </Pressable>
+            <Pressable style={styles.newBtn} onPress={openCreate} accessibilityLabel="Create event">
+              <Ionicons name="add" size={18} color={colors.white} />
+              <Text style={styles.newText}>Create</Text>
+            </Pressable>
+          </>
+        }
+      />
+      <FlatList
+        data={showSkeleton ? [] : list}
+        keyExtractor={(e) => e.id}
+        ListHeaderComponent={header}
+        renderItem={({ item }) => (
+          <View style={styles.itemWrap}>
+            <EventCard item={item} onPress={onOpen} onEdit={onEdit} onDelete={onDelete} />
+          </View>
+        )}
+        ListEmptyComponent={
+          showSkeleton ? null : (
+            <View style={styles.empty}>
+              <Ionicons name="calendar-outline" size={44} color={colors.textHint} />
+              <Text style={styles.emptyTitle}>{selected ? 'No events on this day' : 'No events this month'}</Text>
+              <Text style={styles.emptySub}>Tap Create to add one.</Text>
+            </View>
+          )
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={doRefresh} tintColor={colors.primary} colors={[colors.primary]} />
+        }
+        contentContainerStyle={{ paddingBottom: insets.bottom + 96, gap: 12 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      />
+
+      <Pressable
+        style={[styles.fab, { bottom: insets.bottom + 20 }]}
+        onPress={openCreate}
+        accessibilityLabel="Add event"
+      >
+        <Ionicons name="add" size={28} color={colors.white} />
+      </Pressable>
+
+      <FilterSheet
+        visible={filterOpen}
+        status={status}
+        audience={audience}
+        onChange={(n) => { setStatus(n.status); setAudience(n.audience); }}
+        onClose={() => setFilterOpen(false)}
+      />
+      <EventDetailSheet event={detail} onClose={() => setDetailId(null)} onEdit={onEdit} onDelete={onDelete} />
+      <EventForm
+        visible={formOpen}
+        event={editing}
+        defaultDay={selected}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(input) => {
+          if (editing) update(editing.id, input);
+          else add(input);
+          setFormOpen(false);
+        }}
+      />
+    </ScreenBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  headerWrap: { paddingHorizontal: 16, gap: 12, paddingBottom: 4 },
+  segment: {
+    flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: colors.mint, gap: 4,
+  },
+  segBtn: {
+    flex: 1, height: 38, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 6,
+  },
+  segActive: { backgroundColor: colors.primary },
+  segText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
+  segTextActive: { color: colors.white },
+  listHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  listTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
+  count: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
+  itemWrap: { paddingHorizontal: 16 },
+  skeletons: { gap: 12 },
+  skeleton: { height: 120, borderRadius: radius.xl, backgroundColor: colors.mint, opacity: 0.7 },
+  empty: { alignItems: 'center', paddingVertical: 40, gap: 6 },
+  emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
+  emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
+  iconBtn: {
+    width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
+  },
+  newBtn: {
+    height: 40, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderRadius: radius.pill, backgroundColor: colors.primary,
+  },
+  newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
+  fab: {
+    position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center', shadowColor: colors.primaryDarkest, shadowOpacity: 0.3,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+});

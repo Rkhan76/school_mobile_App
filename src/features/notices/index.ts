@@ -1,0 +1,1 @@
+export { NoticesScreen } from './NoticesScreen';

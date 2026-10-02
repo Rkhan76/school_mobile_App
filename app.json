@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "school_mobile_app",
+    "name": "Verdant",
     "slug": "school_mobile_app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,6 +20,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "scheme": "verdant"
   }
 }
