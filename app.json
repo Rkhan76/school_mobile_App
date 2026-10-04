@@ -37,7 +37,8 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera to capture admission documents."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "verdant"
   }
