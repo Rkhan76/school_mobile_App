@@ -7,7 +7,12 @@ import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { SearchBar } from '../../../components/ui/SearchBar';
 import { colors, fonts, radius, themed } from '../../../theme/tokens';
-import { useClasses, type AcademicClass, type ClassInput } from '../mockClasses';
+import { ApiError } from '../../../lib/apiClient';
+import { useSession } from '../../auth/session';
+import { ErrorState, useDebounced } from '../../employees/ListStates';
+import { apiErrorMessage, createClass, deleteClass, updateClass } from '../api';
+import { useClasses } from '../hooks';
+import type { AcademicClass, ClassInput } from '../types';
 import { ClassCard } from './ClassCard';
 import { ClassFormModal } from './ClassFormModal';
 import { StatsGrid } from './StatsGrid';
@@ -31,18 +36,18 @@ function Separator() {
 export function ClassesListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const permissions = useSession((st) => st.permissions);
+  const canCreate = permissions.includes('class.record.create');
+  const canUpdate = permissions.includes('class.record.update');
+  const canDelete = permissions.includes('class.record.delete');
   const [searchText, setSearchText] = useState('');
-  const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AcademicClass | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setSearch(searchText), 300);
-    return () => clearTimeout(t);
-  }, [searchText]);
+  const search = useDebounced(searchText, 300);
 
-  const { data, hasMore, isLoadingMore, loadMore, stats, isLoading, refetch, add, update, remove } = useClasses({
+  const { data, hasMore, isLoadingMore, loadMore, stats, isLoading, error, refetch } = useClasses({
     search, pageSize: PAGE_SIZE,
   });
 
@@ -66,29 +71,65 @@ export function ClassesListScreen() {
     (c: AcademicClass) => {
       Alert.alert('Delete class', `Delete ${c.name}? This cannot be undone.`, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => remove(c.id) },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteClass(c.id);
+              refetch();
+            } catch (e) {
+              Alert.alert('Could not delete class', apiErrorMessage(e));
+            }
+          },
+        },
       ]);
     },
-    [remove],
+    [refetch],
   );
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     refetch();
   }, [refetch]);
   const onSubmit = useCallback(
-    (input: ClassInput) => {
-      if (editing) update(editing.id, input);
-      else add(input);
-      setFormOpen(false);
+    async (input: ClassInput): Promise<{ nameError?: string; error?: string } | void> => {
+      try {
+        if (editing) {
+          await updateClass(editing.id, {
+            name: input.name,
+            gradeOrder: input.gradeOrder,
+            description: input.description,
+          });
+        } else {
+          await createClass({
+            name: input.name,
+            gradeOrder: input.gradeOrder,
+            ...(input.description ? { description: input.description } : {}),
+          });
+        }
+        setFormOpen(false);
+        refetch();
+      } catch (e) {
+        if (e instanceof ApiError && e.statusCode === 409) {
+          return { nameError: 'A class with this name already exists.' };
+        }
+        if (e instanceof ApiError && e.statusCode === 404) {
+          setFormOpen(false);
+          Alert.alert('Class not found', apiErrorMessage(e));
+          refetch();
+          return;
+        }
+        return { error: apiErrorMessage(e) };
+      }
     },
-    [editing, add, update],
+    [editing, refetch],
   );
 
   const renderItem = useCallback(
     ({ item }: { item: AcademicClass }) => (
-      <ClassCard item={item} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} />
+      <ClassCard item={item} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} canEdit={canUpdate} canDelete={canDelete} />
     ),
-    [onOpen, onEdit, onDelete],
+    [onOpen, onEdit, onDelete, canUpdate, canDelete],
   );
 
   const showSkeleton = isLoading && !refreshing;
@@ -116,10 +157,12 @@ export function ClassesListScreen() {
         title="Classes"
         back
         right={
-          <Pressable style={styles.addBtn} onPress={onAdd} accessibilityLabel="Add class">
-            <Ionicons name="add" size={18} color={colors.white} />
-            <Text style={styles.addText}>Add Class</Text>
-          </Pressable>
+          canCreate ? (
+            <Pressable style={styles.addBtn} onPress={onAdd} accessibilityLabel="Add class">
+              <Ionicons name="add" size={18} color={colors.white} />
+              <Text style={styles.addText}>Add Class</Text>
+            </Pressable>
+          ) : undefined
         }
       />
       <FlatList<AcademicClass>
@@ -135,6 +178,8 @@ export function ClassesListScreen() {
               <SkeletonCard />
               <SkeletonCard />
             </View>
+          ) : error ? (
+            <ErrorState message={error} onRetry={refetch} />
           ) : (
             <View style={styles.empty}>
               <Ionicons name="book-outline" size={40} color={colors.textHint} />

@@ -4,22 +4,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
 import { colors, fonts, radius, themed } from '../../../theme/tokens';
-import { formatDate, type AcademicClass } from '../mockClasses';
+import { formatDate } from '../../../lib/date';
+import type { AcademicClass } from '../types';
 
 interface Props {
   item: AcademicClass;
   onOpen: (id: string) => void;
   onEdit: (item: AcademicClass) => void;
   onDelete: (item: AcademicClass) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
-function ClassCardBase({ item, onOpen, onEdit, onDelete }: Props) {
+function ClassCardBase({ item, onOpen, onEdit, onDelete, canEdit, canDelete }: Props) {
   return (
     <Card style={styles.card}>
       <Pressable onPress={() => onOpen(item.id)} accessibilityRole="button" accessibilityLabel={`Open ${item.name}`}>
         <View style={styles.top}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-          <Badge label={`${item.studentCount} ${item.studentCount === 1 ? 'student' : 'students'}`} tone="primary" />
+          <Badge label={`${item.sections.length} ${item.sections.length === 1 ? 'section' : 'sections'}`} tone="primary" />
         </View>
         <View style={styles.chips}>
           {item.sections.length === 0 ? (
@@ -38,14 +41,20 @@ function ClassCardBase({ item, onOpen, onEdit, onDelete }: Props) {
           <Text style={styles.dateText}>Created {formatDate(item.createdAt)}</Text>
         </View>
       </Pressable>
-      <View style={styles.actions}>
-        <Pressable style={styles.iconBtn} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.name}`}>
-          <Ionicons name="create-outline" size={18} color={colors.blue} />
-        </Pressable>
-        <Pressable style={[styles.iconBtn, styles.danger]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.name}`}>
-          <Ionicons name="trash-outline" size={18} color={colors.danger} />
-        </Pressable>
-      </View>
+      {canEdit || canDelete ? (
+        <View style={styles.actions}>
+          {canEdit ? (
+            <Pressable style={styles.iconBtn} onPress={() => onEdit(item)} accessibilityLabel={`Edit ${item.name}`}>
+              <Ionicons name="create-outline" size={18} color={colors.blue} />
+            </Pressable>
+          ) : null}
+          {canDelete ? (
+            <Pressable style={[styles.iconBtn, styles.danger]} onPress={() => onDelete(item)} accessibilityLabel={`Delete ${item.name}`}>
+              <Ionicons name="trash-outline" size={18} color={colors.danger} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
     </Card>
   );
 }

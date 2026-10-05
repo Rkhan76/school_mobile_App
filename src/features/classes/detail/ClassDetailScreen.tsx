@@ -8,9 +8,14 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import { SectionNameModal } from './AddSectionModal';
 import { SectionChips, TabChips, type ClassTabKey } from './Chips';
-import { useClassDetail, type ClassSection } from './classDetail';
-import { AttendanceTab, ExamsTab, FeeTab, HomeworkTab, SubjectsTab } from './OtherTabs';
+import { ErrorState } from '../../employees/ListStates';
+import { useSession } from '../../auth/session';
+import { apiErrorMessage, deleteSection } from '../api';
+import { useClassById, useClassSections } from '../hooks';
+import { AttendanceTab, ExamsTab, FeeTab, HomeworkTab } from './OtherTabs';
 import { StudentListTab } from './StudentListTab';
+import { SubjectsTab } from './SubjectsTab';
+import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -60,58 +65,57 @@ function NotFound({ message }: { message: string }) {
 
 export function ClassDetailScreen({ id }: { id: string | undefined }) {
   const insets = useSafeAreaInsets();
-  const { data, isLoading, error } = useClassDetail(id);
+  const permissions = useSession((st) => st.permissions);
+  const canDeleteSection = permissions.includes('section.record.delete');
+  const cls = useClassById(id);
+  const secs = useClassSections(cls.data ? id : undefined);
+  const data = cls.data;
+  const isLoading = cls.isLoading || (!!cls.data && secs.isLoading);
+  const error = cls.error ?? secs.error;
+  const refetch = () => {
+    cls.refetch();
+    secs.refetch();
+  };
   const [tab, setTab] = useState<ClassTabKey>('students');
-  const [sections, setSections] = useState<ClassSection[]>([]);
   const [activeId, setActiveId] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
+  const sections = secs.data;
   useEffect(() => {
-    if (data) {
-      setSections(data.sections);
-      setActiveId(data.sections[0]?.id ?? '');
-    }
-  }, [data]);
+    setActiveId((cur) => (sections.some((s) => s.id === cur) ? cur : sections[0]?.id ?? ''));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secs.data]);
 
   const section = sections.find((s) => s.id === activeId) ?? sections[0];
 
-  const addSection = (name: string) => {
-    const sec: ClassSection = {
-      id: `S${Date.now()}`, name, classTeacher: 'Unassigned', capacity: 30, students: [],
-      attendance: { present: 0, absent: 0, late: 0 }, fee: { collected: 0, pending: 0, dues: [] },
-    };
-    setSections((p) => [...p, sec]);
-    setActiveId(sec.id);
+  // TODO: add / rename section stay unconnected until their request bodies are specified.
+  const notConnected = () => {
     setAddOpen(false);
-  };
-
-  const renameSection = (name: string) => {
-    setSections((p) => p.map((s) => (s.id === section?.id ? { ...s, name } : s)));
     setEditOpen(false);
+    Alert.alert('Not connected yet');
   };
 
   const confirmDelete = () => {
     if (!section) return;
-    if (sections.length <= 1) {
-      Alert.alert('Cannot delete', 'A class must have at least one section.');
-      return;
-    }
     Alert.alert('Delete section', `Delete ${section.name}? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          const rest = sections.filter((s) => s.id !== section.id);
-          setSections(rest);
-          setActiveId(rest[0]?.id ?? '');
+        onPress: async () => {
+          try {
+            await deleteSection(section.id);
+            secs.refetch();
+          } catch (e) {
+            Alert.alert('Could not delete section', apiErrorMessage(e));
+          }
         },
       },
     ]);
   };
 
-  const subtitle = section ? `Class teacher • ${section.classTeacher} • Capacity ${section.capacity}` : undefined;
+  const subtitle = section?.maxCapacity != null ? `Capacity ${section.maxCapacity}` : undefined;
 
   return (
     <ScreenBackground>
@@ -122,39 +126,46 @@ export function ClassDetailScreen({ id }: { id: string | undefined }) {
       >
         <ScreenHeader back title={data?.name ?? 'Class'} subtitle={subtitle} />
         {isLoading && <Skeleton />}
-        {!isLoading && (error || !data || !section) && (
+        {!isLoading && error && (
           <View style={styles.pad}>
-            <NotFound message={error?.message ?? 'Class not found'} />
+            {error === 'Class not found' ? <NotFound message={error} /> : <ErrorState message={error} onRetry={refetch} />}
           </View>
         )}
-        {!isLoading && data && section && (
+        {!isLoading && !error && data && !section && (
+          <View style={styles.pad}>
+            <NotFound message="No sections yet" />
+          </View>
+        )}
+        {!isLoading && !error && data && section && (
           <>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actions}>
+            <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actions}>
               <ActionButton icon="create-outline" label={`Edit ${section.name}`} onPress={() => setEditOpen(true)} />
-              <ActionButton icon="trash-outline" label={`Delete ${section.name}`} onPress={confirmDelete} tone="danger" />
+              {canDeleteSection ? (
+                <ActionButton icon="trash-outline" label={`Delete ${section.name}`} onPress={confirmDelete} tone="danger" />
+              ) : null}
               <ActionButton icon="add" label="Add Section" onPress={() => setAddOpen(true)} tone="primary" />
             </ScrollView>
             <SectionChips sections={sections} activeId={section.id} onChange={setActiveId} />
             <TabChips active={tab} onChange={setTab} />
             <View style={styles.pad}>
-              {tab === 'students' && <StudentListTab key={section.id} students={section.students} />}
-              {tab === 'attendance' && <AttendanceTab section={section} />}
-              {tab === 'subjects' && <SubjectsTab subjects={data.subjects} />}
-              {tab === 'fee' && <FeeTab section={section} />}
-              {tab === 'exams' && <ExamsTab exams={data.exams} />}
-              {tab === 'homework' && <HomeworkTab homework={data.homework} />}
+              {tab === 'students' && <StudentListTab key={section.id} classId={data.id} section={section} />}
+              {tab === 'attendance' && <AttendanceTab sectionName={section.name} />}
+              {tab === 'subjects' && <SubjectsTab key={section.id} section={section} />}
+              {tab === 'fee' && <FeeTab />}
+              {tab === 'exams' && <ExamsTab />}
+              {tab === 'homework' && <HomeworkTab />}
             </View>
           </>
         )}
       </ScrollView>
-      <SectionNameModal visible={addOpen} onClose={() => setAddOpen(false)} onSubmit={addSection} />
+      <SectionNameModal visible={addOpen} onClose={() => setAddOpen(false)} onSubmit={notConnected} />
       <SectionNameModal
         visible={editOpen}
         title="Edit Section"
         confirmLabel="Save"
         initialName={section?.name ?? ''}
         onClose={() => setEditOpen(false)}
-        onSubmit={renameSection}
+        onSubmit={notConnected}
       />
     </ScreenBackground>
   );

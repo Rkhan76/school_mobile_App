@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, themed } from '../../../theme/tokens';
+import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -17,7 +18,7 @@ export const CLASS_TABS: { key: ClassTabKey; label: string; icon: IconName }[] =
 
 export function TabChips({ active, onChange }: { active: ClassTabKey; onChange: (k: ClassTabKey) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {CLASS_TABS.map((t) => {
         const on = t.key === active;
         return (
@@ -33,7 +34,7 @@ export function TabChips({ active, onChange }: { active: ClassTabKey; onChange: 
 
 export function SectionChips({ sections, activeId, onChange }: { sections: { id: string; name: string }[]; activeId: string; onChange: (id: string) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {sections.map((s) => {
         const on = s.id === activeId;
         return (
