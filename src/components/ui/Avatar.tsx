@@ -4,7 +4,9 @@ import { colors, fonts, themed } from '../../theme/tokens';
 const palette = [colors.primary, colors.blue, colors.indigo, colors.purple, colors.orange];
 
 /** Initials avatar (photos come with the API later). */
-export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+export function Avatar({ name: rawName, size = 40 }: { name?: string | null; size?: number }) {
+  // The API can return a null name (e.g. an applicant with no full name yet); show a placeholder instead of crashing.
+  const name = rawName ?? '';
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -14,7 +16,7 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   const bg = palette[name.length % palette.length];
   return (
     <View style={[styles.box, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
-      <Text style={[styles.text, { fontSize: size * 0.38 }]}>{initials}</Text>
+      <Text style={[styles.text, { fontSize: size * 0.38 }]}>{initials || '?'}</Text>
     </View>
   );
 }

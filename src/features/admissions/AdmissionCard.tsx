@@ -12,6 +12,7 @@ import { formatDate } from '../../lib/date';
 type Tone = 'success' | 'danger' | 'warning' | 'neutral' | 'primary';
 const STATUS: Record<AdmissionStatus, { label: string; tone: Tone }> = {
   pending: { label: 'Pending', tone: 'warning' },
+  approved: { label: 'Approved', tone: 'primary' },
   enrolled: { label: 'Enrolled', tone: 'success' },
   rejected: { label: 'Rejected', tone: 'danger' },
   cancelled: { label: 'Cancelled', tone: 'neutral' },
@@ -31,7 +32,6 @@ type Props = {
   onApprove: (item: AdmissionListItem) => void;
   onReject: (item: AdmissionListItem) => void;
   onCancel: (item: AdmissionListItem) => void;
-  onView: (item: AdmissionListItem) => void;
   onEdit: (item: AdmissionListItem) => void;
   onDelete: (item: AdmissionListItem) => void;
 };
@@ -48,7 +48,7 @@ function Action({ icon, label, color, bg, onPress }: { icon: IconName; label: st
 
 function AdmissionCardBase({
   item, selected, selectionMode, canApprove, canReject, canCancel, canEdit, canDelete,
-  onPress, onLongPress, onApprove, onReject, onCancel, onView, onEdit, onDelete,
+  onPress, onLongPress, onApprove, onReject, onCancel, onEdit, onDelete,
 }: Props) {
   const st = STATUS[item.status];
   const pending = item.status === 'pending';
@@ -61,7 +61,7 @@ function AdmissionCardBase({
           ) : null}
           <Avatar name={item.fullName} size={44} />
           <View style={styles.info}>
-            <Text style={styles.name} numberOfLines={1}>{item.fullName}</Text>
+            <Text style={styles.name} numberOfLines={1}>{item.fullName || 'Unnamed applicant'}</Text>
             <Text style={styles.email} numberOfLines={1}>{item.email ?? '—'}</Text>
           </View>
           <Badge label={st.label} tone={st.tone} />
@@ -85,7 +85,6 @@ function AdmissionCardBase({
             {pending && canReject && <Action icon="close-circle-outline" label="Reject" color={colors.danger} bg={colors.dangerBg} onPress={() => onReject(item)} />}
             {pending && canCancel && <Action icon="ban-outline" label="Cancel" color={colors.textSecondary} bg={colors.mint} onPress={() => onCancel(item)} />}
             <View style={styles.spacer} />
-            <Action icon="eye-outline" label="View" color={colors.primaryDeep} bg={colors.mint} onPress={() => onView(item)} />
             {pending && canEdit && <Action icon="create-outline" label="Edit" color={colors.blue} bg="#dbeafe" onPress={() => onEdit(item)} />}
             {canDelete && <Action icon="trash-outline" label="Delete" color={colors.danger} bg={colors.dangerBg} onPress={() => onDelete(item)} />}
           </View>

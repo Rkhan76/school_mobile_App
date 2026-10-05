@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,11 +16,13 @@ import { useSession } from '../../auth/session';
 import { approveAdmission, cancelAdmission, deleteAdmission, getAdmission, rejectAdmission } from '../api';
 import { RejectModal } from '../RejectModal';
 import type { AdmissionDetail, AdmissionStatus, GuardianBlock } from '../types';
+import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
 type Tone = 'success' | 'danger' | 'warning' | 'neutral' | 'primary';
 
 const STATUS: Record<AdmissionStatus, { label: string; tone: Tone }> = {
   pending: { label: 'Pending', tone: 'warning' },
+  approved: { label: 'Approved', tone: 'primary' },
   enrolled: { label: 'Enrolled', tone: 'success' },
   rejected: { label: 'Rejected', tone: 'danger' },
   cancelled: { label: 'Cancelled', tone: 'neutral' },
@@ -137,15 +139,24 @@ function GuardianSection({ role, title, block, isPrimary }: {
       }
     >
       <View style={styles.guardianTop}>
-        <Avatar name={guardianLabel(block, role)} size={44} />
+        {block.photo ? (
+          <Image source={{ uri: block.photo }} style={styles.guardianPhoto} />
+        ) : (
+          <Avatar name={guardianLabel(block, role)} size={44} />
+        )}
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.guardianName} numberOfLines={1}>{guardianLabel(block, role)}</Text>
           {block.occupation ? <Text style={styles.guardianOcc} numberOfLines={1}>{block.occupation}</Text> : null}
         </View>
       </View>
-      <Row label="Phone" value={block.phone} />
+      <Row label="Relation" value={block.relation} />
+      <Row label="Phone" value={block.phone ?? block.mobileNumber} />
       <Row label="Email" value={block.email} />
       <Row label="Aadhar Number" value={block.aadharNumber} />
+      <Row label="Address" value={block.address} />
+      {block.isLinkedGuardian ? (
+        <Text style={styles.linkedNote}>These details come from the guardian’s profile. Edit them there.</Text>
+      ) : null}
     </Section>
   );
 }
@@ -334,7 +345,13 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
     { label: 'Aadhar Number', value: personal.aadharNumber },
   ];
 
-  const documents = data.documents ?? [];
+  // Uploaded student documents (aadhar / TC / birth certificate) are listed with the supporting documents.
+  const imageDocs = [
+    { documentName: 'Aadhar Card', file: data.aadharImage },
+    { documentName: 'Transfer Certificate', file: data.tcImage },
+    { documentName: 'Birth Certificate', file: data.birthCertificateImage },
+  ].filter((d) => !!d.file);
+  const documents = [...imageDocs, ...(data.documents ?? [])];
 
   return (
     <ScreenBackground>
@@ -345,7 +362,11 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
       >
         <Card style={styles.profileCard}>
           <View style={styles.profileTop}>
-            <Avatar name={name} size={64} />
+            {data.profileImage ? (
+              <Image source={{ uri: data.profileImage }} style={styles.profilePhoto} />
+            ) : (
+              <Avatar name={name} size={64} />
+            )}
             <View style={{ flex: 1, gap: 6 }}>
               <Text style={styles.name} numberOfLines={1}>{name}</Text>
               <View style={styles.badgeRow}>
@@ -366,6 +387,13 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
                 {data.rejectionReason ? <Text style={[styles.noticeText, { color: colors.danger }]}>{data.rejectionReason}</Text> : null}
                 {data.rejectedAt ? <Text style={styles.noticeSub}>{formatDateTime(data.rejectedAt)}</Text> : null}
               </View>
+            </View>
+          ) : null}
+
+          {(data.status === 'approved' || data.status === 'enrolled') && data.approvedAt ? (
+            <View style={[styles.noticeBox, { backgroundColor: colors.successBg }]}>
+              <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
+              <Text style={styles.noticeSub}>Approved on {formatDateTime(data.approvedAt)}</Text>
             </View>
           ) : null}
 
@@ -455,7 +483,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
       </ScrollView>
 
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + 10 }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionRow}>
+        <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionRow}>
           {data.status === 'pending' && can('admission.application.update') && (
             <ActionButton icon="create-outline" label="Edit" tone="neutral" onPress={() => router.push(`/admissions/${id}/edit`)} disabled={busy !== null} />
           )}
@@ -495,6 +523,9 @@ const styles = themed(() => StyleSheet.create({
   retryText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
 
   profileCard: { gap: 12 },
+  profilePhoto: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.mint },
+  guardianPhoto: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.mint },
+  linkedNote: { fontFamily: fonts.body, fontSize: 11.5, color: colors.textSecondary, marginTop: 4 },
   profileTop: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   name: { fontFamily: fonts.headingExtra, fontSize: 20, color: colors.text },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },

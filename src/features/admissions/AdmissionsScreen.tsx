@@ -74,7 +74,11 @@ export function AdmissionsScreen() {
     );
   }, [approve]);
 
-  const handlePress = useCallback((a: AdmissionListItem) => { if (selectionMode) toggle(a); }, [selectionMode, toggle]);
+  // Tapping a card opens its detail; while selecting, a tap toggles the selection instead.
+  const handlePress = useCallback(
+    (a: AdmissionListItem) => { if (selectionMode) toggle(a); else router.push(`/admissions/${a.id}`); },
+    [selectionMode, toggle, router],
+  );
   const handleLong = useCallback((a: AdmissionListItem) => { if (!selectionMode) setSelected([a.id]); }, [selectionMode]);
   const onApprove = useCallback((a: AdmissionListItem) => confirmApprove([a.id]), [confirmApprove]);
   const onReject = useCallback((a: AdmissionListItem) => setRejectIds([a.id]), []);
@@ -84,7 +88,6 @@ export function AdmissionsScreen() {
       { text: 'Cancel Application', style: 'destructive', onPress: () => cancelOne(a.id) },
     ]);
   }, [cancelOne]);
-  const onView = useCallback((a: AdmissionListItem) => router.push(`/admissions/${a.id}`), []);
   const onEdit = useCallback((a: AdmissionListItem) => router.push(`/admissions/${a.id}/edit`), []);
   const onDelete = useCallback((a: AdmissionListItem) => {
     if (a.status === 'pending') {
@@ -193,7 +196,6 @@ export function AdmissionsScreen() {
               onApprove={onApprove}
               onReject={onReject}
               onCancel={onCancelItem}
-              onView={onView}
               onEdit={onEdit}
               onDelete={onDelete}
             />
