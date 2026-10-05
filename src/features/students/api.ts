@@ -11,7 +11,7 @@ import type {
   StudentEnrollmentRow,
 } from './types';
 
-function buildQuery(params: Record<string, string | number | undefined>): string {
+function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const q = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== '') q.set(key, String(value));
@@ -28,8 +28,10 @@ export async function listStudents(params: {
   sectionId?: string;
   academicYearId?: string;
   search?: string;
+  /** true -> only blocked students; omitted/false -> only active (server default). */
+  blocked?: boolean;
 }): Promise<PaginatedResult<StudentListItem>> {
-  const qs = buildQuery(params);
+  const qs = buildQuery({ ...params, blocked: params.blocked ? true : undefined });
   return apiRequest<PaginatedResult<StudentListItem>>(`/students/list${qs}`);
 }
 
