@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { Button, BottomSheet, OptionSheet, PickerField, TextField } from './parts';
 import { CLASSES, parseDMY, type InvoiceStatus } from './mockFees';
 
@@ -57,7 +57,7 @@ export function InvoiceFilterSheet({ visible, value, onApply, onClose }: Props) 
         </View>
       </View>
       <TextField
-        label="Due date (DD/MM/YYYY)" value={draft.dueDate} placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
+        label="Due date (DD/MM/YYYY)" value={draft.dueDate} placeholder="dd/mm/yyyy" keyboardType="numbers-and-punctuation"
         maxLength={10} error={dateErr}
         onChangeText={(t) => { setDateErr(''); setDraft((d) => ({ ...d, dueDate: t })); }}
       />
@@ -75,11 +75,11 @@ export function InvoiceFilterSheet({ visible, value, onApply, onClose }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   label: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { height: 34, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.mintSoft, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
   chipOn: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.text },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-});
+}));

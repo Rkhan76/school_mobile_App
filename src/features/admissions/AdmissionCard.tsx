@@ -4,14 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { AdmissionListItem, AdmissionStatus } from './types';
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+import { formatDate } from '../../lib/date';
 
 type Tone = 'success' | 'danger' | 'warning' | 'neutral' | 'primary';
 const STATUS: Record<AdmissionStatus, { label: string; tone: Tone }> = {
@@ -101,7 +97,7 @@ function AdmissionCardBase({
 
 export const AdmissionCard = memo(AdmissionCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 12, padding: 14 },
   selected: { borderColor: colors.primary, borderWidth: 2 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -116,4 +112,4 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
   spacer: { flex: 1 },
   action: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-});
+}));

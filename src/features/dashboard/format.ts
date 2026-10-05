@@ -1,3 +1,5 @@
+import { formatDate } from '../../lib/date';
+
 /** Indian digit grouping (12,50,000) implemented manually; Hermes Intl locale support is unreliable. */
 export function groupIndian(n: number): string {
   const s = Math.round(Math.abs(n)).toString();
@@ -33,11 +35,6 @@ export function greetingFor(date: Date): string {
 }
 
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-const MONTHS = [
-  'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-  'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
-];
-
 export function formatHeroDate(d: Date): string {
-  return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  return `${DAYS[d.getDay()]}, ${formatDate(d)}`;
 }

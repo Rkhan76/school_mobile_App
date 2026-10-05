@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import {
   CASHBOOK_CATEGORY_OPTIONS, ENTRY_TYPE_OPTIONS, PAYMENT_METHOD_OPTIONS, inputToIso, isoToInput, todayIso,
   type CashbookCategory, type CreateCashbookInput, type EntryType, type PaymentMethod,
@@ -102,7 +102,7 @@ export function CashbookFormModal({ visible, onSubmit, onClose, isSaving }: Prop
 
           <Text style={styles.label}>Date</Text>
           <TextInput
-            value={date} onChangeText={setDate} placeholder="DD/MM/YYYY (defaults to today)" placeholderTextColor={colors.textHint}
+            value={date} onChangeText={setDate} placeholder="dd/mm/yyyy (defaults to today)" placeholderTextColor={colors.textHint}
             keyboardType="numbers-and-punctuation" maxLength={10} style={[styles.input, !!errors.date && styles.inputErr]}
           />
           {errors.date ? <Text style={styles.err}>{errors.date}</Text> : null}
@@ -167,7 +167,7 @@ export function CashbookFormModal({ visible, onSubmit, onClose, isSaving }: Prop
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
@@ -198,4 +198,4 @@ const styles = StyleSheet.create({
   save: { backgroundColor: colors.primary },
   saveDisabled: { opacity: 0.7 },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

@@ -19,7 +19,8 @@ import { Card } from '../../../components/ui/Card';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ApiError } from '../../../lib/apiClient';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { maskDateInput, parseDisplayDate, toDisplayDate } from '../../../lib/date';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { getAcademicYearsMaster, getClassesMaster } from '../../common/api';
 import type { AcademicYearLean, ClassWithSections } from '../../common/types';
 import { createAdmission, getAdmission, updateAdmission } from '../api';
@@ -150,7 +151,7 @@ function formFromDetail(detail: AdmissionDetail): FormState {
     admissionNumber: detail.academicInfo?.admissionNumber ?? '',
     fullName: detail.personalInfo?.fullName ?? '',
     gender: detail.personalInfo?.gender ?? null,
-    dateOfBirth: detail.personalInfo?.dateOfBirth ?? '',
+    dateOfBirth: toDisplayDate(detail.personalInfo?.dateOfBirth),
     category: detail.personalInfo?.category ?? '',
     subcategory: detail.personalInfo?.subcategory ?? '',
     religion: detail.personalInfo?.religion ?? '',
@@ -192,7 +193,7 @@ function buildPayload(form: FormState): AdmissionPayload {
     personalInfo: {
       fullName: val(form.fullName),
       gender: (form.gender ?? 'Male') as GenderOption,
-      dateOfBirth: val(form.dateOfBirth),
+      dateOfBirth: val(parseDisplayDate(form.dateOfBirth) ?? form.dateOfBirth),
       category: val(form.category),
       subcategory: val(form.subcategory) ?? null,
       religion: val(form.religion),
@@ -454,6 +455,10 @@ export function AdmissionFormScreen(props: Props) {
       Alert.alert('Guardian required', 'Search and select the existing guardian, or turn the toggle off.');
       return;
     }
+    if (form.dateOfBirth.trim() && !parseDisplayDate(form.dateOfBirth)) {
+      Alert.alert('Invalid date', 'Enter the date of birth as dd/mm/yyyy.');
+      return;
+    }
 
     const payload = buildPayload(form);
     setSubmitting(true);
@@ -576,8 +581,9 @@ export function AdmissionFormScreen(props: Props) {
           <Field
             label="Date of Birth"
             value={form.dateOfBirth}
-            onChangeText={(t) => setField('dateOfBirth', t)}
-            placeholder="YYYY-MM-DD"
+            onChangeText={(t) => setField('dateOfBirth', maskDateInput(t))}
+            placeholder="dd/mm/yyyy"
+            keyboardType="number-pad"
           />
           <Field label="Category" value={form.category} onChangeText={(t) => setField('category', t)} />
           <Field label="Subcategory" value={form.subcategory} onChangeText={(t) => setField('subcategory', t)} />
@@ -733,7 +739,7 @@ export function AdmissionFormScreen(props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   section: { gap: 12 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -747,7 +753,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     paddingHorizontal: 14,
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
@@ -772,7 +778,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -792,7 +798,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 16,
     paddingTop: 10,
-    backgroundColor: 'rgba(241,251,249,0.96)',
+    backgroundColor: colors.backgroundGlass,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     ...shadow.card,
@@ -847,4 +853,4 @@ const styles = StyleSheet.create({
   sheetOptText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
   sheetOptTextActive: { color: colors.white },
   empty: { fontFamily: fonts.body, fontSize: 13, color: colors.textHint, textAlign: 'center', paddingVertical: 20 },
-});
+}));

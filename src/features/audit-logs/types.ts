@@ -61,15 +61,4 @@ export function toApiDate(s: string): string {
   return `${mt[3]}-${mt[2]}-${mt[1]}`;
 }
 
-/** e.g. "30 Sept 2026, 22:52" from an ISO timestamp. */
-export function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+export { formatDateTime } from '../../lib/date';

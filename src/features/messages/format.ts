@@ -1,4 +1,4 @@
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+import { formatDate } from '../../lib/date';
 
 export function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -25,7 +25,7 @@ export function dayLabel(iso: string): string {
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   const d = new Date(iso);
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return formatDate(d);
 }
 
 /** Short stamp for the group list: time today, "Yesterday", or date. */
@@ -35,5 +35,5 @@ export function listStamp(iso: string | null): string {
   if (diff === 0) return formatTime(iso);
   if (diff === 1) return 'Yesterday';
   const d = new Date(iso);
-  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return formatDate(d);
 }

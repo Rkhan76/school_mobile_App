@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { audienceTone } from './AudiencePill';
 import {
   AUDIENCES, inputToIso, isoToInput, type Audience, type Notice, type NoticeInput,
@@ -115,7 +115,7 @@ export function NoticeFormModal({ visible, notice, onSubmit, onClose }: Props) {
             <View style={styles.dateCol}>
               <Text style={styles.label}>Published date</Text>
               <TextInput
-                value={published} onChangeText={setPublished} placeholder="DD/MM/YYYY" placeholderTextColor={colors.textHint}
+                value={published} onChangeText={setPublished} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
                 keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.publishedAt && styles.inputErr]}
               />
               {errors.publishedAt ? <Text style={styles.err}>{errors.publishedAt}</Text> : null}
@@ -123,7 +123,7 @@ export function NoticeFormModal({ visible, notice, onSubmit, onClose }: Props) {
             <View style={styles.dateCol}>
               <Text style={styles.label}>Expires (optional)</Text>
               <TextInput
-                value={expires} onChangeText={setExpires} placeholder="DD/MM/YYYY" placeholderTextColor={colors.textHint}
+                value={expires} onChangeText={setExpires} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
                 keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.expiresAt && styles.inputErr]}
               />
               {errors.expiresAt ? <Text style={styles.err}>{errors.expiresAt}</Text> : null}
@@ -159,7 +159,7 @@ export function NoticeFormModal({ visible, notice, onSubmit, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
@@ -202,4 +202,4 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

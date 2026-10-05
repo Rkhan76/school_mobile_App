@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { parseInputText, parseIso, toInputText, toIso } from './dateUtils';
 import {
   EVENT_AUDIENCES, EVENT_STATUSES,
@@ -23,7 +23,7 @@ type Props = {
 
 type Errors = Partial<Record<'title' | 'start' | 'end', string>>;
 
-const DATE_HINT = 'DD/MM/YYYY HH:mm';
+const DATE_HINT = 'dd/mm/yyyy HH:mm';
 
 function Segment<T extends string>({
   options, value, onChange,
@@ -184,7 +184,7 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
   close: {
@@ -220,4 +220,4 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 16, paddingTop: 10, backgroundColor: colors.cardSolid, borderTopWidth: 1, borderTopColor: colors.border },
   submit: { height: 50, borderRadius: radius.lg, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   submitText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.white },
-});
+}));

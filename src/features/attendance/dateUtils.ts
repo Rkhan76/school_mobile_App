@@ -50,12 +50,12 @@ export function weekdayIndex(iso: string): number {
 
 export function formatLong(iso: string): string {
   const d = toUtc(iso);
-  return `${DAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return `${DAYS[d.getUTCDay()]}, ${isoToDmy(iso)}`;
 }
 
 export function formatShort(iso: string): string {
   const d = toUtc(iso);
-  return `${DAYS[d.getUTCDay()].slice(0, 3)}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()].slice(0, 3)}`;
+  return `${DAYS[d.getUTCDay()].slice(0, 3)}, ${isoToDmy(iso)}`;
 }
 
 export function monthLabel(iso: string): string {

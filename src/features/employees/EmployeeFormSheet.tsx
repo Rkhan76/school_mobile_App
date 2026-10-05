@@ -3,7 +3,8 @@ import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
 import { ApiError } from '../../lib/apiClient';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { maskDateInput, parseDisplayDate } from '../../lib/date';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { CreateNTSPayload, CreateTeacherPayload, Gender } from './types';
 
 type Kind = 'teacher' | 'staff';
@@ -97,6 +98,7 @@ export function EmployeeFormSheet({ visible, kind, onSubmit, onClose }: Props) {
   const submit = async () => {
     setTouched(true);
     if (firstNameError || lastNameError || emailError) return;
+    if (isTeacher && joiningDate.trim() && !parseDisplayDate(joiningDate)) { Alert.alert('Invalid date', 'Enter the joining date as dd/mm/yyyy.'); return; }
     setSubmitting(true);
     try {
       if (isTeacher) {
@@ -107,7 +109,7 @@ export function EmployeeFormSheet({ visible, kind, onSubmit, onClose }: Props) {
             gender,
             phone: phone.trim() || undefined,
             qualification: qualification.trim() || undefined,
-            joiningDate: joiningDate.trim() || undefined,
+            joiningDate: parseDisplayDate(joiningDate) ?? (joiningDate.trim() || undefined),
           },
         };
         await onSubmit(payload);
@@ -212,7 +214,7 @@ export function EmployeeFormSheet({ visible, kind, onSubmit, onClose }: Props) {
                   <TextInput value={qualification} onChangeText={setQualification} placeholder="e.g. M.Ed" placeholderTextColor={colors.textHint} style={styles.input} />
                 </Field>
                 <Field label="Joining date">
-                  <TextInput value={joiningDate} onChangeText={setJoiningDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textHint} style={styles.input} />
+                  <TextInput value={joiningDate} onChangeText={(t) => setJoiningDate(maskDateInput(t))} placeholder="dd/mm/yyyy" keyboardType="number-pad" placeholderTextColor={colors.textHint} style={styles.input} />
                 </Field>
               </>
             ) : null}
@@ -231,7 +233,7 @@ export function EmployeeFormSheet({ visible, kind, onSubmit, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'flex-end' },
   dismiss: { flex: 1 },
   sheet: {
@@ -261,4 +263,4 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

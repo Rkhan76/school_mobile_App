@@ -10,7 +10,8 @@ import { Card } from '../../../components/ui/Card';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ApiError } from '../../../lib/apiClient';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { formatDate as sharedFormatDate, formatDateTime as sharedFormatDateTime } from '../../../lib/date';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { useSession } from '../../auth/session';
 import { approveAdmission, cancelAdmission, deleteAdmission, getAdmission, rejectAdmission } from '../api';
 import { RejectModal } from '../RejectModal';
@@ -29,17 +30,11 @@ type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Busy = 'approve' | 'reject' | 'cancel' | 'delete' | null;
 
 function formatDate(value?: string | null): string | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return value ? sharedFormatDate(value) : undefined;
 }
 
 function formatDateTime(value?: string | null): string | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return value ? sharedFormatDateTime(value) : undefined;
 }
 
 function isBlank(v: unknown): boolean {
@@ -373,7 +368,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
           ) : null}
 
           {data.status === 'cancelled' && data.cancelledAt ? (
-            <View style={[styles.noticeBox, { backgroundColor: '#eef2f1' }]}>
+            <View style={[styles.noticeBox, { backgroundColor: colors.neutralBg }]}>
               <Ionicons name="ban-outline" size={16} color={colors.textSecondary} />
               <Text style={styles.noticeSub}>Cancelled on {formatDateTime(data.cancelledAt)}</Text>
             </View>
@@ -487,7 +482,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   centeredWrap: { flex: 1, paddingHorizontal: 16, justifyContent: 'center' },
@@ -526,9 +521,9 @@ const styles = StyleSheet.create({
 
   freeText: { fontFamily: fonts.body, fontSize: 13.5, color: colors.text, lineHeight: 20 },
 
-  actionBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 10, backgroundColor: 'rgba(241,251,249,0.96)', borderTopWidth: 1, borderTopColor: colors.border, ...shadow.card },
+  actionBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 10, backgroundColor: colors.backgroundGlass, borderTopWidth: 1, borderTopColor: colors.border, ...shadow.card },
   actionRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 16, borderRadius: radius.lg },
   actionBtnDisabled: { opacity: 0.5 },
   actionBtnText: { fontFamily: fonts.bodySemi, fontSize: 13.5 },
-});
+}));

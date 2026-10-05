@@ -149,17 +149,7 @@ export function deriveStatus(isoDate: string): ExamStatus {
   return isoDate < todayIso() ? 'completed' : 'upcoming';
 }
 
-export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** 2026-08-01 -> "01 Aug 2026" */
-export function formatDateLong(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d} ${MONTHS[Number(m) - 1] ?? m} ${y}`;
-}
+export { formatDate, formatDate as formatDateLong } from '../../lib/date';
 
 /** Parses DD/MM/YYYY to ISO, or null when not a real calendar date. */
 export function parseDate(text: string): string | null {

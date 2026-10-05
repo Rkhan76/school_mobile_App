@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatLong, TODAY_ISO } from './dateUtils';
 
 export type DateCtl = {
@@ -31,7 +31,7 @@ export function DateBar({ ctl, actions }: Props) {
           <TextInput
             value={ctl.text}
             onChangeText={ctl.onChangeText}
-            placeholder="DD/MM/YYYY"
+            placeholder="dd/mm/yyyy"
             placeholderTextColor={colors.textHint}
             keyboardType="numbers-and-punctuation"
             maxLength={10}
@@ -67,7 +67,7 @@ export function DateBar({ ctl, actions }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   arrow: {
@@ -93,4 +93,4 @@ const styles = StyleSheet.create({
   todayText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
   caption: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   captionBold: { fontFamily: fonts.bodySemi, color: colors.text },
-});
+}));

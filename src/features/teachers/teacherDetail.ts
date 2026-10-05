@@ -10,6 +10,7 @@ import {
   toggleTeacherBlock as apiToggleTeacherBlock,
   updateTeacher as apiUpdateTeacher,
 } from './api';
+import { formatDate } from '../../lib/date';
 
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'TERMINATED';
 
@@ -282,7 +283,7 @@ function merge(raw: TeacherRaw, personal: TeacherPersonal, bank: TeacherBankResp
     contractType: str(personal.contractType ?? raw.staff?.contractType),
     shift: str(raw.shift ?? personal.shift),
     workLocation: str(raw.workLocation ?? personal.workLocation),
-    joiningDate: str(personal.joiningDate ?? raw.staff?.joiningDate),
+    joiningDate: formatDate(str(personal.joiningDate ?? raw.staff?.joiningDate, '')),
     phone: str(raw.phone ?? personal.phone, ''),
     email: str(raw.email ?? personal.email, ''),
     experience: str(raw.experience ?? personal.experience),

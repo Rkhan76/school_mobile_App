@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { formatDate, LeaveRequestCard } from './LeaveRequestCard';
 import { useLeaveRequests } from './useLeaveRequests';
@@ -27,7 +27,7 @@ const ROLE_LABEL: Record<ApplicantRoleFilter, string> = {
   STAFF: 'Staff',
 };
 
-const DATE_HINT = 'DD/MM/YYYY';
+const DATE_HINT = 'dd/mm/yyyy';
 
 /** `DD/MM/YYYY` → `YYYY-MM-DD`, or null if the text doesn't parse as a real calendar date. */
 function parseDateInput(text: string): string | null {
@@ -313,7 +313,7 @@ export function LeaveRequestsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   chipRow: { gap: 8, paddingRight: 8 },
   chip: {
@@ -360,4 +360,4 @@ const styles = StyleSheet.create({
   detailLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary },
   detailValue: { fontFamily: fonts.body, fontSize: 13, color: colors.text, flexShrink: 1, textAlign: 'right' },
   detailBlockValue: { fontFamily: fonts.body, fontSize: 13, color: colors.text, lineHeight: 19 },
-});
+}));

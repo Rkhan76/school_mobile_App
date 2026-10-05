@@ -1,3 +1,4 @@
+import { formatDate } from '../../lib/date';
 import type { SchoolEvent } from './types';
 
 /* ---------- date helpers ---------- */
@@ -49,7 +50,7 @@ export function parseInputText(text: string): Date | null {
 }
 
 export function formatDay(d: Date): string {
-  return `${pad(d.getDate())} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
+  return formatDate(d);
 }
 
 export function formatTime(d: Date): string {
@@ -59,7 +60,7 @@ export function formatTime(d: Date): string {
   return `${h12}:${pad(d.getMinutes())} ${suffix}`;
 }
 
-/** Human readable range, e.g. `08 Oct 2026, 10:00 AM - 04:00 PM` */
+/** Human readable range, e.g. `08/10/2026, 10:00 AM - 04:00 PM` */
 export function formatRange(startIso: string, endIso: string): string {
   const s = parseIso(startIso);
   const e = parseIso(endIso);

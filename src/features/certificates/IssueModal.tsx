@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { ApiError } from '../../lib/apiClient';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { getAcademicYearsMaster } from '../common/api';
 import type { AcademicYearLean } from '../common/types';
 import { lookupNonTeachingStaff, lookupStudents, lookupTeachers, type IssueCertificateInput } from './api';
@@ -224,7 +224,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
 
           <Text style={styles.label}>Issue date</Text>
           <TextInput
-            value={date} onChangeText={setDate} placeholder="DD/MM/YYYY" placeholderTextColor={colors.textHint}
+            value={date} onChangeText={setDate} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
             keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.issueDate && styles.inputErr]}
           />
           {errors.issueDate ? <Text style={styles.err}>{errors.issueDate}</Text> : null}
@@ -277,7 +277,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
@@ -325,4 +325,4 @@ const styles = StyleSheet.create({
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
   off: { opacity: 0.6 },
-});
+}));

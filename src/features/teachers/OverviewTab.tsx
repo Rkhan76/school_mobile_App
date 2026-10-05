@@ -1,7 +1,8 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { formatDate } from '../../lib/date';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { Field, FieldGrid, SectionCard } from './parts';
 import type { EmploymentHistoryRow, TeacherDetail } from './teacherDetail';
 
@@ -24,9 +25,7 @@ export function DocumentRows({ docs }: { docs: TeacherDetail['documents'] }) {
 
 function formatHistoryDate(value?: string | null): string {
   if (!value) return 'Present';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDate(value);
 }
 
 function EmploymentHistorySection({
@@ -151,7 +150,7 @@ function AddressRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   list: { gap: 8 },
   grow: { flex: 1, gap: 2 },
   count: { fontFamily: fonts.mono, fontSize: 11, color: colors.textSecondary },
@@ -180,4 +179,4 @@ const styles = StyleSheet.create({
   },
   historyTitle: { fontFamily: fonts.heading, fontSize: 14, color: colors.text },
   historyMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));
