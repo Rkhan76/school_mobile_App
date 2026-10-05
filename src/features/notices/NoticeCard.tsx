@@ -5,12 +5,13 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, themed } from '../../theme/tokens';
 import { AudiencePill } from './AudiencePill';
-import { deriveStatus, formatDate, type Notice } from './types';
+import { deriveStatus, formatCreator, formatDate, type Notice } from './types';
 
 type Props = {
   item: Notice;
   onView: (n: Notice) => void;
   onSharePdf: (n: Notice) => void;
+  onSavePdf: (n: Notice) => void;
   onEdit: (n: Notice) => void;
   onDelete: (n: Notice) => void;
   canUpdate: boolean;
@@ -34,7 +35,7 @@ const STATUS_TONE: Record<ReturnType<typeof deriveStatus>, 'success' | 'danger' 
   Scheduled: 'warning',
 };
 
-function NoticeCardBase({ item, onView, onSharePdf, onEdit, onDelete, canUpdate, canDelete, canDownloadPdf }: Props) {
+function NoticeCardBase({ item, onView, onSharePdf, onSavePdf, onEdit, onDelete, canUpdate, canDelete, canDownloadPdf }: Props) {
   const status = deriveStatus(item.publishedAt, item.expiresAt);
   return (
     <Card style={styles.card}>
@@ -55,13 +56,15 @@ function NoticeCardBase({ item, onView, onSharePdf, onEdit, onDelete, canUpdate,
           <Text style={styles.metaText}>
             Expires: <Text style={styles.metaVal}>{item.expiresAt ? formatDate(item.expiresAt) : 'Never'}</Text>
           </Text>
-          <Text style={styles.metaText}>By: <Text style={styles.metaVal}>{item.createdBy?.fullName ?? '—'}</Text></Text>
+          <Text style={styles.metaText}>By: <Text style={styles.metaVal}>{formatCreator(item.createdBy)}</Text></Text>
         </View>
       </Pressable>
       <View style={styles.actions}>
-        <ActionBtn icon="eye-outline" label="View notice" onPress={() => onView(item)} />
         {canDownloadPdf && (
-          <ActionBtn icon="share-outline" label="Download or share PDF" onPress={() => onSharePdf(item)} />
+          <>
+            <ActionBtn icon="download-outline" label="Save PDF to this device" onPress={() => onSavePdf(item)} />
+            <ActionBtn icon="share-social-outline" label="Share PDF" onPress={() => onSharePdf(item)} />
+          </>
         )}
         {canUpdate && <ActionBtn icon="create-outline" label="Edit notice" onPress={() => onEdit(item)} />}
         {canDelete && <ActionBtn icon="trash-outline" label="Delete notice" onPress={() => onDelete(item)} danger />}

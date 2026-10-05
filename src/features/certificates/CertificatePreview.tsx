@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleShe
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
-import { shareCertificate, verificationUrl } from './certificateExport';
+import { saveCertificateToDevice, shareCertificate, verificationUrl } from './certificateExport';
 import { RECIPIENT_TYPE_LABEL, formatDate, type Certificate } from './types';
 
 type Props = { certificate: Certificate | null; onClose: () => void };
@@ -25,7 +25,12 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
     if (!c || exporting) return;
     setExporting(kind);
     try {
-      await shareCertificate(c);
+      if (kind === 'share') {
+        await shareCertificate(c);
+      } else {
+        const saved = await saveCertificateToDevice(c);
+        if (saved) Alert.alert('Certificate saved', `${saved} was saved to the folder you chose.`);
+      }
     } catch (err) {
       Alert.alert(
         kind === 'share' ? 'Share failed' : 'Download failed',
@@ -111,7 +116,7 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
               <ActivityIndicator color={colors.primaryDeep} />
             ) : (
               <>
-                <Ionicons name="share-outline" size={18} color={colors.primaryDeep} />
+                <Ionicons name="share-social-outline" size={18} color={colors.primaryDeep} />
                 <Text style={styles.shareText}>Share</Text>
               </>
             )}

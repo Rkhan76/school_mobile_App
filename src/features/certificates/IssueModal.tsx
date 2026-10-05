@@ -86,6 +86,12 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
   useEffect(() => {
     if (!visible || !PICKER_BACKED.includes(recipientKind)) return;
     const myRequest = ++requestId.current;
+    // Nothing typed -> no dropdown and no lookup; results only exist while the user is searching.
+    if (!debouncedQuery.trim()) {
+      setOptions([]);
+      setSearching(false);
+      return;
+    }
     setSearching(true);
     lookup(recipientKind, debouncedQuery)
       .then((rows) => {
@@ -102,6 +108,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
 
   const pickRecipientKind = (k: RecipientType) => {
     setRecipientKind(k);
+    setQuery('');
     setRecipient(null);
     setDriverRecipientId('');
     setQuery('');
@@ -165,15 +172,25 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
 
           {isPickerBacked ? (
             <>
-              <View style={styles.searchField}>
+              <View style={[styles.searchField, !!errors.recipient && !recipient && styles.inputErr]}>
                 <Ionicons name="search-outline" size={18} color={colors.textHint} />
                 <TextInput
                   value={query} onChangeText={setQuery}
                   placeholder={`Search ${RECIPIENT_TYPE_LABEL[recipientKind].toLowerCase()}s...`}
                   placeholderTextColor={colors.textHint} style={styles.searchInput} autoCorrect={false}
                 />
-                {searching ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+                {searching && query.trim() ? <ActivityIndicator size="small" color={colors.primary} /> : null}
               </View>
+              {recipient ? (
+                <View style={styles.selected}>
+                  <Avatar name={recipient.label} size={32} />
+                  <Text style={styles.selectedName} numberOfLines={1}>{recipient.label}</Text>
+                  <Pressable onPress={() => setRecipient(null)} hitSlop={8} accessibilityLabel="Remove selected recipient">
+                    <Ionicons name="close-circle" size={22} color={colors.textHint} />
+                  </Pressable>
+                </View>
+              ) : null}
+              {query.trim() ? (
               <View style={[styles.list, !!errors.recipient && styles.inputErr]}>
                 {options.length === 0 ? (
                   <Text style={styles.none}>{searching ? 'Searching...' : 'No matches found.'}</Text>
@@ -182,7 +199,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
                     {options.map((r) => {
                       const on = recipient?.id === r.id;
                       return (
-                        <Pressable key={r.id} onPress={() => setRecipient(r)} style={[styles.row, on && styles.rowOn]}>
+                        <Pressable key={r.id} onPress={() => { setRecipient(r); setQuery(''); }} style={[styles.row, on && styles.rowOn]}>
                           <Avatar name={r.label} size={32} />
                           <View style={styles.rowText}>
                             <Text style={styles.rowName}>{r.label}</Text>
@@ -194,6 +211,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
                   </ScrollView>
                 )}
               </View>
+              ) : null}
             </>
           ) : (
             <>
@@ -314,6 +332,11 @@ const styles = themed(() => StyleSheet.create({
   rowOn: { backgroundColor: colors.mintSoft },
   rowText: { flex: 1 },
   rowName: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
+  selected: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.mintSoft,
+  },
+  selectedName: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   none: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, padding: 14, textAlign: 'center' },
   actions: {
     flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10,

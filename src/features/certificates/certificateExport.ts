@@ -1,4 +1,4 @@
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { API_BASE_URL } from '../../config';
 import { RECIPIENT_TYPE_LABEL, formatDate, type Certificate } from './types';
@@ -113,4 +113,24 @@ export async function shareCertificate(c: Certificate): Promise<void> {
     UTI: 'public.html',
     dialogTitle: `${c.referenceNo}.html`,
   });
+}
+
+/**
+ * Saves the certificate file into a folder the user picks on the device (Downloads, Documents, ...).
+ * Resolves to the saved file name, or null if the user cancelled the folder picker.
+ */
+export async function saveCertificateToDevice(c: Certificate): Promise<string | null> {
+  const html = buildCertificateHtml(c);
+
+  let directory: Directory;
+  try {
+    directory = await Directory.pickDirectoryAsync();
+  } catch {
+    // The picker rejects when the user backs out; nothing was chosen, so there is nothing to report.
+    return null;
+  }
+
+  const target = directory.createFile(sanitizeFileName(`${c.referenceNo}.html`), 'text/html');
+  target.write(html);
+  return target.name;
 }

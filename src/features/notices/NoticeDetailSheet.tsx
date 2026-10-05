@@ -7,7 +7,7 @@ import { ApiError } from '../../lib/apiClient';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { AudiencePill } from './AudiencePill';
 import { downloadAndShareNoticePdf } from './pdf';
-import { deriveStatus, formatDate, type Notice } from './types';
+import { deriveStatus, formatCreator, formatDate, type Notice } from './types';
 
 type Props = { notice: Notice | null; onClose: () => void; canDownloadPdf: boolean };
 
@@ -57,7 +57,7 @@ export function NoticeDetailSheet({ notice, onClose, canDownloadPdf }: Props) {
                 <Text style={styles.metaText}>
                   Expires: <Text style={styles.metaVal}>{notice.expiresAt ? formatDate(notice.expiresAt) : 'Never'}</Text>
                 </Text>
-                <Text style={styles.metaText}>Created by: <Text style={styles.metaVal}>{notice.createdBy?.fullName ?? '—'}</Text></Text>
+                <Text style={styles.metaText}>Created by: <Text style={styles.metaVal}>{formatCreator(notice.createdBy)}</Text></Text>
               </View>
             </ScrollView>
             {canDownloadPdf && (
