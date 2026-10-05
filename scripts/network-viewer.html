@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network Viewer</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1f24; --muted:#6b7280; --line:#e5e7eb; --sel:#e8f0fe; --ok:#15803d; --warn:#b45309; --err:#b91c1c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171a; --fg:#e6e8eb; --muted:#9aa3ad; --line:#2a2f35; --sel:#1f2d45; --ok:#4ade80; --warn:#fbbf24; --err:#f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 system-ui, sans-serif; height:100vh; display:flex; flex-direction:column; }
+  header { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line); }
+  header input { flex:1; padding:6px 8px; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:4px; }
+  button { padding:6px 10px; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:4px; cursor:pointer; }
+  main { flex:1; display:flex; min-height:0; }
+  #list { width:46%; overflow:auto; border-right:1px solid var(--line); }
+  #detail { flex:1; overflow:auto; padding:12px; }
+  table { width:100%; border-collapse:collapse; }
+  th { position:sticky; top:0; background:var(--bg); text-align:left; color:var(--muted); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--line); }
+  td { padding:5px 8px; border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:0; }
+  td.fixed { max-width:none; }
+  tr { cursor:pointer; }
+  tr.sel { background:var(--sel); }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .err { color:var(--err); }
+  .toolbar { position:sticky; top:-12px; z-index:1; display:flex; justify-content:flex-end; margin:-12px -12px 12px; padding:8px 12px; background:var(--bg); border-bottom:1px solid var(--line); }
+  section { margin-top:16px; }
+  h3 { display:flex; align-items:center; gap:6px; margin:0 0 6px; font-size:12px; text-transform:uppercase; color:var(--muted); letter-spacing:.04em; cursor:pointer; user-select:none; }
+  h3 .caret { display:inline-block; width:10px; transition:transform .1s; }
+  section.collapsed h3 .caret { transform:rotate(-90deg); }
+  section.collapsed .body { display:none; }
+  h3 button { margin-left:auto; padding:2px 8px; font-size:11px; text-transform:none; letter-spacing:0; }
+  pre { margin:0; padding:8px; background:color-mix(in srgb, var(--fg) 5%, transparent); border-radius:4px; white-space:pre-wrap; word-break:break-all; font:12px ui-monospace, Consolas, monospace; }
+  .kv { display:grid; grid-template-columns:max-content 1fr; gap:2px 12px; font:12px ui-monospace, Consolas, monospace; }
+  .kv span:nth-child(odd) { color:var(--muted); }
+  .empty { color:var(--muted); padding:24px; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <input id="filter" placeholder="Filter by URL, method or status">
+  <label><input type="checkbox" id="preserve" checked> Auto-scroll</label>
+  <button id="clear">Clear</button>
+  <span id="count" style="color:var(--muted)"></span>
+</header>
+<main>
+  <div id="list"><table>
+    <thead><tr><th>Status</th><th>Method</th><th>Path</th><th>Time</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table><div id="listEmpty" class="empty">Waiting for requests from the app…</div></div>
+  <div id="detail"><div class="empty">Select a request</div></div>
+</main>
+<script>
+  const entries = [];
+  let selected = null;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]));
+
+  const statusClass = (s) => (s >= 200 && s < 400 ? 'ok' : s >= 400 && s < 500 ? 'warn' : 'err');
+  const pathOf = (u) => { try { const x = new URL(u); return x.pathname + x.search; } catch { return u; } };
+
+  function pretty(text) {
+    if (text == null) return '(none)';
+    try { return JSON.stringify(JSON.parse(text), null, 2); } catch { return text; }
+  }
+  function kv(obj) {
+    const keys = Object.keys(obj || {});
+    if (!keys.length) return '<pre>(none)</pre>';
+    return '<div class="kv">' + keys.map((k) => `<span>${esc(k)}</span><span>${esc(obj[k])}</span>`).join('') + '</div>';
+  }
+
+  function matches(e) {
+    const q = $('filter').value.trim().toLowerCase();
+    return !q || `${e.method} ${e.url} ${e.status}`.toLowerCase().includes(q);
+  }
+
+  function renderList() {
+    const shown = entries.filter(matches);
+    $('rows').innerHTML = shown.map((e) => `
+      <tr data-id="${e.id}" class="${e.id === selected ? 'sel' : ''}">
+        <td class="fixed ${e.pending ? '' : statusClass(e.status)}">${e.pending ? '…' : e.status || 'ERR'}</td>
+        <td class="fixed">${esc(e.method)}</td>
+        <td title="${esc(e.url)}">${esc(pathOf(e.url))}</td>
+        <td class="fixed">${e.pending ? 'pending' : e.durationMs + ' ms'}</td>
+      </tr>`).join('');
+    $('listEmpty').style.display = shown.length ? 'none' : 'block';
+    $('count').textContent = `${shown.length} / ${entries.length}`;
+    if ($('preserve').checked) $('list').scrollTop = $('list').scrollHeight;
+  }
+
+  // Sections stay collapsed across requests, so "Response headers" can be hidden once.
+  const collapsed = new Set();
+  let copyTexts = {};
+  let copyOrder = [];
+
+  const kvText = (obj) => Object.keys(obj || {}).map((k) => `${k}: ${obj[k]}`).join('\n') || '(none)';
+
+  function section(key, title, copyText, bodyHtml) {
+    copyTexts[key] = copyText;
+    copyOrder.push([title, copyText]);
+    return `<section data-key="${key}" class="${collapsed.has(key) ? 'collapsed' : ''}">
+      <h3 data-action="toggle"><span class="caret">▾</span>${title}<button data-action="copy">Copy</button></h3>
+      <div class="body">${bodyHtml}</div>
+    </section>`;
+  }
+
+  function renderDetail() {
+    const e = entries.find((x) => x.id === selected);
+    if (!e) { $('detail').innerHTML = '<div class="empty">Select a request</div>'; return; }
+    copyTexts = {};
+    copyOrder = [];
+    const status = e.pending ? 'pending (no response yet)' : `${e.status || 'failed'} ${e.statusText || ''}`.trim();
+    const duration = e.pending ? '…' : `${e.durationMs} ms`;
+    const started = new Date(e.startedAt).toLocaleTimeString();
+    const body =
+      section('general', 'General',
+        `URL: ${e.url}
+Method: ${e.method}
+Status: ${status}
+Duration: ${duration}
+Started: ${started}`,
+        `<div class="kv">
+          <span>URL</span><span>${esc(e.url)}</span>
+          <span>Method</span><span>${esc(e.method)}</span>
+          <span>Status</span><span class="${statusClass(e.status)}">${esc(status)}</span>
+          <span>Duration</span><span>${duration}</span>
+          <span>Started</span><span>${started}</span>
+        </div>`) +
+      (e.error ? section('error', 'Error', e.error, `<pre class="err">${esc(e.error)}</pre>`) : '') +
+      section('reqHeaders', 'Request headers', kvText(e.requestHeaders), kv(e.requestHeaders)) +
+      section('reqBody', 'Request body', pretty(e.requestBody), `<pre>${esc(pretty(e.requestBody))}</pre>`) +
+      section('resHeaders', 'Response headers', kvText(e.responseHeaders), kv(e.responseHeaders)) +
+      section('resBody', 'Response body', pretty(e.responseBody), `<pre>${esc(pretty(e.responseBody))}</pre>`);
+    $('detail').innerHTML = `<div class="toolbar"><button data-action="copy-all">Copy all</button></div>` + body;
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // navigator.clipboard needs a secure context (http://localhost is fine, LAN IPs are not).
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+  }
+
+  $('detail').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'copy-all') {
+      await copyToClipboard(copyOrder.map(([title, text]) => `### ${title}\n${text}`).join('\n\n'));
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = 'Copy all'; }, 1200);
+      return;
+    }
+    const sec = btn.closest('section');
+    if (btn.dataset.action === 'copy') {
+      ev.stopPropagation();
+      await copyToClipboard(copyTexts[sec.dataset.key] ?? '');
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+    } else if (btn.dataset.action === 'toggle') {
+      const key = sec.dataset.key;
+      if (collapsed.has(key)) collapsed.delete(key); else collapsed.add(key);
+      sec.classList.toggle('collapsed');
+    }
+  });
+
+  $('rows').addEventListener('click', (ev) => {
+    const tr = ev.target.closest('tr');
+    if (!tr) return;
+    selected = tr.dataset.id;
+    renderList(); renderDetail();
+  });
+  $('filter').addEventListener('input', renderList);
+  $('clear').addEventListener('click', () => {
+    fetch('/clear', { method: 'POST' });
+    entries.length = 0; selected = null; renderList(); renderDetail();
+  });
+
+  const source = new EventSource('/events');
+  source.onmessage = (m) => {
+    const e = JSON.parse(m.data);
+    const i = entries.findIndex((x) => x.id === e.id);
+    if (i >= 0) entries[i] = e; else entries.push(e);
+    renderList();
+    if (e.id === selected) renderDetail();
+  };
+</script>
+</body>
+</html>
