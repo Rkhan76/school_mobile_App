@@ -56,12 +56,7 @@ export function AttendanceScreen() {
       error,
       loaded,
       onChangeText: (t) => {
-        // Auto-insert slashes while typing digits.
-        const digits = t.replace(/[^\d]/g, '').slice(0, 8);
-        let v = digits;
-        if (digits.length > 4) v = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-        else if (digits.length > 2) v = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-        setText(v);
+        setText(t);
         setError(null);
       },
       onLoad: () => {

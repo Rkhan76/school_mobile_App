@@ -9,6 +9,7 @@ import { audienceTone } from './AudiencePill';
 import {
   AUDIENCES, inputToIso, isoToInput, type Audience, type Notice, type NoticeInput,
 } from './types';
+import { DateInput } from '../../components/ui/DateInput';
 
 type Props = {
   visible: boolean;
@@ -114,17 +115,15 @@ export function NoticeFormModal({ visible, notice, onSubmit, onClose }: Props) {
           <View style={styles.dates}>
             <View style={styles.dateCol}>
               <Text style={styles.label}>Published date</Text>
-              <TextInput
-                value={published} onChangeText={setPublished} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
-                keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.publishedAt && styles.inputErr]}
+              <DateInput
+                value={published} onChangeText={setPublished} placeholder="dd/mm/yyyy" style={[styles.input, !!errors.publishedAt && styles.inputErr]}
               />
               {errors.publishedAt ? <Text style={styles.err}>{errors.publishedAt}</Text> : null}
             </View>
             <View style={styles.dateCol}>
               <Text style={styles.label}>Expires (optional)</Text>
-              <TextInput
-                value={expires} onChangeText={setExpires} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
-                keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.expiresAt && styles.inputErr]}
+              <DateInput
+                value={expires} onChangeText={setExpires} placeholder="dd/mm/yyyy" style={[styles.input, !!errors.expiresAt && styles.inputErr]}
               />
               {errors.expiresAt ? <Text style={styles.err}>{errors.expiresAt}</Text> : null}
             </View>

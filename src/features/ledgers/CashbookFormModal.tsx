@@ -7,6 +7,7 @@ import {
   CASHBOOK_CATEGORY_OPTIONS, ENTRY_TYPE_OPTIONS, PAYMENT_METHOD_OPTIONS, inputToIso, isoToInput, todayIso,
   type CashbookCategory, type CreateCashbookInput, type EntryType, type PaymentMethod,
 } from './types';
+import { DateInput } from '../../components/ui/DateInput';
 
 type Props = {
   visible: boolean;
@@ -101,9 +102,8 @@ export function CashbookFormModal({ visible, onSubmit, onClose, isSaving }: Prop
           </View>
 
           <Text style={styles.label}>Date</Text>
-          <TextInput
-            value={date} onChangeText={setDate} placeholder="dd/mm/yyyy (defaults to today)" placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" maxLength={10} style={[styles.input, !!errors.date && styles.inputErr]}
+          <DateInput
+            value={date} onChangeText={setDate} placeholder="dd/mm/yyyy (defaults to today)" style={[styles.input, !!errors.date && styles.inputErr]}
           />
           {errors.date ? <Text style={styles.err}>{errors.date}</Text> : null}
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
-import { Button, BottomSheet, OptionSheet, PickerField, TextField } from './parts';
+import { Button, BottomSheet, OptionSheet, PickerField, DateField, TextField } from './parts';
 import { CLASSES, parseDMY, type InvoiceStatus } from './mockFees';
 
 export type InvoiceFilters = {
@@ -56,9 +56,8 @@ export function InvoiceFilterSheet({ visible, value, onApply, onClose }: Props) 
           })}
         </View>
       </View>
-      <TextField
-        label="Due date (DD/MM/YYYY)" value={draft.dueDate} placeholder="dd/mm/yyyy" keyboardType="numbers-and-punctuation"
-        maxLength={10} error={dateErr}
+      <DateField
+        label="Due date (DD/MM/YYYY)" value={draft.dueDate} placeholder="dd/mm/yyyy" error={dateErr}
         onChangeText={(t) => { setDateErr(''); setDraft((d) => ({ ...d, dueDate: t })); }}
       />
       <View style={styles.actions}>

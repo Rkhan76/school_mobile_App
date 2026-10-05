@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { DateInput } from '../../components/ui/DateInput';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatLong, TODAY_ISO } from './dateUtils';
@@ -28,13 +29,12 @@ export function DateBar({ ctl, actions }: Props) {
         </Pressable>
         <View style={[styles.field, ctl.error ? styles.fieldError : null]}>
           <Ionicons name="calendar-outline" size={16} color={colors.textHint} />
-          <TextInput
+          <DateInput
             value={ctl.text}
             onChangeText={ctl.onChangeText}
             placeholder="dd/mm/yyyy"
-            placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation"
-            maxLength={10}
+            maximumDate={new Date()}
+            containerStyle={{ flex: 1 }}
             style={styles.input}
             onSubmitEditing={ctl.onLoad}
             returnKeyType="done"

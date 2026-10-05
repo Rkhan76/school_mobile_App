@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -135,6 +136,18 @@ export function TextField({
         {...rest}
         style={[form.input, mono && { fontFamily: fonts.monoMedium }, !!error && form.inputErr, rest.style]}
       />
+      {error ? <Text style={form.err}>{error}</Text> : null}
+    </View>
+  );
+}
+
+export function DateField({
+  label, error, ...rest
+}: { label?: string; error?: string } & ComponentProps<typeof DateInput>) {
+  return (
+    <View style={{ gap: 4 }}>
+      {label ? <Text style={form.label}>{label}</Text> : null}
+      <DateInput {...rest} style={[form.input, !!error && form.inputErr, rest.style]} />
       {error ? <Text style={form.err}>{error}</Text> : null}
     </View>
   );

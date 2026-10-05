@@ -11,6 +11,7 @@ import { getAcademicYearsMaster } from '../common/api';
 import type { AcademicYearLean } from '../common/types';
 import { lookupNonTeachingStaff, lookupStudents, lookupTeachers, type IssueCertificateInput } from './api';
 import { RECIPIENT_TYPES, RECIPIENT_TYPE_LABEL, inputToIso, isoToInput, todayIso, type RecipientType } from './types';
+import { DateInput } from '../../components/ui/DateInput';
 
 type Props = { visible: boolean; onSubmit: (input: IssueCertificateInput) => Promise<void>; onClose: () => void };
 type Errors = Partial<Record<'recipient' | 'title' | 'issueDate', string>>;
@@ -223,9 +224,8 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
           />
 
           <Text style={styles.label}>Issue date</Text>
-          <TextInput
-            value={date} onChangeText={setDate} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.issueDate && styles.inputErr]}
+          <DateInput
+            value={date} onChangeText={setDate} placeholder="dd/mm/yyyy" style={[styles.input, !!errors.issueDate && styles.inputErr]}
           />
           {errors.issueDate ? <Text style={styles.err}>{errors.issueDate}</Text> : null}
 

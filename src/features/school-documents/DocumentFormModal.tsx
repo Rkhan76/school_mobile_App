@@ -11,6 +11,7 @@ import type {
   UploadDocumentPayload, UploadVersionPayload,
 } from './types';
 import { inputToIso, isoToInput } from './utils';
+import { DateInput } from '../../components/ui/DateInput';
 
 export type FormMode = 'upload' | 'edit' | 'version';
 
@@ -189,9 +190,8 @@ export function DocumentFormModal({ visible, mode, document: doc, prefill, categ
           ) : null}
 
           <Text style={styles.label}>Expiry date (optional)</Text>
-          <TextInput
-            value={expires} onChangeText={setExpires} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.expiryDate && styles.inputErr]}
+          <DateInput
+            value={expires} onChangeText={setExpires} placeholder="dd/mm/yyyy" style={[styles.input, !!errors.expiryDate && styles.inputErr]}
           />
           {errors.expiryDate ? <Text style={styles.err}>{errors.expiryDate}</Text> : null}
 

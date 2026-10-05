@@ -5,6 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import { parseInputText, parseIso, toInputText, toIso } from './dateUtils';
 import {
   EVENT_AUDIENCES, EVENT_STATUSES,
@@ -135,17 +136,15 @@ export function EventForm({ visible, event, defaultDay, onSubmit, onClose }: Pro
           />
 
           <Text style={styles.label}>Start Date <Text style={styles.req}>*</Text></Text>
-          <TextInput
-            value={start} onChangeText={setStart} placeholder={DATE_HINT} placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" autoCorrect={false}
+          <DateInput
+            withTime value={start} onChangeText={setStart} placeholder={DATE_HINT} autoCorrect={false}
             style={[styles.input, !!errors.start && styles.inputErr]}
           />
           {errors.start ? <Text style={styles.err}>{errors.start}</Text> : null}
 
           <Text style={styles.label}>End Date <Text style={styles.req}>*</Text></Text>
-          <TextInput
-            value={end} onChangeText={setEnd} placeholder={DATE_HINT} placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" autoCorrect={false}
+          <DateInput
+            withTime value={end} onChangeText={setEnd} placeholder={DATE_HINT} autoCorrect={false}
             style={[styles.input, !!errors.end && styles.inputErr]}
           />
           {errors.end ? <Text style={styles.err}>{errors.end}</Text> : null}

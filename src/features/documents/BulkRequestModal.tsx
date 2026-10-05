@@ -11,6 +11,7 @@ import { ApiError } from '../../lib/apiClient';
 import { inputToIso, todayIso } from './dateUtils';
 import { Chip } from './parts';
 import type { BulkCreateInput, DocumentType } from './types';
+import { DateInput } from '../../components/ui/DateInput';
 
 type Props = {
   visible: boolean;
@@ -127,9 +128,8 @@ export function BulkRequestModal({ visible, types, onSubmit, onClose }: Props) {
           ) : null}
 
           <Text style={styles.label}>Due date</Text>
-          <TextInput
-            value={due} onChangeText={setDue} placeholder="dd/mm/yyyy (optional)" placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.due && styles.inputErr]}
+          <DateInput
+            value={due} onChangeText={setDue} placeholder="dd/mm/yyyy (optional)" style={[styles.input, !!errors.due && styles.inputErr]}
           />
           {errors.due ? <Text style={styles.err}>{errors.due}</Text> : null}
 

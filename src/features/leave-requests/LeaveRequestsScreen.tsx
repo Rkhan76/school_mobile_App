@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Badge } from '../../components/ui/Badge';
+import { DateInput } from '../../components/ui/DateInput';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { formatDate, LeaveRequestCard } from './LeaveRequestCard';
@@ -231,17 +232,15 @@ export function LeaveRequestsScreen() {
         <View style={styles.dateRow}>
           <View style={styles.dateField}>
             <Text style={styles.dateLabel}>From</Text>
-            <TextInput
-              value={fromText} onChangeText={setFromText} placeholder={DATE_HINT}
-              placeholderTextColor={colors.textHint} keyboardType="numbers-and-punctuation" autoCorrect={false}
+            <DateInput
+              value={fromText} onChangeText={setFromText} placeholder={DATE_HINT} autoCorrect={false}
               style={[styles.dateInput, !fromValid && styles.dateInputErr]}
             />
           </View>
           <View style={styles.dateField}>
             <Text style={styles.dateLabel}>To</Text>
-            <TextInput
-              value={toText} onChangeText={setToText} placeholder={DATE_HINT}
-              placeholderTextColor={colors.textHint} keyboardType="numbers-and-punctuation" autoCorrect={false}
+            <DateInput
+              value={toText} onChangeText={setToText} placeholder={DATE_HINT} autoCorrect={false}
               style={[styles.dateInput, !toValid && styles.dateInputErr]}
             />
           </View>

@@ -3,8 +3,9 @@ import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
 import { ApiError } from '../../lib/apiClient';
-import { maskDateInput, parseDisplayDate } from '../../lib/date';
+import { parseDisplayDate } from '../../lib/date';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import type { CreateNTSPayload, CreateTeacherPayload, Gender } from './types';
 
 type Kind = 'teacher' | 'staff';
@@ -214,7 +215,7 @@ export function EmployeeFormSheet({ visible, kind, onSubmit, onClose }: Props) {
                   <TextInput value={qualification} onChangeText={setQualification} placeholder="e.g. M.Ed" placeholderTextColor={colors.textHint} style={styles.input} />
                 </Field>
                 <Field label="Joining date">
-                  <TextInput value={joiningDate} onChangeText={(t) => setJoiningDate(maskDateInput(t))} placeholder="dd/mm/yyyy" keyboardType="number-pad" placeholderTextColor={colors.textHint} style={styles.input} />
+                  <DateInput value={joiningDate} onChangeText={setJoiningDate} placeholder="dd/mm/yyyy" style={styles.input} />
                 </Field>
               </>
             ) : null}

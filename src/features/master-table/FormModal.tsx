@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import type { FieldDef, FormValues } from './config';
 
 type Props = {
@@ -67,16 +68,25 @@ export function FormModal({ visible, title, submitLabel, fields, initial, valida
               return (
                 <View key={f.key} style={styles.field}>
                   <Text style={styles.label}>{f.label}</Text>
+                  {f.kind === 'date' ? (
+                    <DateInput
+                      value={typeof v === 'string' ? v : ''}
+                      onChangeText={(t) => set(f.key, t)}
+                      placeholder={f.placeholder}
+                      style={[styles.input, err ? styles.inputErr : null]}
+                    />
+                  ) : (
                   <TextInput
                     value={typeof v === 'string' ? v : ''}
                     onChangeText={(t) => set(f.key, t)}
                     placeholder={f.placeholder}
                     placeholderTextColor={colors.textHint}
                     multiline={f.kind === 'multiline'}
-                    keyboardType={f.kind === 'number' ? 'number-pad' : f.kind === 'date' || f.kind === 'time' ? 'numbers-and-punctuation' : 'default'}
-                    maxLength={f.kind === 'date' ? 10 : f.kind === 'time' ? 5 : undefined}
+                    keyboardType={f.kind === 'number' ? 'number-pad' : f.kind === 'time' ? 'numbers-and-punctuation' : 'default'}
+                    maxLength={f.kind === 'time' ? 5 : undefined}
                     style={[styles.input, f.kind === 'multiline' && styles.multiline, err ? styles.inputErr : null]}
                   />
+                  )}
                   {err ? <Text style={styles.err}>{err}</Text> : null}
                 </View>
               );

@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import { getAcademicYearsMaster, getClassesMaster } from '../common/api';
 import type { ClassWithSections } from '../common/types';
 import {
@@ -109,9 +110,8 @@ export function FilterSheet({ visible, caps, value, onApply, onClose }: Props) {
                     {(['from', 'to'] as const).map((k) => (
                       <View key={k} style={{ flex: 1 }}>
                         <Text style={styles.sub}>{k === 'from' ? 'From' : 'To'}</Text>
-                        <TextInput
-                          value={draft[k]} onChangeText={(t) => set({ [k]: t })} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
-                          keyboardType="numbers-and-punctuation" maxLength={10}
+                        <DateInput
+                          value={draft[k]} onChangeText={(t) => set({ [k]: t })} placeholder="dd/mm/yyyy"
                           style={[styles.input, !isValidDate(draft[k]) && { borderColor: colors.danger }]}
                         />
                       </View>

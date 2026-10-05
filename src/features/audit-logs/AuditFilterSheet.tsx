@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import { EMPTY_FILTERS, parseDMY, type AuditFilters } from './types';
 
 type Props = { visible: boolean; filters: AuditFilters; onClose: () => void; onApply: (f: AuditFilters) => void };
@@ -54,14 +55,11 @@ export function AuditFilterSheet({ visible, filters, onClose, onApply }: Props) 
   const dateField = (label: string, key: 'from' | 'to', err?: string) => (
     <View style={[styles.field, styles.half]}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
+      <DateInput
         value={draft[key]}
         onChangeText={(v) => set(key, v)}
         placeholder="dd/mm/yyyy"
-        placeholderTextColor={colors.textHint}
         style={[styles.input, (err || errors.range) ? styles.inputErr : null]}
-        keyboardType="numbers-and-punctuation"
-        maxLength={10}
       />
       {err ? <Text style={styles.err}>{err}</Text> : null}
     </View>

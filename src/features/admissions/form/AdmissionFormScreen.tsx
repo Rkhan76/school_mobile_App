@@ -16,10 +16,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../../components/ui/Card';
+import { DateInput } from '../../../components/ui/DateInput';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ApiError } from '../../../lib/apiClient';
-import { maskDateInput, parseDisplayDate, toDisplayDate } from '../../../lib/date';
+import { parseDisplayDate, toDisplayDate } from '../../../lib/date';
 import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { getAcademicYearsMaster, getClassesMaster } from '../../common/api';
 import type { AcademicYearLean, ClassWithSections } from '../../common/types';
@@ -271,6 +272,7 @@ function Field({
   keyboardType,
   multiline,
   required,
+  isDate,
 }: {
   label: string;
   value: string;
@@ -279,6 +281,7 @@ function Field({
   keyboardType?: KeyboardTypeOptions;
   multiline?: boolean;
   required?: boolean;
+  isDate?: boolean;
 }) {
   return (
     <View style={styles.field}>
@@ -286,6 +289,9 @@ function Field({
         {label}
         {required ? <Text style={styles.required}> *</Text> : null}
       </Text>
+      {isDate ? (
+        <DateInput value={value} onChangeText={onChangeText} placeholder={placeholder} style={styles.input} maximumDate={new Date()} />
+      ) : (
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -295,6 +301,7 @@ function Field({
         multiline={multiline}
         style={[styles.input, multiline && styles.inputMultiline]}
       />
+      )}
     </View>
   );
 }
@@ -581,9 +588,9 @@ export function AdmissionFormScreen(props: Props) {
           <Field
             label="Date of Birth"
             value={form.dateOfBirth}
-            onChangeText={(t) => setField('dateOfBirth', maskDateInput(t))}
+            onChangeText={(t) => setField('dateOfBirth', t)}
             placeholder="dd/mm/yyyy"
-            keyboardType="number-pad"
+            isDate
           />
           <Field label="Category" value={form.category} onChangeText={(t) => setField('category', t)} />
           <Field label="Subcategory" value={form.subcategory} onChangeText={(t) => setField('subcategory', t)} />
