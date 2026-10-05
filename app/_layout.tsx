@@ -9,11 +9,6 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono';
-import { startNetworkLogging } from 'react-native-network-logger';
-
-if (__DEV__) {
-  startNetworkLogging();
-}
 
 export default function RootLayout() {
   const [loaded] = useFonts({

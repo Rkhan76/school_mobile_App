@@ -66,13 +66,6 @@ const groups: Group[] = [
   },
 ];
 
-if (__DEV__) {
-  groups.push({
-    title: 'DEVELOPER',
-    items: [{ label: 'Network Logger', icon: 'code-slash-outline', href: '/dev/network-logger' }],
-  });
-}
-
 export default function MoreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
