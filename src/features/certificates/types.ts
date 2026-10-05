@@ -59,14 +59,7 @@ export interface PublicCertificateView {
   signatoryTitle: string | null;
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/** ISO -> "01 Oct 2026" */
-export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  if (!y || !m || !d) return iso;
-  return `${String(d).padStart(2, '0')} ${MONTHS[m - 1]} ${y}`;
-}
+export { formatDate } from '../../lib/date';
 
 /** ISO -> "01/10/2026" */
 export function isoToInput(iso: string): string {

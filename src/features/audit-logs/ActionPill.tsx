@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 /**
  * The server sends no human-readable label for `action` — it's a raw dot-case
@@ -44,8 +44,8 @@ export function ActionPill({ action }: { action: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   pill: { alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.mint, gap: 1 },
   text: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
   code: { fontFamily: fonts.mono, fontSize: 10, color: colors.primaryDeep, opacity: 0.7 },
-});
+}));

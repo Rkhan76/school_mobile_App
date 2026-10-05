@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatRange } from './dateUtils';
 import type { EventStatus, SchoolEvent } from './types';
 
@@ -79,7 +79,7 @@ function EventCardBase({ item, onPress, onEdit, onDelete, canEdit = true, canDel
 
 export const EventCard = memo(EventCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 12 },
   holiday: { backgroundColor: '#fff7f7', borderColor: colors.dangerBorder },
   top: { flexDirection: 'row', gap: 12 },
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   tags: { flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: radius.pill, backgroundColor: '#eef2f1',
+    borderRadius: radius.pill, backgroundColor: colors.neutralBg,
   },
   pillText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.textSecondary },
   holidayTag: {
@@ -105,4 +105,4 @@ const styles = StyleSheet.create({
     width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.mintSoft,
   },
-});
+}));

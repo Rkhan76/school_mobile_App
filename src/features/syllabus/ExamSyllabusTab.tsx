@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { ChapterEditorModal } from './ChapterEditorModal';
 import { ExamCard } from './ExamCard';
 import { ExamFilterSheet, type ExamExtraFilters } from './ExamFilterSheet';
@@ -134,7 +134,7 @@ export function ExamSyllabusTab({ sectionId, academicYearId, caption, canEdit }:
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { paddingHorizontal: 16, gap: 10, paddingBottom: 2 },
   caption: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -160,4 +160,4 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48, gap: 6 },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

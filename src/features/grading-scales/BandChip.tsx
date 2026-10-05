@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { GradeBand } from './mockGrading';
 
 export function BandChip({ band }: { band: GradeBand }) {
@@ -12,8 +12,8 @@ export function BandChip({ band }: { band: GradeBand }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   label: { fontFamily: fonts.bodySemi, fontSize: 12 },
   range: { fontFamily: fonts.body, fontSize: 11 },
-});
+}));

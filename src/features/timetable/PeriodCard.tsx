@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 import { formatTime, subjectColor, type Period } from './types';
 
 type Props = {
@@ -69,7 +69,7 @@ export function PeriodCard({ period, subject, secondary, room, isNow, showAvatar
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingLeft: 18, overflow: 'hidden',
     borderRadius: radius.lg, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
@@ -88,4 +88,4 @@ const styles = StyleSheet.create({
   roomRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   room: { fontFamily: fonts.body, fontSize: 11, color: colors.textHint },
   free: { fontFamily: fonts.body, fontSize: 13, color: colors.textHint },
-});
+}));

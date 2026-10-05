@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { BulkRequestModal } from './BulkRequestModal';
 import { EMPTY_FILTERS, FilterSheet, countFilters, type RequestFilters } from './FilterSheet';
@@ -125,7 +125,7 @@ export function RequestsTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn: {
@@ -142,4 +142,4 @@ const styles = StyleSheet.create({
   bulkText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
   count: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   itemWrap: { paddingHorizontal: 16 },
-});
+}));

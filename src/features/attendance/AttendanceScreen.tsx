@@ -4,14 +4,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { DateCtl } from './DateBar';
 import { addDays, dmyToIso, isFuture, isoToDmy, TODAY_ISO } from './dateUtils';
 import { confirmDiscard } from './guards';
+import { useAccess, type Access } from '../auth/access';
 import { StaffTab } from './StaffTab';
 import { StudentTab } from './StudentTab';
 
 type TabKey = 'student' | 'staff';
+
+const STAFF_TAB_ACCESS: Access = { hideForRoles: ['TEACHER'] };
 
 const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'student', label: 'Student', icon: 'school-outline' },
@@ -20,7 +23,10 @@ const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }
 
 export function AttendanceScreen() {
   const navigation = useNavigation();
-  const [tab, setTab] = useState<TabKey>('staff');
+  // Staff attendance is an admin view (hardcoded off for teachers); everyone else keeps it as the default tab.
+  const can = useAccess();
+  const tabs = can(STAFF_TAB_ACCESS) ? TABS : TABS.filter((t) => t.key !== 'staff');
+  const [tab, setTab] = useState<TabKey>(can(STAFF_TAB_ACCESS) ? 'staff' : 'student');
   const [text, setText] = useState(isoToDmy(TODAY_ISO));
   const [loaded, setLoaded] = useState(TODAY_ISO);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +62,7 @@ export function AttendanceScreen() {
       error,
       loaded,
       onChangeText: (t) => {
-        // Auto-insert slashes while typing digits.
-        const digits = t.replace(/[^\d]/g, '').slice(0, 8);
-        let v = digits;
-        if (digits.length > 4) v = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-        else if (digits.length > 2) v = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-        setText(v);
+        setText(t);
         setError(null);
       },
       onLoad: () => {
@@ -89,7 +90,7 @@ export function AttendanceScreen() {
     <ScreenBackground>
       <ScreenHeader title="Attendance" back />
       <View style={styles.tabs}>
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const on = t.key === tab;
           return (
             <Pressable key={t.key} onPress={() => switchTab(t.key)} style={[styles.tab, on && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: on }}>
@@ -110,7 +111,7 @@ export function AttendanceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabs: {
     flexDirection: 'row', marginHorizontal: 16, marginBottom: 10, padding: 4, borderRadius: radius.pill,
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
@@ -118,4 +119,4 @@ const styles = StyleSheet.create({
   tab: { flex: 1, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.pill },
   tabOn: { backgroundColor: colors.primary },
   tabText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
-});
+}));

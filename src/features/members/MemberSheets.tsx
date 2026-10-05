@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { RoleSummary, SchoolUser } from './types';
 import { BottomSheet, FooterButtons } from './parts';
 
@@ -96,7 +96,7 @@ export function AssignRoleSheet({ member, roles, currentUserId, onClose, onAssig
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   list: { flexGrow: 0, marginBottom: 12 },
   row: {
@@ -106,4 +106,4 @@ const styles = StyleSheet.create({
   rowOn: { borderColor: colors.primary, backgroundColor: colors.mintSoft },
   rowTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   rowSub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

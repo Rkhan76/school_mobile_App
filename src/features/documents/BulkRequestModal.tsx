@@ -4,13 +4,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { getClassesMaster } from '../common/api';
 import type { ClassWithSections } from '../common/types';
 import { ApiError } from '../../lib/apiClient';
 import { inputToIso, todayIso } from './dateUtils';
 import { Chip } from './parts';
 import type { BulkCreateInput, DocumentType } from './types';
+import { DateInput } from '../../components/ui/DateInput';
 
 type Props = {
   visible: boolean;
@@ -127,9 +128,8 @@ export function BulkRequestModal({ visible, types, onSubmit, onClose }: Props) {
           ) : null}
 
           <Text style={styles.label}>Due date</Text>
-          <TextInput
-            value={due} onChangeText={setDue} placeholder="DD/MM/YYYY (optional)" placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.due && styles.inputErr]}
+          <DateInput
+            value={due} onChangeText={setDue} placeholder="dd/mm/yyyy (optional)" style={[styles.input, !!errors.due && styles.inputErr]}
           />
           {errors.due ? <Text style={styles.err}>{errors.due}</Text> : null}
 
@@ -152,7 +152,7 @@ export function BulkRequestModal({ visible, types, onSubmit, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
@@ -176,4 +176,4 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

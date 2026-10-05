@@ -8,11 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { formatDate, LeaveRequestCard } from './LeaveRequestCard';
 import { useLeaveRequests } from './useLeaveRequests';
 import { APPLICANT_ROLES, LEAVE_STATUSES, type ApplicantRoleFilter, type LeaveApplication, type LeaveStatus } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 const STATUS_LABEL: Record<LeaveStatus, string> = {
   PENDING: 'Pending',
@@ -27,7 +29,7 @@ const ROLE_LABEL: Record<ApplicantRoleFilter, string> = {
   STAFF: 'Staff',
 };
 
-const DATE_HINT = 'DD/MM/YYYY';
+const DATE_HINT = 'dd/mm/yyyy';
 
 /** `DD/MM/YYYY` → `YYYY-MM-DD`, or null if the text doesn't parse as a real calendar date. */
 function parseDateInput(text: string): string | null {
@@ -214,14 +216,14 @@ export function LeaveRequestsScreen() {
   const header = useMemo(
     () => (
       <View style={styles.headerWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           <Chip label="All" active={statusFilter === 'ALL'} onPress={() => setStatusFilter('ALL')} />
           {LEAVE_STATUSES.map((s) => (
             <Chip key={s} label={STATUS_LABEL[s]} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
           ))}
         </ScrollView>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           <Chip label="All roles" active={roleFilter === 'ALL'} onPress={() => setRoleFilter('ALL')} />
           {APPLICANT_ROLES.map((r) => (
             <Chip key={r} label={ROLE_LABEL[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
@@ -231,17 +233,15 @@ export function LeaveRequestsScreen() {
         <View style={styles.dateRow}>
           <View style={styles.dateField}>
             <Text style={styles.dateLabel}>From</Text>
-            <TextInput
-              value={fromText} onChangeText={setFromText} placeholder={DATE_HINT}
-              placeholderTextColor={colors.textHint} keyboardType="numbers-and-punctuation" autoCorrect={false}
+            <DateInput
+              value={fromText} onChangeText={setFromText} placeholder={DATE_HINT} autoCorrect={false}
               style={[styles.dateInput, !fromValid && styles.dateInputErr]}
             />
           </View>
           <View style={styles.dateField}>
             <Text style={styles.dateLabel}>To</Text>
-            <TextInput
-              value={toText} onChangeText={setToText} placeholder={DATE_HINT}
-              placeholderTextColor={colors.textHint} keyboardType="numbers-and-punctuation" autoCorrect={false}
+            <DateInput
+              value={toText} onChangeText={setToText} placeholder={DATE_HINT} autoCorrect={false}
               style={[styles.dateInput, !toValid && styles.dateInputErr]}
             />
           </View>
@@ -313,7 +313,7 @@ export function LeaveRequestsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   chipRow: { gap: 8, paddingRight: 8 },
   chip: {
@@ -360,4 +360,4 @@ const styles = StyleSheet.create({
   detailLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary },
   detailValue: { fontFamily: fonts.body, fontSize: 13, color: colors.text, flexShrink: 1, textAlign: 'right' },
   detailBlockValue: { fontFamily: fonts.body, fontSize: 13, color: colors.text, lineHeight: 19 },
-});
+}));

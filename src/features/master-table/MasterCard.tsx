@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import type { CardView } from './config';
 
 type Props = {
@@ -55,7 +55,7 @@ export function MasterCard({ view, toggle, onSetActive, onEdit, onDelete }: Prop
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 12, padding: 14 },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   titles: { flex: 1, gap: 3 },
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f0fe' },
   del: { backgroundColor: colors.dangerBg },
-});
+}));

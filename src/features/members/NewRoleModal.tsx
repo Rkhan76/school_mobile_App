@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { getRole } from './api';
 import { errorMessage } from './useMembers';
 import type { RoleSummary } from './types';
@@ -89,6 +89,6 @@ export function NewRoleModal({ visible, roles, sessionPermissions, onClose, onSu
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   hint: { fontFamily: fonts.body, fontSize: 11.5, color: colors.textHint, marginTop: 4 },
-});
+}));

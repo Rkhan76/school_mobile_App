@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../components/ui/Card';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 import { Checkbox } from './Checkbox';
 import { PromotionStudentCard } from './PromotionStudentCard';
 import { ResultModal } from './ResultModal';
@@ -16,6 +16,7 @@ import {
   buildPromotionChunks, defaultTarget, initialRow, submitPromotion, toOutcome, usePromotionStudents,
   type Decision, type PromoteItem, type PromotionResult, type PromotionRow,
 } from './mockPromotion';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 const BULK_DECISIONS = DECISIONS.filter((d) => CAN_SKIP_CLASS || d.value !== 'skip');
 
@@ -129,7 +130,7 @@ export function PromotionScreen() {
             <Text style={styles.count}>{selectedIds.length} of {students.length} selected</Text>
           </View>
           <Text style={styles.setLabel}>Set selected to</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {BULK_DECISIONS.map((d) => (
               <Pressable
                 key={d.value}
@@ -235,7 +236,7 @@ function needsTargetClass(r: PromotionRow): boolean {
   return r.decision === 'promote' || r.decision === 'repeat' || r.decision === 'skip';
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 2 },
   filters: { padding: 12, gap: 10, borderRadius: radius.lg },
   filterRow: { flexDirection: 'row', gap: 10 },
@@ -269,4 +270,4 @@ const styles = StyleSheet.create({
   },
   applyOff: { opacity: 0.45 },
   applyText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.white },
-});
+}));

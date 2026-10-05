@@ -4,12 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { isFeatureNotInPlanError, listDocumentTypes } from './api';
 import { ExpiringTab } from './ExpiringTab';
 import { RequestsTab } from './RequestsTab';
 import { ReviewTab } from './ReviewTab';
 import { TypesTab } from './TypesTab';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type TabKey = 'review' | 'requests' | 'expiring' | 'types';
 
@@ -60,7 +61,7 @@ export function DocumentsScreen() {
       ) : (
         <>
           <View style={styles.tabsWrap}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+            <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
               {TABS.map((t) => {
                 const on = t.key === tab;
                 return (
@@ -87,7 +88,7 @@ export function DocumentsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabsWrap: { paddingBottom: 12 },
   tabs: { gap: 8, paddingHorizontal: 16 },
   chip: {
@@ -104,4 +105,4 @@ const styles = StyleSheet.create({
   },
   planTitle: { fontFamily: fonts.heading, fontSize: 17, color: colors.text },
   planMsg: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 8, lineHeight: 19 },
-});
+}));

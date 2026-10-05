@@ -5,7 +5,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { getAcademicYearsMaster, getClassesMaster } from '../common/api';
 import type { AcademicYearLean, ClassWithSections, SectionLite } from '../common/types';
 import { useSession } from '../auth/session';
-import { colors } from '../../theme/tokens';
+import { colors, themed } from '../../theme/tokens';
 import { ExamSyllabusTab } from './ExamSyllabusTab';
 import { PickerField } from './PickerField';
 import { SegmentedTabs, type SyllabusTabKey } from './SegmentedTabs';
@@ -140,10 +140,10 @@ export function SyllabusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   top: { paddingHorizontal: 16, gap: 12, paddingBottom: 12 },
   row: { flexDirection: 'row', gap: 8 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   loadError: { fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

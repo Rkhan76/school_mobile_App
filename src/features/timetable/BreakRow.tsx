@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatTime, type Period } from './types';
 
 /** Full-width orange "Break" row (Recess / Lunch). */
@@ -17,7 +17,7 @@ export function BreakRow({ period, isNow }: { period: Period; isNow?: boolean })
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14,
     borderRadius: radius.lg, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa',
@@ -28,4 +28,4 @@ const styles = StyleSheet.create({
   time: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   pill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: '#ffedd5' },
   pillText: { fontFamily: fonts.bodySemi, fontSize: 12, color: '#c2410c' },
-});
+}));

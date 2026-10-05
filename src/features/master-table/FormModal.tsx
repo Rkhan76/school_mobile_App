@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import type { FieldDef, FormValues } from './config';
 
 type Props = {
@@ -67,16 +68,25 @@ export function FormModal({ visible, title, submitLabel, fields, initial, valida
               return (
                 <View key={f.key} style={styles.field}>
                   <Text style={styles.label}>{f.label}</Text>
+                  {f.kind === 'date' ? (
+                    <DateInput
+                      value={typeof v === 'string' ? v : ''}
+                      onChangeText={(t) => set(f.key, t)}
+                      placeholder={f.placeholder}
+                      style={[styles.input, err ? styles.inputErr : null]}
+                    />
+                  ) : (
                   <TextInput
                     value={typeof v === 'string' ? v : ''}
                     onChangeText={(t) => set(f.key, t)}
                     placeholder={f.placeholder}
                     placeholderTextColor={colors.textHint}
                     multiline={f.kind === 'multiline'}
-                    keyboardType={f.kind === 'number' ? 'number-pad' : f.kind === 'date' || f.kind === 'time' ? 'numbers-and-punctuation' : 'default'}
-                    maxLength={f.kind === 'date' ? 10 : f.kind === 'time' ? 5 : undefined}
+                    keyboardType={f.kind === 'number' ? 'number-pad' : f.kind === 'time' ? 'numbers-and-punctuation' : 'default'}
+                    maxLength={f.kind === 'time' ? 5 : undefined}
                     style={[styles.input, f.kind === 'multiline' && styles.multiline, err ? styles.inputErr : null]}
                   />
+                  )}
                   {err ? <Text style={styles.err}>{err}</Text> : null}
                 </View>
               );
@@ -96,7 +106,7 @@ export function FormModal({ visible, title, submitLabel, fields, initial, valida
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'center', padding: 20 },
   box: { backgroundColor: colors.cardSolid, borderRadius: radius.xl, padding: 20, gap: 12, maxHeight: '90%' },
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
@@ -117,4 +127,4 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

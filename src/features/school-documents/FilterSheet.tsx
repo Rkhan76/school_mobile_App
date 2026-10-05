@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { ConfidentialityFilter, ExpiryFilter } from './useSchoolDocuments';
 
 export type DocFilters = { confidentiality: ConfidentialityFilter; expiry: ExpiryFilter };
@@ -83,7 +83,7 @@ export function FilterSheet({ visible, value, onApply, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -107,4 +107,4 @@ const styles = StyleSheet.create({
   resetText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   apply: { backgroundColor: colors.primary },
   applyText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

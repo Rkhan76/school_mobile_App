@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { Card } from '../../../components/ui/Card';
-import { colors, fonts } from '../../../theme/tokens';
+import { colors, fonts, themed } from '../../../theme/tokens';
 import { AppBar } from '../../dashboard/AppBar';
 import { BottomActions } from './BottomActions';
 import { OverviewTab } from './OverviewTab';
@@ -110,10 +110,10 @@ export function StudentDetailScreen({ id }: { id: string | undefined }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 14 },
   tabs: { marginHorizontal: -16 },
   nf: { alignItems: 'center', gap: 8, paddingVertical: 36 },
   nfTitle: { fontFamily: fonts.heading, fontSize: 17, color: colors.text },
   nfSub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

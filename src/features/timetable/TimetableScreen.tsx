@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../../lib/apiClient';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { PickerField } from '../subjects/PickerField';
 import { SelectSheet } from '../syllabus/SelectSheet';
 import { lookupSubjects, lookupTeachers } from './api';
@@ -308,7 +308,7 @@ export function TimetableScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
   top: { gap: 12, paddingBottom: 12 },
   pad: { paddingHorizontal: 16 },
@@ -326,4 +326,4 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text, marginTop: 4 },
   emptyText: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginBottom: 8 },
   emptyList: { alignSelf: 'stretch', gap: 10 },
-});
+}));

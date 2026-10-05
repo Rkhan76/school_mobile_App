@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { formatDate } from '../../lib/date';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { SchoolUser } from './types';
 
 type Props = {
@@ -69,7 +70,7 @@ function MemberCardBase({
         </View>
         <View style={styles.metaItem}>
           <Ionicons name="calendar-outline" size={14} color={colors.textHint} />
-          <Text style={styles.metaText}>Joined {new Date(member.createdAt).toLocaleDateString()}</Text>
+          <Text style={styles.metaText}>Joined {formatDate(member.createdAt)}</Text>
         </View>
       </View>
 
@@ -106,7 +107,7 @@ function MemberCardBase({
 
 export const MemberCard = memo(MemberCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 10, padding: 14 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   info: { flex: 1, minWidth: 0 },
@@ -122,4 +123,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.mintSoft, borderWidth: 1, borderColor: colors.border,
   },
   actionText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
-});
+}));

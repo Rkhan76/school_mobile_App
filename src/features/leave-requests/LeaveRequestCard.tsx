@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { LeaveApplication, LeaveStatus } from './types';
 
 const STATUS_TONE: Record<LeaveStatus, 'success' | 'danger' | 'warning' | 'neutral'> = {
@@ -21,12 +21,8 @@ const STATUS_LABEL: Record<LeaveStatus, string> = {
   CANCELLED: 'Cancelled',
 };
 
-/** `YYYY-MM-DD` (or any ISO datetime) → `DD MMM YYYY`. Falls back to the raw value if unparseable. */
-export function formatDate(value: string): string {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+import { formatDate } from '../../lib/date';
+export { formatDate };
 
 type Props = {
   item: LeaveApplication;
@@ -87,7 +83,7 @@ function LeaveRequestCardBase({ item, canDecide, onPress, onApprove, onReject }:
 
 export const LeaveRequestCard = memo(LeaveRequestCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   info: { flex: 1 },
@@ -101,4 +97,4 @@ const styles = StyleSheet.create({
   approveText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
   reject: { backgroundColor: colors.dangerBg },
   rejectText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.danger },
-});
+}));

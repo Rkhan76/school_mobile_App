@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { BottomSheet, Button, Row } from './parts';
 import { formatDate, formatINR, isOverdue, statusTone, type Invoice } from './mockFees';
 
@@ -60,7 +60,7 @@ export function InvoiceDetailSheet({ invoice: i, onClose, onCollect }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   no: { fontFamily: fonts.monoMedium, fontSize: 17, color: colors.primaryDeep },
   sub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
@@ -72,4 +72,4 @@ const styles = StyleSheet.create({
   receipt: { fontFamily: fonts.monoMedium, fontSize: 12, color: colors.text },
   payAmt: { fontFamily: fonts.heading, fontSize: 14, color: colors.success },
   actions: { flexDirection: 'row', gap: 10 },
-});
+}));

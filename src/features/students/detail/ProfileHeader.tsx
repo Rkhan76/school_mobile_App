@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Card } from '../../../components/ui/Card';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { StudentDetail } from './studentDetail';
 
 /** Sub-bar: back + "Directory", edit, status pill, kebab. */
@@ -91,7 +91,7 @@ export function ProfileHeader({ s }: { s: StudentDetail }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   subBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   back: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   backText: { fontFamily: fonts.headingSemi, fontSize: 16, color: colors.primaryDeep },
@@ -118,4 +118,4 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.text },
   tag: { backgroundColor: colors.mint, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   tagText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.primaryDeep },
-});
+}));

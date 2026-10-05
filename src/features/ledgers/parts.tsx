@@ -2,8 +2,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatMoney, isoToInput, parseAmount, titleCase, type CashbookEntry, type LedgerEntry } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 export type Filters = { entryType: string; category: string; from: string; to: string; pageSize: number };
 export const EMPTY_FILTERS: Filters = { entryType: '', category: '', from: '', to: '', pageSize: 20 };
@@ -56,7 +57,7 @@ export function ActiveFilterChips({ filters, typeLabel, categoryLabel, onClear }
   if (filters.pageSize !== 20) chips.push({ key: 'pageSize', text: `${filters.pageSize} rows` });
   if (chips.length === 0) return null;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
       {chips.map((c) => (
         <Pressable key={c.key} style={styles.chip} onPress={() => onClear(c.key)} accessibilityLabel={`Clear ${c.text}`}>
           <Text style={styles.chipText}>{c.text}</Text>
@@ -189,7 +190,7 @@ export function CashbookCard({ item, onDelete }: CashProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   seg: { flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: colors.mint },
   segBtn: { flex: 1, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
   segOn: { backgroundColor: colors.primary },
@@ -221,4 +222,4 @@ const styles = StyleSheet.create({
   actBtn: { flex: 1, height: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.md, backgroundColor: colors.mint },
   actDanger: { backgroundColor: colors.dangerBg },
   actText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
-});
+}));

@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { Chip } from './parts';
 import { ENTITY_LABELS, ENTITY_TYPES, type DocumentType, type DocumentTypeInput, type EntityType } from './types';
 
@@ -118,7 +118,7 @@ export function TypeFormModal({ visible, type, existingNames, onSubmit, onClose 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
@@ -147,4 +147,4 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

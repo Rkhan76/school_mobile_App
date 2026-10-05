@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { compact, niceScale } from './format';
 import { SERIES_COLORS } from './mockReports';
 import type { ChartSeries, ReportChart } from './types';
@@ -206,7 +206,7 @@ export function ChartCard({ chart, formatValue }: { chart: ReportChart; formatVa
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 14, gap: 10 },
   title: { fontFamily: fonts.heading, fontSize: 15, color: colors.text },
   legend: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14, marginTop: 8 },
@@ -218,4 +218,4 @@ const styles = StyleSheet.create({
   hValue: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.text },
   hTrack: { height: 10, borderRadius: 5, backgroundColor: colors.mintSoft, overflow: 'hidden' },
   hFill: { height: 10, borderRadius: 5 },
-});
+}));

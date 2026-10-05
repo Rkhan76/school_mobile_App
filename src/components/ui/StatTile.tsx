@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 
 type Props = {
   label: string;
@@ -22,7 +22,7 @@ export function StatTile({ label, value, icon, tint = colors.primary }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tile: {
     flex: 1,
     minWidth: 0,
@@ -37,4 +37,4 @@ const styles = StyleSheet.create({
   icon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   value: { fontFamily: fonts.headingExtra, fontSize: 20, color: colors.text },
   label: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary },
-});
+}));

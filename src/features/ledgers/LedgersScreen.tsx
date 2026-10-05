@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { CashbookFormModal } from './CashbookFormModal';
 import { ListShell, useListControls } from './ListShell';
@@ -168,7 +168,7 @@ export function LedgersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   hidden: { display: 'none' },
   segWrap: { paddingHorizontal: 16, paddingBottom: 10 },
@@ -179,4 +179,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.primary,
   },
   addText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
-});
+}));

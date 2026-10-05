@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { ChatInput } from './ChatInput';
 import { DaySeparator } from './DaySeparator';
@@ -193,7 +193,7 @@ export function ChatScreen({ groupId }: { groupId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10,
@@ -225,4 +225,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardSolid, borderTopWidth: 1, borderTopColor: colors.border,
   },
   disabledText: { fontFamily: fonts.body, fontSize: 12, color: colors.textHint },
-});
+}));

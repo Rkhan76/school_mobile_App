@@ -3,7 +3,8 @@ import {
   KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import { getAcademicYearsMaster, getClassesMaster } from '../common/api';
 import type { ClassWithSections } from '../common/types';
 import {
@@ -109,9 +110,8 @@ export function FilterSheet({ visible, caps, value, onApply, onClose }: Props) {
                     {(['from', 'to'] as const).map((k) => (
                       <View key={k} style={{ flex: 1 }}>
                         <Text style={styles.sub}>{k === 'from' ? 'From' : 'To'}</Text>
-                        <TextInput
-                          value={draft[k]} onChangeText={(t) => set({ [k]: t })} placeholder="dd/mm/yyyy" placeholderTextColor={colors.textHint}
-                          keyboardType="numbers-and-punctuation" maxLength={10}
+                        <DateInput
+                          value={draft[k]} onChangeText={(t) => set({ [k]: t })} placeholder="dd/mm/yyyy"
                           style={[styles.input, !isValidDate(draft[k]) && { borderColor: colors.danger }]}
                         />
                       </View>
@@ -196,7 +196,7 @@ export function FilterSheet({ visible, caps, value, onApply, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: { backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: 20, paddingTop: 12 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 12 },
@@ -223,4 +223,4 @@ const styles = StyleSheet.create({
   btnGhost: { backgroundColor: colors.mintSoft, borderWidth: 1, borderColor: colors.border },
   btnPrimary: { backgroundColor: colors.primaryDeep },
   btnText: { fontFamily: fonts.bodySemi, fontSize: 15 },
-});
+}));

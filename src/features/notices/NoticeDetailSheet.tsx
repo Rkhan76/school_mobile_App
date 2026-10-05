@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
 import { ApiError } from '../../lib/apiClient';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { AudiencePill } from './AudiencePill';
 import { downloadAndShareNoticePdf } from './pdf';
-import { deriveStatus, formatDate, type Notice } from './types';
+import { deriveStatus, formatCreator, formatDate, type Notice } from './types';
 
 type Props = { notice: Notice | null; onClose: () => void; canDownloadPdf: boolean };
 
@@ -57,7 +57,7 @@ export function NoticeDetailSheet({ notice, onClose, canDownloadPdf }: Props) {
                 <Text style={styles.metaText}>
                   Expires: <Text style={styles.metaVal}>{notice.expiresAt ? formatDate(notice.expiresAt) : 'Never'}</Text>
                 </Text>
-                <Text style={styles.metaText}>Created by: <Text style={styles.metaVal}>{notice.createdBy?.fullName ?? '—'}</Text></Text>
+                <Text style={styles.metaText}>Created by: <Text style={styles.metaVal}>{formatCreator(notice.createdBy)}</Text></Text>
               </View>
             </ScrollView>
             {canDownloadPdf && (
@@ -80,7 +80,7 @@ export function NoticeDetailSheet({ notice, onClose, canDownloadPdf }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -103,4 +103,4 @@ const styles = StyleSheet.create({
   pdfBtnText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   close: { height: 46, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mint, marginTop: 4 },
   closeText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
-});
+}));

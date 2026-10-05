@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { getDownloadLink } from './api';
 import { CategoryChips } from './CategoryChips';
@@ -263,7 +263,7 @@ export function SchoolDocumentsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   itemWrap: { paddingHorizontal: 16 },
   skeletons: { gap: 12 },
@@ -284,4 +284,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.primary,
   },
   newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
-});
+}));

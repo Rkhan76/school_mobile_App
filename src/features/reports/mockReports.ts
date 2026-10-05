@@ -31,7 +31,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export function periodLabels(g: Granularity): string[] {
   switch (g) {
     case 'day':
-      return Array.from({ length: 14 }, (_, i) => `${i + 19 > 30 ? i - 11 : i + 19} ${i + 19 > 30 ? 'Oct' : 'Sep'}`);
+      return Array.from({ length: 14 }, (_, i) => `${String(i + 19 > 30 ? i - 11 : i + 19).padStart(2, '0')}/${i + 19 > 30 ? '10' : '09'}/2026`);
     case 'week':
       return Array.from({ length: 8 }, (_, i) => `W${33 + i}`);
     case 'year':

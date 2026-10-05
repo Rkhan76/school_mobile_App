@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -134,7 +134,7 @@ export function SkeletonBlock({ height }: { height: number }) {
   return <View style={{ height, borderRadius: radius.xl, backgroundColor: colors.mint, opacity: 0.7 }} />;
 }
 
-export const formStyles = StyleSheet.create({
+export const formStyles = themed(() => StyleSheet.create({
   form: { paddingHorizontal: 16, paddingBottom: 16, gap: 6 },
   label: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary, marginTop: 8 },
   input: {
@@ -144,9 +144,9 @@ export const formStyles = StyleSheet.create({
   inputErr: { borderColor: colors.danger },
   err: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-});
+}));
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   chip: {
     height: 36, paddingHorizontal: 14, justifyContent: 'center', borderRadius: radius.pill,
@@ -192,4 +192,4 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48, gap: 6 },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

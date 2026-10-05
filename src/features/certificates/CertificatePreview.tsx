@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
-import { shareCertificate, verificationUrl } from './certificateExport';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { saveCertificateToDevice, shareCertificate, verificationUrl } from './certificateExport';
 import { RECIPIENT_TYPE_LABEL, formatDate, type Certificate } from './types';
 
 type Props = { certificate: Certificate | null; onClose: () => void };
@@ -25,7 +25,12 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
     if (!c || exporting) return;
     setExporting(kind);
     try {
-      await shareCertificate(c);
+      if (kind === 'share') {
+        await shareCertificate(c);
+      } else {
+        const saved = await saveCertificateToDevice(c);
+        if (saved) Alert.alert('Certificate saved', `${saved} was saved to the folder you chose.`);
+      }
     } catch (err) {
       Alert.alert(
         kind === 'share' ? 'Share failed' : 'Download failed',
@@ -111,7 +116,7 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
               <ActivityIndicator color={colors.primaryDeep} />
             ) : (
               <>
-                <Ionicons name="share-outline" size={18} color={colors.primaryDeep} />
+                <Ionicons name="share-social-outline" size={18} color={colors.primaryDeep} />
                 <Text style={styles.shareText}>Share</Text>
               </>
             )}
@@ -132,7 +137,7 @@ export function CertificatePreview({ certificate: c, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
@@ -179,4 +184,4 @@ const styles = StyleSheet.create({
   download: { backgroundColor: colors.primary },
   downloadText: { fontFamily: fonts.bodySemi, color: colors.white },
   off: { opacity: 0.6 },
-});
+}));

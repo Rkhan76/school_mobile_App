@@ -3,7 +3,7 @@ import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { StructureFormModal } from './StructureFormModal';
 import { Button, EmptyState, SkeletonCard, TextField } from './parts';
 import { formatINR, structureTotal, useFeeStructures, type FeeStructure } from './mockFees';
@@ -178,7 +178,7 @@ function Separator() {
   return <View style={{ height: 12 }} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { gap: 12, marginBottom: 14 },
   seg: { flexDirection: 'row', gap: 8 },
   segBtn: { flex: 1, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
@@ -196,4 +196,4 @@ const styles = StyleSheet.create({
   totalValue: { fontFamily: fonts.headingExtra, fontSize: 18, color: colors.primaryDeep },
   type: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 54, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
   typeName: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
-});
+}));

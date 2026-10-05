@@ -1,7 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { IconName } from './ui';
+import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
 export type TabKey = 'overview' | 'guardians' | 'attendance' | 'fees' | 'bank' | 'hostel' | 'documents' | 'reports' | 'history';
 
@@ -19,7 +20,7 @@ export const TABS: { key: TabKey; label: string; icon: IconName }[] = [
 
 export function TabChips({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {TABS.map((t) => {
         const on = t.key === active;
         return (
@@ -33,9 +34,9 @@ export function TabChips({ active, onChange }: { active: TabKey; onChange: (k: T
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { gap: 8, paddingHorizontal: 16 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
   chipOn: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   text: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
-});
+}));

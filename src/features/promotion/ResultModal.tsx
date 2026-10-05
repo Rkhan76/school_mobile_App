@@ -1,7 +1,7 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { PromotionResult, PromotionStudent } from './mockPromotion';
 
 type Props = {
@@ -28,7 +28,7 @@ export function ResultModal({ result, students, onClose }: Props) {
                 <Text style={[styles.statNum, { color: colors.success }]}>{result.succeeded}</Text>
                 <Text style={styles.statLabel}>Succeeded</Text>
               </View>
-              <View style={[styles.stat, { backgroundColor: hasFail ? colors.dangerBg : '#eef2f1' }]}>
+              <View style={[styles.stat, { backgroundColor: hasFail ? colors.dangerBg : colors.neutralBg }]}>
                 <Ionicons name="close-circle" size={22} color={hasFail ? colors.danger : colors.textHint} />
                 <Text style={[styles.statNum, { color: hasFail ? colors.danger : colors.textSecondary }]}>
                   {result.failed.length}
@@ -60,7 +60,7 @@ export function ResultModal({ result, students, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -83,4 +83,4 @@ const styles = StyleSheet.create({
   failErr: { fontFamily: fonts.body, fontSize: 12, color: colors.danger, marginTop: 2 },
   done: { height: 48, borderRadius: radius.lg, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   doneText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.white },
-});
+}));

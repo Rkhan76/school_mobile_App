@@ -6,14 +6,15 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { ApiError } from '../../lib/apiClient';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { AUDIENCES, type Audience, type Notice } from './types';
 import { NoticeCard } from './NoticeCard';
 import { NoticeDetailSheet } from './NoticeDetailSheet';
 import { NoticeFormModal } from './NoticeFormModal';
-import { downloadAndShareNoticePdf } from './pdf';
+import { downloadAndShareNoticePdf, savePdfToDevice } from './pdf';
 import { PAGE_SIZE, useNotices } from './useNotices';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 const FILTERS: { value: Audience | ''; label: string }[] = [
   { value: '', label: 'All audiences' },
@@ -69,6 +70,15 @@ export function NoticesScreen() {
       Alert.alert('Download failed', message);
     }
   }, []);
+  const onSavePdf = useCallback(async (n: Notice) => {
+    try {
+      const saved = await savePdfToDevice(n.id);
+      if (saved) Alert.alert('PDF saved', `${saved} was saved to the folder you chose.`);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Could not save the notice PDF to this device.';
+      Alert.alert('Save failed', message);
+    }
+  }, []);
   const onDelete = useCallback((n: Notice) => {
     Alert.alert('Delete notice', `Delete "${n.title}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -81,7 +91,7 @@ export function NoticesScreen() {
   const header = (
     <View style={styles.headerWrap}>
       <SearchBar value={search} onChangeText={setSearch} placeholder="Search notices..." />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {FILTERS.map((f) => {
           const on = f.value === audience;
           return (
@@ -133,6 +143,7 @@ export function NoticesScreen() {
               item={item}
               onView={onView}
               onSharePdf={onSharePdf}
+              onSavePdf={onSavePdf}
               onEdit={onEdit}
               onDelete={onDelete}
               canUpdate={canUpdate}
@@ -184,7 +195,7 @@ export function NoticesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   chips: { gap: 8, paddingVertical: 2 },
   chip: {
@@ -211,4 +222,4 @@ const styles = StyleSheet.create({
   newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
   footerLoader: { marginVertical: 20 },
   endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
-});
+}));

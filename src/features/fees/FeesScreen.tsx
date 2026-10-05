@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { AppBar } from '../dashboard/AppBar';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { AssignmentsTab } from './AssignmentsTab';
 import { CollectionTab } from './CollectionTab';
 import { StructuresTab } from './StructuresTab';
@@ -47,11 +47,11 @@ export function FeesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   top: { gap: 14 },
   title: { fontFamily: fonts.heading, fontSize: 24, color: colors.text, marginTop: 4 },
   // negative margin lets the chip row bleed to the screen edges while the list keeps its 16px padding
-  chipScroll: { marginHorizontal: -16 },
+  chipScroll: { marginHorizontal: -16, flexGrow: 0, flexShrink: 0 },
   chips: { gap: 8, paddingHorizontal: 16 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: radius.pill,
@@ -59,4 +59,4 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
-});
+}));

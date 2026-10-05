@@ -1,7 +1,7 @@
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { DocumentVersion, SchoolDocument } from './types';
 import { formatBytes, formatDate } from './utils';
 
@@ -74,7 +74,7 @@ export function VersionsSheet({ document: doc, versions, isLoading, onUseAsNewVe
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -98,4 +98,4 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.mintSoft, borderWidth: 1, borderColor: colors.border,
   },
-});
+}));

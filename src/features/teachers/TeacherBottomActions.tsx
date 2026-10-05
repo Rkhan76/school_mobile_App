@@ -1,7 +1,7 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { telUrl } from './TeacherProfileCard';
 
 export function TeacherBottomActions({ phone, onMessage }: { phone: string; onMessage?: () => void }) {
@@ -24,10 +24,10 @@ export function TeacherBottomActions({ phone, onMessage }: { phone: string; onMe
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bar: {
     position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 12,
-    paddingHorizontal: 16, paddingTop: 12, backgroundColor: 'rgba(241,251,249,0.96)',
+    paddingHorizontal: 16, paddingTop: 12, backgroundColor: colors.backgroundGlass,
     borderTopWidth: 1, borderTopColor: colors.border,
   },
   btn: {
@@ -37,4 +37,4 @@ const styles = StyleSheet.create({
   outline: { backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.primary },
   filled: { backgroundColor: colors.primaryDeep },
   label: { fontFamily: fonts.heading, fontSize: 15 },
-});
+}));

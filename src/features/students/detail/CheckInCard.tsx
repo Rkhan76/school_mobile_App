@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../../components/ui/Badge';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { StudentAttendance } from './studentDetail';
 import { SectionCard } from './ui';
 
@@ -45,7 +45,7 @@ function Legend({ color, text }: { color: string; text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   box: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.mintSoft, borderRadius: radius.md, padding: 12 },
   time: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
   src: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.textSecondary, marginTop: 1 },
@@ -57,4 +57,4 @@ const styles = StyleSheet.create({
   leg: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 7, height: 7, borderRadius: 4 },
   legText: { fontFamily: fonts.monoMedium, fontSize: 11 },
-});
+}));

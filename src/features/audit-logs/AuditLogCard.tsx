@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { ActionPill } from './ActionPill';
 import { formatDateTime, type AuditLog } from './types';
 
@@ -41,7 +41,7 @@ function AuditLogCardBase({ item, serial, onView }: Props) {
 
 export const AuditLogCard = memo(AuditLogCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 10, padding: 14 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   serial: { minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mintSoft, borderWidth: 1, borderColor: colors.border },
@@ -53,4 +53,4 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodySemi, fontSize: 10, letterSpacing: 0.6, color: colors.textHint },
   value: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
   role: { fontFamily: fonts.body, fontSize: 11, color: colors.textHint },
-});
+}));

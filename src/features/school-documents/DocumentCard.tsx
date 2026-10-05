@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { SchoolDocument } from './types';
 import { fileTypeOf, formatBytes, formatDate, isExpired } from './utils';
 
@@ -91,7 +91,7 @@ function DocumentCardBase({ item, categoryName, canEdit, canDelete, onDownload, 
 
 export const DocumentCard = memo(DocumentCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 10 },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   title: { fontFamily: fonts.heading, fontSize: 16, color: colors.text, flexShrink: 1 },
@@ -118,4 +118,4 @@ const styles = StyleSheet.create({
   },
   actionText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary },
   delete: { borderColor: colors.dangerBorder, backgroundColor: colors.dangerBg },
-});
+}));

@@ -16,10 +16,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../../components/ui/Card';
+import { DateInput } from '../../../components/ui/DateInput';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ApiError } from '../../../lib/apiClient';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { parseDisplayDate, toDisplayDate } from '../../../lib/date';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { getAcademicYearsMaster, getClassesMaster } from '../../common/api';
 import type { AcademicYearLean, ClassWithSections } from '../../common/types';
 import { createAdmission, getAdmission, updateAdmission } from '../api';
@@ -66,6 +68,8 @@ type FormState = {
   father: GuardianBlockForm;
   mother: GuardianBlockForm;
   guardian: GuardianBlockForm;
+  /** Parent/guardian already exists as a guardian profile: its details are edited there, not here. */
+  linked: { father: boolean; mother: boolean; guardian: boolean };
 
   bloodGroup: string;
   height: string;
@@ -109,6 +113,7 @@ const initialForm: FormState = {
   guardianId: null,
   primaryGuardian: 'father',
   father: emptyGuardianBlock(),
+  linked: { father: false, mother: false, guardian: false },
   mother: emptyGuardianBlock(),
   guardian: emptyGuardianBlock(),
   bloodGroup: '',
@@ -150,7 +155,7 @@ function formFromDetail(detail: AdmissionDetail): FormState {
     admissionNumber: detail.academicInfo?.admissionNumber ?? '',
     fullName: detail.personalInfo?.fullName ?? '',
     gender: detail.personalInfo?.gender ?? null,
-    dateOfBirth: detail.personalInfo?.dateOfBirth ?? '',
+    dateOfBirth: toDisplayDate(detail.personalInfo?.dateOfBirth),
     category: detail.personalInfo?.category ?? '',
     subcategory: detail.personalInfo?.subcategory ?? '',
     religion: detail.personalInfo?.religion ?? '',
@@ -160,6 +165,11 @@ function formFromDetail(detail: AdmissionDetail): FormState {
     isGuardianExist: detail.isGuardianExist ?? false,
     guardianId: detail.guardianId ?? null,
     primaryGuardian: pgi?.primaryGuardian ?? 'father',
+    linked: {
+      father: !!pgi?.father?.isLinkedGuardian,
+      mother: !!pgi?.mother?.isLinkedGuardian,
+      guardian: !!pgi?.guardian?.isLinkedGuardian,
+    },
     father: blockFrom(pgi?.father),
     mother: blockFrom(pgi?.mother),
     guardian: blockFrom(pgi?.guardian),
@@ -192,7 +202,7 @@ function buildPayload(form: FormState): AdmissionPayload {
     personalInfo: {
       fullName: val(form.fullName),
       gender: (form.gender ?? 'Male') as GenderOption,
-      dateOfBirth: val(form.dateOfBirth),
+      dateOfBirth: val(parseDisplayDate(form.dateOfBirth) ?? form.dateOfBirth),
       category: val(form.category),
       subcategory: val(form.subcategory) ?? null,
       religion: val(form.religion),
@@ -270,6 +280,8 @@ function Field({
   keyboardType,
   multiline,
   required,
+  isDate,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -278,6 +290,9 @@ function Field({
   keyboardType?: KeyboardTypeOptions;
   multiline?: boolean;
   required?: boolean;
+  isDate?: boolean;
+  /** Read-only (e.g. a linked guardian whose details are edited from the guardian profile). */
+  disabled?: boolean;
 }) {
   return (
     <View style={styles.field}>
@@ -285,6 +300,9 @@ function Field({
         {label}
         {required ? <Text style={styles.required}> *</Text> : null}
       </Text>
+      {isDate ? (
+        <DateInput value={value} onChangeText={onChangeText} placeholder={placeholder} style={styles.input} maximumDate={new Date()} />
+      ) : (
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -292,8 +310,10 @@ function Field({
         placeholderTextColor={colors.textHint}
         keyboardType={keyboardType}
         multiline={multiline}
-        style={[styles.input, multiline && styles.inputMultiline]}
+        editable={!disabled}
+        style={[styles.input, multiline && styles.inputMultiline, disabled && styles.inputDisabled]}
       />
+      )}
     </View>
   );
 }
@@ -318,6 +338,58 @@ function ChipRow<T extends string>({
         );
       })}
     </View>
+  );
+}
+
+/** Social categories used in Indian school admissions (the short code is what gets saved). */
+const CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'General', label: 'General' },
+  { value: 'OBC', label: 'OBC (Other Backward Classes)' },
+  { value: 'SC', label: 'SC (Scheduled Caste)' },
+  { value: 'ST', label: 'ST (Scheduled Tribe)' },
+  { value: 'EWS', label: 'EWS (Economically Weaker Section)' },
+];
+
+function OptionPickerModal({
+  visible,
+  title,
+  options,
+  value,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  title: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onSelect: (value: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <Text style={styles.sheetTitle}>{title}</Text>
+        <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetOptions}>
+          {options.map((o) => {
+            const active = o.value === value;
+            return (
+              <Pressable
+                key={o.value}
+                onPress={() => {
+                  onSelect(o.value);
+                  onClose();
+                }}
+                style={[styles.sheetOpt, active && styles.sheetOptActive]}
+              >
+                <Text style={[styles.sheetOptText, active && styles.sheetOptTextActive]}>{o.label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 
@@ -380,6 +452,7 @@ export function AdmissionFormScreen(props: Props) {
   const [blockedStatus, setBlockedStatus] = useState<AdmissionDetail['status'] | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [classPickerOpen, setClassPickerOpen] = useState(false);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -405,7 +478,7 @@ export function AdmissionFormScreen(props: Props) {
           }
         } else {
           const active = yearsRes.find((y) => y.isActive);
-          if (active) setForm((f) => ({ ...f, academicYear: active.label }));
+          if (active) setForm((f) => ({ ...f, academicYear: active.id }));
         }
       } catch (err) {
         if (!cancelled) setLoadError(err instanceof ApiError ? err.message : 'Failed to load form data.');
@@ -452,6 +525,10 @@ export function AdmissionFormScreen(props: Props) {
     }
     if (form.isGuardianExist && !form.guardianId) {
       Alert.alert('Guardian required', 'Search and select the existing guardian, or turn the toggle off.');
+      return;
+    }
+    if (form.dateOfBirth.trim() && !parseDisplayDate(form.dateOfBirth)) {
+      Alert.alert('Invalid date', 'Enter the date of birth as dd/mm/yyyy.');
       return;
     }
 
@@ -532,7 +609,8 @@ export function AdmissionFormScreen(props: Props) {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Academic Year</Text>
             <ChipRow
-              options={years.map((y) => ({ key: y.label, label: y.label }))}
+              // The backend needs the academic year's UUID (a label here makes the detail API fail).
+              options={years.map((y) => ({ key: y.id, label: y.label }))}
               value={form.academicYear || null}
               onChange={(v) => setField('academicYear', v)}
             />
@@ -577,9 +655,18 @@ export function AdmissionFormScreen(props: Props) {
             label="Date of Birth"
             value={form.dateOfBirth}
             onChangeText={(t) => setField('dateOfBirth', t)}
-            placeholder="YYYY-MM-DD"
+            placeholder="dd/mm/yyyy"
+            isDate
           />
-          <Field label="Category" value={form.category} onChangeText={(t) => setField('category', t)} />
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Category</Text>
+            <Pressable style={styles.selectBox} onPress={() => setCategoryPickerOpen(true)} accessibilityRole="button" accessibilityLabel="Select category">
+              <Text style={form.category ? styles.selectValue : styles.selectPlaceholder}>
+                {form.category || 'Select category'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={colors.textHint} />
+            </Pressable>
+          </View>
           <Field label="Subcategory" value={form.subcategory} onChangeText={(t) => setField('subcategory', t)} />
           <Field label="Religion" value={form.religion} onChangeText={(t) => setField('religion', t)} />
           <Field label="Phone" value={form.phone} onChangeText={(t) => setField('phone', t)} keyboardType="phone-pad" />
@@ -616,43 +703,49 @@ export function AdmissionFormScreen(props: Props) {
           </View>
 
           <Text style={styles.subHeading}>Father</Text>
-          <Field label="Name" value={form.father.name} onChangeText={(t) => setGuardianBlockField('father', 'name', t)} />
-          <Field label="Phone" value={form.father.phone} onChangeText={(t) => setGuardianBlockField('father', 'phone', t)} keyboardType="phone-pad" />
-          <Field label="Email" value={form.father.email} onChangeText={(t) => setGuardianBlockField('father', 'email', t)} keyboardType="email-address" />
-          <Field label="Occupation" value={form.father.occupation} onChangeText={(t) => setGuardianBlockField('father', 'occupation', t)} />
+          {form.linked.father ? <Text style={styles.linkedNote}>Linked guardian: edit these details from the guardian profile.</Text> : null}
+          <Field label="Name" value={form.father.name} onChangeText={(t) => setGuardianBlockField('father', 'name', t)} disabled={form.linked.father} />
+          <Field label="Phone" value={form.father.phone} onChangeText={(t) => setGuardianBlockField('father', 'phone', t)} keyboardType="phone-pad" disabled={form.linked.father} />
+          <Field label="Email" value={form.father.email} onChangeText={(t) => setGuardianBlockField('father', 'email', t)} keyboardType="email-address" disabled={form.linked.father} />
+          <Field label="Occupation" value={form.father.occupation} onChangeText={(t) => setGuardianBlockField('father', 'occupation', t)} disabled={form.linked.father} />
           <Field
             label="Aadhar Number"
             value={form.father.aadharNumber}
             onChangeText={(t) => setGuardianBlockField('father', 'aadharNumber', t)}
             keyboardType="number-pad"
+            disabled={form.linked.father}
           />
           <ImagePickerField label="FATHER PHOTO" value={files.fatherPhoto ?? null} onChange={(p) => setFile('fatherPhoto', p)} />
 
           <Text style={styles.subHeading}>Mother</Text>
-          <Field label="Name" value={form.mother.name} onChangeText={(t) => setGuardianBlockField('mother', 'name', t)} />
-          <Field label="Phone" value={form.mother.phone} onChangeText={(t) => setGuardianBlockField('mother', 'phone', t)} keyboardType="phone-pad" />
-          <Field label="Email" value={form.mother.email} onChangeText={(t) => setGuardianBlockField('mother', 'email', t)} keyboardType="email-address" />
-          <Field label="Occupation" value={form.mother.occupation} onChangeText={(t) => setGuardianBlockField('mother', 'occupation', t)} />
+          {form.linked.mother ? <Text style={styles.linkedNote}>Linked guardian: edit these details from the guardian profile.</Text> : null}
+          <Field label="Name" value={form.mother.name} onChangeText={(t) => setGuardianBlockField('mother', 'name', t)} disabled={form.linked.mother} />
+          <Field label="Phone" value={form.mother.phone} onChangeText={(t) => setGuardianBlockField('mother', 'phone', t)} keyboardType="phone-pad" disabled={form.linked.mother} />
+          <Field label="Email" value={form.mother.email} onChangeText={(t) => setGuardianBlockField('mother', 'email', t)} keyboardType="email-address" disabled={form.linked.mother} />
+          <Field label="Occupation" value={form.mother.occupation} onChangeText={(t) => setGuardianBlockField('mother', 'occupation', t)} disabled={form.linked.mother} />
           <Field
             label="Aadhar Number"
             value={form.mother.aadharNumber}
             onChangeText={(t) => setGuardianBlockField('mother', 'aadharNumber', t)}
             keyboardType="number-pad"
+            disabled={form.linked.mother}
           />
           <ImagePickerField label="MOTHER PHOTO" value={files.motherPhoto ?? null} onChange={(p) => setFile('motherPhoto', p)} />
 
           {form.primaryGuardian === 'other' ? (
             <>
               <Text style={styles.subHeading}>Guardian</Text>
-              <Field label="Name" value={form.guardian.name} onChangeText={(t) => setGuardianBlockField('guardian', 'name', t)} />
-              <Field label="Phone" value={form.guardian.phone} onChangeText={(t) => setGuardianBlockField('guardian', 'phone', t)} keyboardType="phone-pad" />
-              <Field label="Email" value={form.guardian.email} onChangeText={(t) => setGuardianBlockField('guardian', 'email', t)} keyboardType="email-address" />
-              <Field label="Occupation" value={form.guardian.occupation} onChangeText={(t) => setGuardianBlockField('guardian', 'occupation', t)} />
+              {form.linked.guardian ? <Text style={styles.linkedNote}>Linked guardian: edit these details from the guardian profile.</Text> : null}
+              <Field label="Name" value={form.guardian.name} onChangeText={(t) => setGuardianBlockField('guardian', 'name', t)} disabled={form.linked.guardian} />
+              <Field label="Phone" value={form.guardian.phone} onChangeText={(t) => setGuardianBlockField('guardian', 'phone', t)} keyboardType="phone-pad" disabled={form.linked.guardian} />
+              <Field label="Email" value={form.guardian.email} onChangeText={(t) => setGuardianBlockField('guardian', 'email', t)} keyboardType="email-address" disabled={form.linked.guardian} />
+              <Field label="Occupation" value={form.guardian.occupation} onChangeText={(t) => setGuardianBlockField('guardian', 'occupation', t)} disabled={form.linked.guardian} />
               <Field
                 label="Aadhar Number"
                 value={form.guardian.aadharNumber}
                 onChangeText={(t) => setGuardianBlockField('guardian', 'aadharNumber', t)}
                 keyboardType="number-pad"
+            disabled={form.linked.guardian}
               />
               <ImagePickerField label="GUARDIAN PHOTO" value={files.guardianPhoto ?? null} onChange={(p) => setFile('guardianPhoto', p)} />
             </>
@@ -722,6 +815,19 @@ export function AdmissionFormScreen(props: Props) {
         </Pressable>
       </View>
 
+      <OptionPickerModal
+        visible={categoryPickerOpen}
+        title="Select category"
+        // A category saved earlier that isn't in the standard list stays selectable instead of being lost.
+        options={
+          form.category && !CATEGORY_OPTIONS.some((o) => o.value === form.category)
+            ? [...CATEGORY_OPTIONS, { value: form.category, label: form.category }]
+            : CATEGORY_OPTIONS
+        }
+        value={form.category}
+        onSelect={(v) => setField('category', v)}
+        onClose={() => setCategoryPickerOpen(false)}
+      />
       <ClassPickerModal
         visible={classPickerOpen}
         classes={classes}
@@ -733,7 +839,7 @@ export function AdmissionFormScreen(props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   section: { gap: 12 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -747,13 +853,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     paddingHorizontal: 14,
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     color: colors.text,
   },
   inputMultiline: { height: 90, paddingTop: 12, textAlignVertical: 'top' },
+  inputDisabled: { opacity: 0.6 },
+  linkedNote: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     height: 38,
@@ -772,7 +880,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -792,7 +900,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 16,
     paddingTop: 10,
-    backgroundColor: 'rgba(241,251,249,0.96)',
+    backgroundColor: colors.backgroundGlass,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     ...shadow.card,
@@ -847,4 +955,4 @@ const styles = StyleSheet.create({
   sheetOptText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
   sheetOptTextActive: { color: colors.white },
   empty: { fontFamily: fonts.body, fontSize: 13, color: colors.textHint, textAlign: 'center', paddingVertical: 20 },
-});
+}));

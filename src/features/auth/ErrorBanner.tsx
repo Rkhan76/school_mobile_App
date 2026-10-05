@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 
 export function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
@@ -17,7 +17,7 @@ export function ErrorBanner({ message, onDismiss }: { message: string; onDismiss
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   box: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -31,4 +31,4 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: 2 },
   title: { fontFamily: fonts.heading, fontSize: 14, color: '#991b1b' },
   text: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: '#b91c1c' },
-});
+}));

@@ -1,4 +1,4 @@
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getNoticePdf } from './api';
 
@@ -33,4 +33,26 @@ export async function downloadAndShareNoticePdf(id: string): Promise<void> {
     UTI: 'com.adobe.pdf',
     dialogTitle: fileName,
   });
+}
+
+/**
+ * Saves the notice's PDF to a folder the user picks on the device (e.g. Downloads on Android,
+ * a Files location on iOS). Resolves to the saved file name, or null if the user cancelled the folder picker.
+ */
+export async function savePdfToDevice(id: string): Promise<string | null> {
+  const { blob, fileName } = await getNoticePdf(id);
+  const bytes = new Uint8Array(blob);
+
+  let directory: Directory;
+  try {
+    directory = await Directory.pickDirectoryAsync();
+  } catch {
+    // The picker rejects when the user backs out; nothing was chosen, so there is nothing to report.
+    return null;
+  }
+
+  const name = sanitizeFileName(fileName);
+  const target = directory.createFile(name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`, 'application/pdf');
+  target.write(bytes);
+  return target.name;
 }

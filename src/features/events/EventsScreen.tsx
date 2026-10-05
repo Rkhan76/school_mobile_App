@@ -7,7 +7,7 @@ import { File, Paths } from 'expo-file-system';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { ApiError } from '../../lib/apiClient';
 import { getEventsPdf } from './api';
@@ -298,7 +298,7 @@ export function EventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 12, paddingBottom: 4 },
   segment: {
     flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: colors.mint, gap: 4,
@@ -333,4 +333,4 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', shadowColor: colors.primaryDarkest, shadowOpacity: 0.3,
     shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
-});
+}));

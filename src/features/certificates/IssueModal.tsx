@@ -6,11 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { ApiError } from '../../lib/apiClient';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { getAcademicYearsMaster } from '../common/api';
 import type { AcademicYearLean } from '../common/types';
 import { lookupNonTeachingStaff, lookupStudents, lookupTeachers, type IssueCertificateInput } from './api';
 import { RECIPIENT_TYPES, RECIPIENT_TYPE_LABEL, inputToIso, isoToInput, todayIso, type RecipientType } from './types';
+import { DateInput } from '../../components/ui/DateInput';
 
 type Props = { visible: boolean; onSubmit: (input: IssueCertificateInput) => Promise<void>; onClose: () => void };
 type Errors = Partial<Record<'recipient' | 'title' | 'issueDate', string>>;
@@ -85,6 +86,12 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
   useEffect(() => {
     if (!visible || !PICKER_BACKED.includes(recipientKind)) return;
     const myRequest = ++requestId.current;
+    // Nothing typed -> no dropdown and no lookup; results only exist while the user is searching.
+    if (!debouncedQuery.trim()) {
+      setOptions([]);
+      setSearching(false);
+      return;
+    }
     setSearching(true);
     lookup(recipientKind, debouncedQuery)
       .then((rows) => {
@@ -101,6 +108,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
 
   const pickRecipientKind = (k: RecipientType) => {
     setRecipientKind(k);
+    setQuery('');
     setRecipient(null);
     setDriverRecipientId('');
     setQuery('');
@@ -164,15 +172,25 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
 
           {isPickerBacked ? (
             <>
-              <View style={styles.searchField}>
+              <View style={[styles.searchField, !!errors.recipient && !recipient && styles.inputErr]}>
                 <Ionicons name="search-outline" size={18} color={colors.textHint} />
                 <TextInput
                   value={query} onChangeText={setQuery}
                   placeholder={`Search ${RECIPIENT_TYPE_LABEL[recipientKind].toLowerCase()}s...`}
                   placeholderTextColor={colors.textHint} style={styles.searchInput} autoCorrect={false}
                 />
-                {searching ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+                {searching && query.trim() ? <ActivityIndicator size="small" color={colors.primary} /> : null}
               </View>
+              {recipient ? (
+                <View style={styles.selected}>
+                  <Avatar name={recipient.label} size={32} />
+                  <Text style={styles.selectedName} numberOfLines={1}>{recipient.label}</Text>
+                  <Pressable onPress={() => setRecipient(null)} hitSlop={8} accessibilityLabel="Remove selected recipient">
+                    <Ionicons name="close-circle" size={22} color={colors.textHint} />
+                  </Pressable>
+                </View>
+              ) : null}
+              {query.trim() ? (
               <View style={[styles.list, !!errors.recipient && styles.inputErr]}>
                 {options.length === 0 ? (
                   <Text style={styles.none}>{searching ? 'Searching...' : 'No matches found.'}</Text>
@@ -181,7 +199,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
                     {options.map((r) => {
                       const on = recipient?.id === r.id;
                       return (
-                        <Pressable key={r.id} onPress={() => setRecipient(r)} style={[styles.row, on && styles.rowOn]}>
+                        <Pressable key={r.id} onPress={() => { setRecipient(r); setQuery(''); }} style={[styles.row, on && styles.rowOn]}>
                           <Avatar name={r.label} size={32} />
                           <View style={styles.rowText}>
                             <Text style={styles.rowName}>{r.label}</Text>
@@ -193,6 +211,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
                   </ScrollView>
                 )}
               </View>
+              ) : null}
             </>
           ) : (
             <>
@@ -223,9 +242,8 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
           />
 
           <Text style={styles.label}>Issue date</Text>
-          <TextInput
-            value={date} onChangeText={setDate} placeholder="DD/MM/YYYY" placeholderTextColor={colors.textHint}
-            keyboardType="numbers-and-punctuation" style={[styles.input, !!errors.issueDate && styles.inputErr]}
+          <DateInput
+            value={date} onChangeText={setDate} placeholder="dd/mm/yyyy" style={[styles.input, !!errors.issueDate && styles.inputErr]}
           />
           {errors.issueDate ? <Text style={styles.err}>{errors.issueDate}</Text> : null}
 
@@ -277,7 +295,7 @@ export function IssueModal({ visible, onSubmit, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
@@ -314,6 +332,11 @@ const styles = StyleSheet.create({
   rowOn: { backgroundColor: colors.mintSoft },
   rowText: { flex: 1 },
   rowName: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
+  selected: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.mintSoft,
+  },
+  selectedName: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   none: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, padding: 14, textAlign: 'center' },
   actions: {
     flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10,
@@ -325,4 +348,4 @@ const styles = StyleSheet.create({
   save: { backgroundColor: colors.primary },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
   off: { opacity: 0.6 },
-});
+}));

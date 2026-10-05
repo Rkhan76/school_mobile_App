@@ -1,7 +1,7 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 export type Option = { value: string; label: string };
 
@@ -42,7 +42,7 @@ export function OptionSheet({ visible, title, allLabel, options, value, onSelect
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -58,4 +58,4 @@ const styles = StyleSheet.create({
   rowActive: { backgroundColor: colors.mintSoft },
   rowText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   rowTextActive: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
-});
+}));

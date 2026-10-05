@@ -8,6 +8,8 @@ export interface UseStudentsParams {
   search?: string;
   classId?: string;
   sectionId?: string;
+  /** Show the blocked list instead of the active one. */
+  blocked?: boolean;
 }
 
 /** List row + a client-side-only optimistic status, since /students/list doesn't return enrollmentStatus. */
@@ -33,7 +35,7 @@ const EMPTY_STATS: StudentStats = { total: 0, male: 0, female: 0, withPortalAcce
  * Resets to page 1 whenever search/classId/sectionId changes.
  */
 export function useStudents(params: UseStudentsParams): UseStudentsResult {
-  const { search, classId, sectionId } = params;
+  const { search, classId, sectionId, blocked } = params;
 
   const [rows, setRows] = useState<StudentListItem[]>([]);
   const [statusOverrides, setStatusOverrides] = useState<Record<string, 'active' | 'inactive'>>({});
@@ -62,6 +64,7 @@ export function useStudents(params: UseStudentsParams): UseStudentsResult {
           classId,
           sectionId,
           search,
+          blocked,
         });
         if (myRequest !== requestId.current) return;
         setRows((prev) => (replace ? result.data : [...prev, ...result.data]));
@@ -80,7 +83,7 @@ export function useStudents(params: UseStudentsParams): UseStudentsResult {
         }
       }
     },
-    [classId, sectionId, search],
+    [classId, sectionId, search, blocked],
   );
 
   const refetch = useCallback(() => {
@@ -93,7 +96,7 @@ export function useStudents(params: UseStudentsParams): UseStudentsResult {
     // Reset per-row local status overrides whenever the underlying query changes.
     setStatusOverrides({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, classId, sectionId]);
+  }, [search, classId, sectionId, blocked]);
 
   useEffect(() => {
     fetchStats();

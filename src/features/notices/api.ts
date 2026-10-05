@@ -3,6 +3,15 @@ import { ApiError, apiRequest, getAccessToken } from '../../lib/apiClient';
 import type { PaginatedResult } from '../common/types';
 import type { Notice, NoticeInput, NoticeListParams } from './types';
 
+/** The backend returns createdBy as { id, firstName, lastName, role }; the UI works with a single fullName. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeNotice(raw: any): Notice {
+  const by = raw?.createdBy;
+  if (!by || typeof by !== 'object') return { ...raw, createdBy: null };
+  const fullName = by.fullName ?? [by.firstName, by.lastName].filter(Boolean).join(' ').trim();
+  return { ...raw, createdBy: { id: by.id, fullName: fullName || '—', role: by.role } };
+}
+
 export async function listNotices(params: NoticeListParams = {}): Promise<PaginatedResult<Notice>> {
   const query = new URLSearchParams();
   if (params.page !== undefined) query.set('page', String(params.page));
@@ -14,20 +23,21 @@ export async function listNotices(params: NoticeListParams = {}): Promise<Pagina
   if (params.activeOnly !== undefined) query.set('activeOnly', String(params.activeOnly));
 
   const qs = query.toString();
-  return apiRequest<PaginatedResult<Notice>>(`/notices${qs ? `?${qs}` : ''}`);
+  const result = await apiRequest<PaginatedResult<Notice>>(`/notices${qs ? `?${qs}` : ''}`);
+  return { ...result, data: result.data.map(normalizeNotice) };
 }
 
 /** 404 when the notice is outside the caller's audience/window scope — existence isn't revealed. */
 export async function getNotice(id: string): Promise<Notice> {
-  return apiRequest<Notice>(`/notices/${id}`);
+  return normalizeNotice(await apiRequest<Notice>(`/notices/${id}`));
 }
 
 export async function createNotice(payload: NoticeInput): Promise<Notice> {
-  return apiRequest<Notice>('/notices', { method: 'POST', body: payload });
+  return normalizeNotice(await apiRequest<Notice>('/notices', { method: 'POST', body: payload }));
 }
 
 export async function updateNotice(id: string, payload: Partial<NoticeInput>): Promise<Notice> {
-  return apiRequest<Notice>(`/notices/${id}`, { method: 'PATCH', body: payload });
+  return normalizeNotice(await apiRequest<Notice>(`/notices/${id}`, { method: 'PATCH', body: payload }));
 }
 
 /** Soft-delete — 204 on success. */

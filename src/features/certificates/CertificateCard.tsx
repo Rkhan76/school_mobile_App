@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { RECIPIENT_TYPE_LABEL, formatDate, type Certificate } from './types';
 
 type Props = {
@@ -71,7 +71,7 @@ function CertificateCardBase({ item, canRevoke, onView, onRevoke }: Props) {
 
 export const CertificateCard = memo(CertificateCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   refPill: { backgroundColor: colors.mint, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
@@ -95,4 +95,4 @@ const styles = StyleSheet.create({
   revoke: { backgroundColor: colors.dangerBg },
   revokeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.danger },
   off: { opacity: 0.4 },
-});
+}));

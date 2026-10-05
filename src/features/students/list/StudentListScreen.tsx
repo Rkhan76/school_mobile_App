@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { SearchBar } from '../../../components/ui/SearchBar';
 import { AppBar } from '../../dashboard/AppBar';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import { useSession } from '../../auth/session';
 import { useStudents, type StudentRow } from '../useStudents';
 import { StatsGrid } from './StatsGrid';
@@ -56,9 +56,10 @@ export function StudentListScreen() {
   const [filters, setFilters] = useState<StudentFilters>({});
   const [sheetOpen, setSheetOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
 
   const { data, isLoading, isLoadingMore, hasMore, loadMore, refetch, stats, toggleStatus, toggleBlock } = useStudents({
-    search, classId: filters.classId, sectionId: filters.sectionId,
+    search, classId: filters.classId, sectionId: filters.sectionId, blocked: showBlocked,
   });
 
   useEffect(() => {
@@ -85,23 +86,26 @@ export function StudentListScreen() {
   );
   const onBlock = useCallback(
     (id: string) => {
+      const verb = showBlocked ? 'Unblock' : 'Block';
       Alert.alert(
-        'Block student',
-        'This will deactivate the student record and revoke their portal login (and their guardians’ access to it). Continue?',
+        `${verb} student`,
+        showBlocked
+          ? 'This will restore the student record and their portal login. Continue?'
+          : 'This will deactivate the student record and revoke their portal login (and their guardians’ access to it). Continue?',
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Block',
-            style: 'destructive',
+            text: verb,
+            style: showBlocked ? 'default' : 'destructive',
             onPress: async () => {
               const ok = await toggleBlock(id);
-              if (!ok) Alert.alert('Something went wrong', 'Could not block this student. Please try again.');
+              if (!ok) Alert.alert('Something went wrong', `Could not ${verb.toLowerCase()} this student. Please try again.`);
             },
           },
         ],
       );
     },
-    [toggleBlock],
+    [toggleBlock, showBlocked],
   );
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -117,9 +121,10 @@ export function StudentListScreen() {
         onToggleBlock={onBlock}
         canToggleStatus={canToggleStatus}
         canToggleBlock={canToggleBlock}
+        blocked={showBlocked}
       />
     ),
-    [onView, onToggle, onBlock, canToggleStatus, canToggleBlock],
+    [onView, onToggle, onBlock, canToggleStatus, canToggleBlock, showBlocked],
   );
 
   const showSkeleton = isLoading && !refreshing;
@@ -135,6 +140,21 @@ export function StudentListScreen() {
         </Pressable>
       </View>
       <StatsGrid stats={stats} />
+      <View style={styles.segment}>
+        {([false, true] as const).map((isBlocked) => (
+          <Pressable
+            key={String(isBlocked)}
+            style={[styles.segmentItem, showBlocked === isBlocked && styles.segmentItemActive]}
+            onPress={() => setShowBlocked(isBlocked)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: showBlocked === isBlocked }}
+          >
+            <Text style={[styles.segmentText, showBlocked === isBlocked && styles.segmentTextActive]}>
+              {isBlocked ? 'Blocked' : 'Active'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
       <View style={styles.searchRow}>
         <View style={{ flex: 1 }}>
           <SearchBar
@@ -176,7 +196,7 @@ export function StudentListScreen() {
           ) : (
             <View style={styles.empty}>
               <Ionicons name="school-outline" size={40} color={colors.textHint} />
-              <Text style={styles.emptyText}>No students found</Text>
+              <Text style={styles.emptyText}>{showBlocked ? 'No blocked students' : 'No students found'}</Text>
             </View>
           )
         }
@@ -213,7 +233,7 @@ export function StudentListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { gap: 14, marginBottom: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   title: { fontFamily: fonts.heading, fontSize: 24, color: colors.text },
@@ -222,6 +242,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
   },
   refreshText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
+  segment: {
+    flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: colors.cardSolid,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  segmentItem: { flex: 1, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
+  segmentItemActive: { backgroundColor: colors.primary },
+  segmentText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
+  segmentTextActive: { color: colors.white },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   export: {
     width: 48, height: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center',
@@ -237,4 +265,4 @@ const styles = StyleSheet.create({
   skelRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   skelAvatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.mint },
   bar: { borderRadius: 6, backgroundColor: colors.mint },
-});
+}));

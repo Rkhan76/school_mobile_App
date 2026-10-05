@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,16 +10,19 @@ import { Card } from '../../../components/ui/Card';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ApiError } from '../../../lib/apiClient';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { formatDate as sharedFormatDate, formatDateTime as sharedFormatDateTime } from '../../../lib/date';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { useSession } from '../../auth/session';
 import { approveAdmission, cancelAdmission, deleteAdmission, getAdmission, rejectAdmission } from '../api';
 import { RejectModal } from '../RejectModal';
 import type { AdmissionDetail, AdmissionStatus, GuardianBlock } from '../types';
+import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
 type Tone = 'success' | 'danger' | 'warning' | 'neutral' | 'primary';
 
 const STATUS: Record<AdmissionStatus, { label: string; tone: Tone }> = {
   pending: { label: 'Pending', tone: 'warning' },
+  approved: { label: 'Approved', tone: 'primary' },
   enrolled: { label: 'Enrolled', tone: 'success' },
   rejected: { label: 'Rejected', tone: 'danger' },
   cancelled: { label: 'Cancelled', tone: 'neutral' },
@@ -29,17 +32,11 @@ type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Busy = 'approve' | 'reject' | 'cancel' | 'delete' | null;
 
 function formatDate(value?: string | null): string | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return value ? sharedFormatDate(value) : undefined;
 }
 
 function formatDateTime(value?: string | null): string | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return value ? sharedFormatDateTime(value) : undefined;
 }
 
 function isBlank(v: unknown): boolean {
@@ -142,15 +139,24 @@ function GuardianSection({ role, title, block, isPrimary }: {
       }
     >
       <View style={styles.guardianTop}>
-        <Avatar name={guardianLabel(block, role)} size={44} />
+        {block.photo ? (
+          <Image source={{ uri: block.photo }} style={styles.guardianPhoto} />
+        ) : (
+          <Avatar name={guardianLabel(block, role)} size={44} />
+        )}
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.guardianName} numberOfLines={1}>{guardianLabel(block, role)}</Text>
           {block.occupation ? <Text style={styles.guardianOcc} numberOfLines={1}>{block.occupation}</Text> : null}
         </View>
       </View>
-      <Row label="Phone" value={block.phone} />
+      <Row label="Relation" value={block.relation} />
+      <Row label="Phone" value={block.phone ?? block.mobileNumber} />
       <Row label="Email" value={block.email} />
       <Row label="Aadhar Number" value={block.aadharNumber} />
+      <Row label="Address" value={block.address} />
+      {block.isLinkedGuardian ? (
+        <Text style={styles.linkedNote}>These details come from the guardian’s profile. Edit them there.</Text>
+      ) : null}
     </Section>
   );
 }
@@ -320,24 +326,32 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
   }
 
   const st = STATUS[data.status];
-  const name = data.personalInfo.fullName || 'Admission';
+  // Some records come back without personalInfo; render them with blanks instead of crashing.
+  const personal: Partial<AdmissionDetail['personalInfo']> = data.personalInfo ?? {};
+  const name = personal.fullName || 'Admission';
   const subtitle = data.status === 'enrolled' ? data.admissionNumber ?? data.applicationNumber : data.applicationNumber;
   const rollNumber = data.rollNumber ?? data.academicInfo?.rollNumber;
 
   const primaryGuardian = data.parentGuardianInfo?.primaryGuardian === 'other' ? 'guardian' : data.parentGuardianInfo?.primaryGuardian;
 
   const personalRows: { label: string; value?: string | null }[] = [
-    { label: 'Gender', value: data.personalInfo.gender },
-    { label: 'Date of Birth', value: formatDate(data.personalInfo.dateOfBirth) },
-    { label: 'Category', value: data.personalInfo.category },
-    { label: 'Subcategory', value: data.personalInfo.subcategory },
-    { label: 'Religion', value: data.personalInfo.religion },
-    { label: 'Phone', value: data.personalInfo.phone },
-    { label: 'Email', value: data.personalInfo.email },
-    { label: 'Aadhar Number', value: data.personalInfo.aadharNumber },
+    { label: 'Gender', value: personal.gender },
+    { label: 'Date of Birth', value: formatDate(personal.dateOfBirth) },
+    { label: 'Category', value: personal.category },
+    { label: 'Subcategory', value: personal.subcategory },
+    { label: 'Religion', value: personal.religion },
+    { label: 'Phone', value: personal.phone },
+    { label: 'Email', value: personal.email },
+    { label: 'Aadhar Number', value: personal.aadharNumber },
   ];
 
-  const documents = data.documents ?? [];
+  // Uploaded student documents (aadhar / TC / birth certificate) are listed with the supporting documents.
+  const imageDocs = [
+    { documentName: 'Aadhar Card', file: data.aadharImage },
+    { documentName: 'Transfer Certificate', file: data.tcImage },
+    { documentName: 'Birth Certificate', file: data.birthCertificateImage },
+  ].filter((d) => !!d.file);
+  const documents = [...imageDocs, ...(data.documents ?? [])];
 
   return (
     <ScreenBackground>
@@ -348,7 +362,11 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
       >
         <Card style={styles.profileCard}>
           <View style={styles.profileTop}>
-            <Avatar name={name} size={64} />
+            {data.profileImage ? (
+              <Image source={{ uri: data.profileImage }} style={styles.profilePhoto} />
+            ) : (
+              <Avatar name={name} size={64} />
+            )}
             <View style={{ flex: 1, gap: 6 }}>
               <Text style={styles.name} numberOfLines={1}>{name}</Text>
               <View style={styles.badgeRow}>
@@ -372,8 +390,15 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
             </View>
           ) : null}
 
+          {(data.status === 'approved' || data.status === 'enrolled') && data.approvedAt ? (
+            <View style={[styles.noticeBox, { backgroundColor: colors.successBg }]}>
+              <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
+              <Text style={styles.noticeSub}>Approved on {formatDateTime(data.approvedAt)}</Text>
+            </View>
+          ) : null}
+
           {data.status === 'cancelled' && data.cancelledAt ? (
-            <View style={[styles.noticeBox, { backgroundColor: '#eef2f1' }]}>
+            <View style={[styles.noticeBox, { backgroundColor: colors.neutralBg }]}>
               <Ionicons name="ban-outline" size={16} color={colors.textSecondary} />
               <Text style={styles.noticeSub}>Cancelled on {formatDateTime(data.cancelledAt)}</Text>
             </View>
@@ -458,7 +483,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
       </ScrollView>
 
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + 10 }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionRow}>
+        <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionRow}>
           {data.status === 'pending' && can('admission.application.update') && (
             <ActionButton icon="create-outline" label="Edit" tone="neutral" onPress={() => router.push(`/admissions/${id}/edit`)} disabled={busy !== null} />
           )}
@@ -487,7 +512,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   centeredWrap: { flex: 1, paddingHorizontal: 16, justifyContent: 'center' },
@@ -498,6 +523,9 @@ const styles = StyleSheet.create({
   retryText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
 
   profileCard: { gap: 12 },
+  profilePhoto: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.mint },
+  guardianPhoto: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.mint },
+  linkedNote: { fontFamily: fonts.body, fontSize: 11.5, color: colors.textSecondary, marginTop: 4 },
   profileTop: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   name: { fontFamily: fonts.headingExtra, fontSize: 20, color: colors.text },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
@@ -526,9 +554,9 @@ const styles = StyleSheet.create({
 
   freeText: { fontFamily: fonts.body, fontSize: 13.5, color: colors.text, lineHeight: 20 },
 
-  actionBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 10, backgroundColor: 'rgba(241,251,249,0.96)', borderTopWidth: 1, borderTopColor: colors.border, ...shadow.card },
+  actionBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 10, backgroundColor: colors.backgroundGlass, borderTopWidth: 1, borderTopColor: colors.border, ...shadow.card },
   actionRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 16, borderRadius: radius.lg },
   actionBtnDisabled: { opacity: 0.5 },
   actionBtnText: { fontFamily: fonts.bodySemi, fontSize: 13.5 },
-});
+}));

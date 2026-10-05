@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 interface Props {
   title: string;
@@ -28,11 +28,11 @@ export function SectionHeader({ title, pill, action, onActionPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   left: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontFamily: fonts.heading, fontSize: 17, color: colors.text },
   pill: { backgroundColor: colors.mint, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
   pillText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.primaryDeep },
   action: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primary },
-});
+}));

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { ApiError } from '../../lib/apiClient';
 import { useSession } from '../auth/session';
 import { getDownloadLink } from './api';
@@ -145,7 +145,7 @@ export function ReviewTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   count: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   itemWrap: { paddingHorizontal: 16 },
@@ -169,4 +169,4 @@ const styles = StyleSheet.create({
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   sBtn: { flex: 1, height: 46, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   sText: { fontFamily: fonts.bodySemi },
-});
+}));

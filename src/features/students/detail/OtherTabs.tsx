@@ -1,7 +1,7 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../../components/ui/Badge';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import { CheckInCard } from './CheckInCard';
 import { DocumentsCard } from './DocumentsCard';
 import { downloadReceipt, InvoiceRow } from './FeeInvoiceCard';
@@ -151,11 +151,11 @@ export function ReportsTab({ s }: { s: StudentDetail }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 2 },
   lineText: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text },
   two: { flexDirection: 'row', gap: 12 },
   report: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.mintSoft, borderRadius: radius.md, padding: 12 },
   range: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: colors.mint, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   rangeText: { fontFamily: fonts.monoMedium, fontSize: 10.5, color: colors.primaryDeep },
-});
+}));

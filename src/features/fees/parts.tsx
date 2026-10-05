@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -26,7 +27,7 @@ export function BottomSheet({
   );
 }
 
-const sheet = StyleSheet.create({
+const sheet = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'flex-end' },
   box: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -34,7 +35,7 @@ const sheet = StyleSheet.create({
   },
   grab: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
-});
+}));
 
 /* ------------------------------ OptionSheet ------------------------------ */
 
@@ -88,7 +89,7 @@ export function OptionSheet({ visible, title, allLabel, options, value, searchab
   );
 }
 
-const opt = StyleSheet.create({
+const opt = themed(() => StyleSheet.create({
   search: {
     flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 12,
     borderRadius: radius.md, backgroundColor: colors.mintSoft, borderWidth: 1, borderColor: colors.border,
@@ -100,7 +101,7 @@ const opt = StyleSheet.create({
   textActive: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   sub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 1 },
   none: { textAlign: 'center', paddingVertical: 24, fontFamily: fonts.body, color: colors.textSecondary },
-});
+}));
 
 /* ------------------------------ Form pieces ------------------------------ */
 
@@ -140,7 +141,19 @@ export function TextField({
   );
 }
 
-export const form = StyleSheet.create({
+export function DateField({
+  label, error, ...rest
+}: { label?: string; error?: string } & ComponentProps<typeof DateInput>) {
+  return (
+    <View style={{ gap: 4 }}>
+      {label ? <Text style={form.label}>{label}</Text> : null}
+      <DateInput {...rest} style={[form.input, !!error && form.inputErr, rest.style]} />
+      {error ? <Text style={form.err}>{error}</Text> : null}
+    </View>
+  );
+}
+
+export const form = themed(() => StyleSheet.create({
   label: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary },
   input: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 12, height: 46,
@@ -150,7 +163,7 @@ export const form = StyleSheet.create({
   pick: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pickText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   err: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
-});
+}));
 
 export function Button({
   label, onPress, icon, variant = 'primary', disabled, flex,
@@ -168,10 +181,10 @@ export function Button({
   );
 }
 
-const btn = StyleSheet.create({
+const btn = themed(() => StyleSheet.create({
   base: { height: 46, paddingHorizontal: 16, borderRadius: radius.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   text: { fontFamily: fonts.bodySemi, fontSize: 14 },
-});
+}));
 
 export function Checkbox({ checked }: { checked: boolean }) {
   return (
@@ -181,10 +194,10 @@ export function Checkbox({ checked }: { checked: boolean }) {
   );
 }
 
-const cb = StyleSheet.create({
+const cb = themed(() => StyleSheet.create({
   box: { width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, borderColor: colors.textHint, alignItems: 'center', justifyContent: 'center' },
   on: { backgroundColor: colors.primary, borderColor: colors.primary },
-});
+}));
 
 /* --------------------------- Lists: states etc. --------------------------- */
 
@@ -233,15 +246,15 @@ export function Row({ label, value, mono, tone }: { label: string; value: string
   );
 }
 
-const pg = StyleSheet.create({
+const pg = themed(() => StyleSheet.create({
   wrap: { alignItems: 'center', gap: 10, paddingVertical: 12 },
   info: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   btn: { width: 40, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.mint },
   page: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
-});
+}));
 
-const misc = StyleSheet.create({
+const misc = themed(() => StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48, gap: 6 },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
@@ -249,4 +262,4 @@ const misc = StyleSheet.create({
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   k: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   v: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, flexShrink: 1, textAlign: 'right' },
-});
+}));

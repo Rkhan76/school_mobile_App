@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
+import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -17,7 +18,7 @@ export const CLASS_TABS: { key: ClassTabKey; label: string; icon: IconName }[] =
 
 export function TabChips({ active, onChange }: { active: ClassTabKey; onChange: (k: ClassTabKey) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {CLASS_TABS.map((t) => {
         const on = t.key === active;
         return (
@@ -33,7 +34,7 @@ export function TabChips({ active, onChange }: { active: ClassTabKey; onChange: 
 
 export function SectionChips({ sections, activeId, onChange }: { sections: { id: string; name: string }[]; activeId: string; onChange: (id: string) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {sections.map((s) => {
         const on = s.id === activeId;
         return (
@@ -46,11 +47,11 @@ export function SectionChips({ sections, activeId, onChange }: { sections: { id:
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { gap: 8, paddingHorizontal: 16 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
   chipOn: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   text: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
   sec: { height: 34, paddingHorizontal: 16, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.mint },
   secText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primaryDeep },
-});
+}));

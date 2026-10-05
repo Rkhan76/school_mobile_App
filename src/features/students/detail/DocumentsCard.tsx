@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../../components/ui/Badge';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { StudentDocument } from './studentDetail';
 import { SectionCard } from './ui';
 
@@ -26,8 +26,8 @@ export function DocumentsCard({ docs, title = 'Mandatory Documents' }: { docs: S
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   count: { fontFamily: fonts.mono, fontSize: 12, color: colors.textSecondary },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.mintSoft, borderRadius: radius.md, paddingHorizontal: 12, height: 46 },
   name: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
-});
+}));

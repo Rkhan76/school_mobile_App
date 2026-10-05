@@ -3,7 +3,7 @@ import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { DateBar, type DateCtl } from './DateBar';
 import { confirmDiscard, useDebounced } from './guards';
 import { buildHistory, STAFF_CATEGORIES, STAFF_STATUSES, type StaffCategory, type StaffMember } from './mockAttendance';
@@ -11,6 +11,7 @@ import { ActionButton, EmptyState, HistorySheet, ListSkeleton, STATUS_META, coun
 import { StaffCard } from './RosterCards';
 import { SaveBar, useSaveFlow } from './SaveBar';
 import { useStaffRoster } from './useRoster';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type Props = { ctl: DateCtl; onDirtyChange: (d: boolean) => void };
 type Filter = 'All' | 'Teaching' | 'Non-teaching' | StaffCategory;
@@ -74,7 +75,7 @@ export function StaffTab({ ctl, onDirtyChange }: Props) {
           }
         />
       </Card>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {FILTERS.map((f) => {
           const on = f === filter;
           return (
@@ -132,7 +133,7 @@ function Tile(props: Omit<React.ComponentProps<typeof StatTile>, 'value'> & { va
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 190, paddingTop: 4 },
   header: { gap: 12, marginBottom: 12 },
@@ -145,4 +146,4 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
-});
+}));

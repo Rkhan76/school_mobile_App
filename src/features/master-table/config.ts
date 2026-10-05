@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react';
 import type { Ionicons } from '@expo/vector-icons';
+import { formatDate, parseDisplayDate, toDisplayDate } from '../../lib/date';
 import type { Draft, MasterEntityMap, TabKey } from './types';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -43,26 +44,6 @@ const numOrUndef = (v: FormValues, k: string): number | undefined => {
   return s === '' ? undefined : Number(s);
 };
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/** Parses an ISO YYYY-MM-DD date (the API's format) into a timestamp, or null when invalid. */
-export function parseDate(s: string): number | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (!m) return null;
-  const y = Number(m[1]);
-  const mo = Number(m[2]);
-  const d = Number(m[3]);
-  const dt = new Date(y, mo - 1, d);
-  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
-  return dt.getTime();
-}
-
-/** YYYY-MM-DD -> "01 Apr 2026". */
-export function formatDate(s: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  return m ? `${m[3]} ${MONTHS[Number(m[2]) - 1] ?? m[2]} ${m[1]}` : s;
-}
-
 function parseTime(s: string): number | null {
   const m = /^(\d{2}):(\d{2})$/.exec(s);
   if (!m) return null;
@@ -79,27 +60,27 @@ const academicYears: TabConfig<'academicYears'> = {
   searchPlaceholder: 'Search Academic Year...',
   fields: [
     { key: 'label', label: 'Academic Year', kind: 'text', placeholder: 'e.g. 2027-2028' },
-    { key: 'startDate', label: 'Start Date', kind: 'date', placeholder: 'YYYY-MM-DD' },
-    { key: 'endDate', label: 'End Date', kind: 'date', placeholder: 'YYYY-MM-DD' },
+    { key: 'startDate', label: 'Start Date', kind: 'date', placeholder: 'dd/mm/yyyy' },
+    { key: 'endDate', label: 'End Date', kind: 'date', placeholder: 'dd/mm/yyyy' },
   ],
   // No isActive field here on purpose — switching the active year is routed through the
   // dedicated "Set Active" action (canSetActive/setActive below), never a raw PATCH.
   emptyValues: { label: '', startDate: '', endDate: '' },
-  toValues: (e) => ({ label: e.label, startDate: e.startDate, endDate: e.endDate }),
+  toValues: (e) => ({ label: e.label, startDate: toDisplayDate(e.startDate), endDate: toDisplayDate(e.endDate) }),
   validate: (v) => {
     const err: Record<string, string> = {};
     if (!/^\d{4}-\d{4}$/.test(str(v, 'label'))) err.label = 'Enter the academic year as YYYY-YYYY, e.g. 2027-2028.';
-    const s = parseDate(str(v, 'startDate'));
-    const e = parseDate(str(v, 'endDate'));
-    if (s === null) err.startDate = 'Enter a valid date as YYYY-MM-DD.';
-    if (e === null) err.endDate = 'Enter a valid date as YYYY-MM-DD.';
+    const s = parseDisplayDate(str(v, 'startDate'));
+    const e = parseDisplayDate(str(v, 'endDate'));
+    if (s === null) err.startDate = 'Enter a valid date as dd/mm/yyyy.';
+    if (e === null) err.endDate = 'Enter a valid date as dd/mm/yyyy.';
     if (s !== null && e !== null && e <= s) err.endDate = 'End date must be after start date.';
     return err;
   },
   toDraft: (v) => ({
     label: str(v, 'label'),
-    startDate: str(v, 'startDate'),
-    endDate: str(v, 'endDate'),
+    startDate: parseDisplayDate(str(v, 'startDate')) ?? str(v, 'startDate'),
+    endDate: parseDisplayDate(str(v, 'endDate')) ?? str(v, 'endDate'),
   }),
   view: (e) => ({
     title: e.label,

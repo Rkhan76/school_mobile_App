@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { StudentRow } from '../useStudents';
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
   onToggleBlock: (id: string) => void;
   canToggleStatus: boolean;
   canToggleBlock: boolean;
+  /** Card is shown in the blocked list: only Unblock is offered. */
+  blocked?: boolean;
 }
 
 function InfoItem({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }) {
@@ -25,7 +27,7 @@ function InfoItem({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>[
   );
 }
 
-function StudentCardBase({ student: s, onView, onToggleStatus, onToggleBlock, canToggleStatus, canToggleBlock }: Props) {
+function StudentCardBase({ student: s, onView, onToggleStatus, onToggleBlock, canToggleStatus, canToggleBlock, blocked }: Props) {
   const active = s.status === 'active';
   return (
     <Card style={styles.card}>
@@ -34,7 +36,11 @@ function StudentCardBase({ student: s, onView, onToggleStatus, onToggleBlock, ca
           <View style={styles.pill}>
             <Text style={styles.pillText}>{s.admissionNumber}</Text>
           </View>
-          <Badge label={active ? 'Active' : 'Inactive'} tone={active ? 'success' : 'neutral'} />
+          {blocked ? (
+            <Badge label="Blocked" tone="danger" />
+          ) : (
+            <Badge label={active ? 'Active' : 'Inactive'} tone={active ? 'success' : 'neutral'} />
+          )}
         </View>
         <View style={styles.identity}>
           <Avatar name={s.fullName} size={46} />
@@ -47,10 +53,18 @@ function StudentCardBase({ student: s, onView, onToggleStatus, onToggleBlock, ca
           <InfoItem icon="school-outline" text={`${s.class?.name ?? 'No class'} · Sec ${s.section?.name ?? '—'}`} />
         </View>
       </Pressable>
+      {blocked ? (
+        canToggleBlock ? (
+          <View style={styles.actions}>
+            <View style={styles.spacer} />
+            <Pressable style={styles.unblock} onPress={() => onToggleBlock(s.id)} accessibilityLabel="Unblock student">
+              <Ionicons name="lock-open-outline" size={16} color={colors.primaryDeep} />
+              <Text style={styles.unblockText}>Unblock</Text>
+            </Pressable>
+          </View>
+        ) : null
+      ) : (
       <View style={styles.actions}>
-        <Pressable style={styles.iconBtn} onPress={() => onView(s.id)} accessibilityLabel="View student">
-          <Ionicons name="eye-outline" size={18} color={colors.primaryDeep} />
-        </Pressable>
         <Pressable
           style={styles.iconBtn}
           onPress={() => Alert.alert('Edit student', 'Editing is coming soon.')}
@@ -78,13 +92,14 @@ function StudentCardBase({ student: s, onView, onToggleStatus, onToggleBlock, ca
           </Pressable>
         )}
       </View>
+      )}
     </Card>
   );
 }
 
 export const StudentCard = memo(StudentCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 14, gap: 12, borderRadius: radius.xl },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   pill: { backgroundColor: colors.mint, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.sm },
@@ -107,4 +122,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mintSoft,
   },
   danger: { backgroundColor: colors.dangerBg },
-});
+  unblock: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14,
+    borderRadius: radius.pill, backgroundColor: colors.mint,
+  },
+  unblockText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primaryDeep },
+}));

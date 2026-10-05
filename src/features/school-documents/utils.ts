@@ -1,10 +1,4 @@
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-
-/** ISO -> "30 Sept 2026" */
-export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  return `${String(d).padStart(2, '0')} ${MONTHS[m - 1]} ${y}`;
-}
+export { formatDate } from '../../lib/date';
 
 /** ISO -> "21/08/2026" */
 export function isoToInput(iso: string): string {

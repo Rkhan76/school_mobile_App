@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { StatTile } from '../../components/ui/StatTile';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { AppBar } from '../dashboard/AppBar';
 import { EditTeacherModal } from './EditTeacherModal';
@@ -236,7 +236,7 @@ export function TeacherDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { gap: 14 },
   pad: { paddingHorizontal: 16 },
   gap: { gap: 14 },
@@ -247,4 +247,4 @@ const styles = StyleSheet.create({
   nfText: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
   nfBtn: { marginTop: 8, backgroundColor: colors.primaryDeep, borderRadius: radius.pill, paddingHorizontal: 20, paddingVertical: 10 },
   nfBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
-});
+}));

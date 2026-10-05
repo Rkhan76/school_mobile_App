@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatShort } from './dateUtils';
 import type { AttendanceStatus } from './mockAttendance';
 
@@ -15,13 +15,13 @@ const CORRECTION_STATUSES: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LATE', 'E
 
 /* ------------------------------ status meta ------------------------------ */
 
-export const STATUS_META: Record<AttendanceStatus, { label: string; fg: string; bg: string }> = {
+export const STATUS_META = themed<Record<AttendanceStatus, { label: string; fg: string; bg: string }>>(() => ({
   PRESENT: { label: 'Present', fg: colors.success, bg: colors.successBg },
   ABSENT: { label: 'Absent', fg: colors.danger, bg: colors.dangerBg },
   LATE: { label: 'Late', fg: colors.warning, bg: colors.warningBg },
   EXCUSED: { label: 'Excused', fg: colors.purple, bg: '#f3e8ff' },
   LEAVE: { label: 'Leave', fg: colors.purple, bg: '#f3e8ff' },
-};
+}));
 
 export function countStatuses(rows: { status: AttendanceStatus | null }[]): Record<AttendanceStatus | 'NONE', number> {
   const out: Record<AttendanceStatus | 'NONE', number> = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0, LEAVE: 0, NONE: 0 };
@@ -69,7 +69,7 @@ export const StatusControl = memo(function StatusControl({ value, options, onCha
 export function StatusPill({ status }: { status: AttendanceStatus | null }) {
   if (!status) {
     return (
-      <View style={[styles.pill, { backgroundColor: '#eef2f1' }]}>
+      <View style={[styles.pill, { backgroundColor: colors.neutralBg }]}>
         <Text style={[styles.pillText, { color: colors.textSecondary }]}>Holiday</Text>
       </View>
     );
@@ -346,7 +346,7 @@ export function EmptyState({ icon, title, hint }: { icon: keyof typeof Ionicons.
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   segRow: { flexDirection: 'row', gap: 6 },
   seg: {
     flex: 1, height: 36, borderRadius: radius.pill, borderWidth: 1,
@@ -409,4 +409,4 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptyHint: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

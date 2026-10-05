@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { ActiveFilterChips, activeFilterCount } from './ActiveFilterChips';
 import { AuditDetailSheet } from './AuditDetailSheet';
 import { AuditFilterSheet } from './AuditFilterSheet';
@@ -126,7 +126,7 @@ export function AuditLogsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   itemWrap: { paddingHorizontal: 16 },
   filterBtn: {
@@ -145,4 +145,4 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
   },
-});
+}));

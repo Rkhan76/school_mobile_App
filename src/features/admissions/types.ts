@@ -1,8 +1,9 @@
-export type AdmissionStatus = 'pending' | 'rejected' | 'cancelled' | 'enrolled';
+export type AdmissionStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'enrolled';
 
 export type AdmissionListItem = {
   id: string;
-  fullName: string;
+  /** Can be null for an applicant saved without a name. */
+  fullName: string | null;
   email: string | null;
   admissionNumber: string; // this is the application number until enrolled, per the doc
   status: AdmissionStatus;
@@ -30,6 +31,13 @@ export type GuardianBlock = {
   occupation?: string;
   aadharNumber?: string;
   existingGuardianId?: string | null;
+  /** True when this parent/guardian is an existing guardian profile (details come from that live profile). */
+  isLinkedGuardian?: boolean;
+  photo?: string | null;
+  /** Guardian block only. */
+  relation?: string;
+  mobileNumber?: string;
+  address?: string;
 };
 
 export type AdmissionPayload = {
@@ -80,6 +88,12 @@ export type AdmissionDetail = AdmissionPayload & {
   userId?: string | null;
   rejectionReason?: string | null;
   rejectedAt?: string | null;
+  approvedAt?: string | null;
+  primaryGuardianSource?: 'father' | 'mother' | 'other' | null;
+  profileImage?: string | null;
+  aadharImage?: string | null;
+  tcImage?: string | null;
+  birthCertificateImage?: string | null;
   cancelledAt?: string | null;
   fatherInfo?: (GuardianBlock & { isLinkedGuardian?: boolean }) | null;
   motherInfo?: (GuardianBlock & { isLinkedGuardian?: boolean }) | null;

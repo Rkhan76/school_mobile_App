@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { ExamCard } from './ExamCard';
 import { DEFAULT_FILTERS, ExamFilterSheet } from './ExamFilterSheet';
@@ -143,7 +143,7 @@ export function ExamListTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   addBtn: {
     height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -164,4 +164,4 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   footerCount: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, paddingVertical: 14 },
-});
+}));

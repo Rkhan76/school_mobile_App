@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { dayKey, eventOnDay, MONTH_NAMES } from './dateUtils';
 import type { SchoolEvent } from './types';
 
@@ -116,7 +116,7 @@ export function MonthCalendar({ year, month, events, selected, onSelect, onMonth
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   nav: {
@@ -145,4 +145,4 @@ const styles = StyleSheet.create({
   numSel: { color: colors.white, fontFamily: fonts.bodySemi },
   dot: { width: 5, height: 5, borderRadius: 3 },
   dotHidden: { opacity: 0 },
-});
+}));

@@ -1,7 +1,7 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { BottomSheet, Button, Row } from './parts';
 import { formatDate, formatINR, statusTone, type Receipt } from './mockFees';
 
@@ -51,7 +51,7 @@ export function ReceiptSheet({ receipt: r, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   hero: { alignItems: 'center', gap: 4, paddingVertical: 6 },
   tick: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: fonts.heading, fontSize: 16, color: colors.text, marginTop: 4 },
@@ -61,4 +61,4 @@ const styles = StyleSheet.create({
   lineNo: { flex: 1, fontFamily: fonts.monoMedium, fontSize: 12, color: colors.text },
   lineAmt: { fontFamily: fonts.heading, fontSize: 13, color: colors.text, minWidth: 70, textAlign: 'right' },
   actions: { flexDirection: 'row', gap: 10 },
-});
+}));

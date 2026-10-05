@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 type Props = { onSend: (text: string) => void; onTyping?: () => void; disabled?: boolean };
 
@@ -67,7 +67,7 @@ export function ChatInput({ onSend, onTyping, disabled }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingTop: 8,
     backgroundColor: colors.cardSolid, borderTopWidth: 1, borderTopColor: colors.border,
@@ -85,4 +85,4 @@ const styles = StyleSheet.create({
   sendDisabled: { opacity: 0.4 },
   disabledBar: { alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
   disabledText: { fontFamily: fonts.body, fontSize: 12, color: colors.textHint },
-});
+}));

@@ -6,7 +6,7 @@ import * as Sharing from 'expo-sharing';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { Card } from '../../components/ui/Card';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { exportReport } from './api';
 import { activeFilterCount, FilterSheet } from './FilterSheet';
 import { isEmptyReport, ReportView } from './ReportView';
@@ -155,8 +155,9 @@ export function ReportsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  rowScroll: { flexGrow: 0, marginBottom: 8 },
+const styles = themed(() => StyleSheet.create({
+  // flexShrink 0: the vertical ScrollView below would otherwise squeeze these rows and clip the chips.
+  rowScroll: { flexGrow: 0, flexShrink: 0, marginBottom: 8 },
   row: { gap: 8, paddingHorizontal: 16 },
   chip: { height: 38, paddingHorizontal: 16, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
   chipSmall: { height: 32, paddingHorizontal: 12, backgroundColor: colors.mintSoft },
@@ -177,4 +178,4 @@ const styles = StyleSheet.create({
   exports: { flexDirection: 'row', gap: 10 },
   exportBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, borderRadius: radius.md, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
   exportText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
-});
+}));

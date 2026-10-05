@@ -5,7 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { OptionSheet } from './OptionSheet';
 import { formatDateLong, gradeFor, markError } from './types';
@@ -209,7 +209,7 @@ export function ExamResultsTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   picker: {
@@ -267,4 +267,4 @@ const styles = StyleSheet.create({
   },
   saveOff: { opacity: 0.45 },
   saveText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
-});
+}));

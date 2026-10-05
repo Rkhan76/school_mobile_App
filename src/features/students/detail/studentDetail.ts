@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../../lib/apiClient';
+import { formatDate } from '../../../lib/date';
 import {
   getStudent,
   getStudentBank,
@@ -124,7 +125,7 @@ export interface StudentDetail {
 const mockInvoice: StudentInvoice = {
   receiptNo: 'REC-2026-8812',
   title: 'Term 1 Tuition & Lab Fee',
-  paidOn: '15 Aug 2026',
+  paidOn: '15/08/2026',
   mode: 'UPI Netbanking',
   amount: 32500,
   status: 'SUCCESS',
@@ -142,11 +143,11 @@ const mockAttendance: StudentAttendance = {
   punctualityPct: 95.6,
   overallPct: 96.4,
   recent: [
-    { date: '02 Oct 2026', status: 'Present' },
-    { date: '01 Oct 2026', status: 'Present' },
-    { date: '30 Sep 2026', status: 'Absent' },
-    { date: '29 Sep 2026', status: 'Present' },
-    { date: '28 Sep 2026', status: 'Present' },
+    { date: '02/10/2026', status: 'Present' },
+    { date: '01/10/2026', status: 'Present' },
+    { date: '30/09/2026', status: 'Absent' },
+    { date: '29/09/2026', status: 'Present' },
+    { date: '28/09/2026', status: 'Present' },
   ],
 };
 
@@ -156,7 +157,7 @@ const mockFees: StudentFees = {
   latestInvoice: mockInvoice,
   history: [
     mockInvoice,
-    { ...mockInvoice, receiptNo: 'REC-2026-4120', title: 'Admission & Annual Fee', paidOn: '10 Jun 2026', mode: 'Card', amount: 32500 },
+    { ...mockInvoice, receiptNo: 'REC-2026-4120', title: 'Admission & Annual Fee', paidOn: '10/06/2026', mode: 'Card', amount: 32500 },
   ],
 };
 
@@ -167,9 +168,9 @@ const mockDocuments: StudentDocument[] = [
 ];
 
 const mockReports: StudentReport[] = [
-  { id: 'r1', type: 'Attendance', range: '01 Sep - 30 Sep 2026', generatedOn: '01 Oct 2026' },
-  { id: 'r2', type: 'Academic', range: 'Term 1 2026-27', generatedOn: '28 Sep 2026' },
-  { id: 'r3', type: 'Fees', range: 'Apr 2026 - Mar 2027', generatedOn: '15 Aug 2026' },
+  { id: 'r1', type: 'Attendance', range: '01/09/2026 - 30/09/2026', generatedOn: '01/10/2026' },
+  { id: 'r2', type: 'Academic', range: 'Term 1 2026-27', generatedOn: '28/09/2026' },
+  { id: 'r3', type: 'Fees', range: 'Apr 2026 - Mar 2027', generatedOn: '15/08/2026' },
 ];
 
 function calcAge(dob: string | null | undefined): number {
@@ -178,13 +179,6 @@ function calcAge(dob: string | null | undefined): number {
   if (Number.isNaN(d.getTime())) return 0;
   const diffMs = Date.now() - d.getTime();
   return Math.max(0, Math.floor(diffMs / (365.25 * 24 * 3600 * 1000)));
-}
-
-function formatDate(dob: string | null | undefined): string {
-  if (!dob) return '—';
-  const d = new Date(dob);
-  if (Number.isNaN(d.getTime())) return dob;
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function buildDetail(

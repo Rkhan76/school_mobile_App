@@ -4,7 +4,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import { getAcademicYearsMaster, getClassesMaster } from '../common/api';
 import type { AcademicYearLean, ClassWithSections } from '../common/types';
 import { listExamTypes, lookupSubjects, lookupTeachersForPicker } from './api';
@@ -78,20 +79,24 @@ function ChipField({ label, options, value, onChange, error, optional }: {
   );
 }
 
-function TextField({ label, value, onChangeText, error, placeholder, numeric }: {
-  label: string; value: string; onChangeText: (v: string) => void; error?: string; placeholder?: string; numeric?: boolean;
+function TextField({ label, value, onChangeText, error, placeholder, numeric, date }: {
+  label: string; value: string; onChangeText: (v: string) => void; error?: string; placeholder?: string; numeric?: boolean; date?: boolean;
 }) {
   return (
     <View style={[styles.field, numeric && styles.half]}>
       <Text style={styles.label}>{label} *</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textHint}
-        keyboardType={numeric ? 'number-pad' : 'default'}
-        style={[styles.input, error ? styles.inputErr : null]}
-      />
+      {date ? (
+        <DateInput value={value} onChangeText={onChangeText} placeholder={placeholder} style={[styles.input, error ? styles.inputErr : null]} />
+      ) : (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textHint}
+          keyboardType={numeric ? 'number-pad' : 'default'}
+          style={[styles.input, error ? styles.inputErr : null]}
+        />
+      )}
       {error ? <Text style={styles.err}>{error}</Text> : null}
     </View>
   );
@@ -257,7 +262,7 @@ export function ExamFormModal({ visible, exam, onSubmit, onClose }: Props) {
               <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
             </Pressable>
           </View>
-          <TextField label="Exam date" value={form.date} onChangeText={(v) => set('date', v)} error={errors.date} placeholder="DD/MM/YYYY" />
+          <TextField date label="Exam date" value={form.date} onChangeText={(v) => set('date', v)} error={errors.date} placeholder="dd/mm/yyyy" />
           <View style={styles.pair}>
             <TextField numeric label="Max marks" value={form.maxMarks} onChangeText={(v) => set('maxMarks', v)} error={errors.maxMarks} />
             <TextField numeric label="Passing marks" value={form.passingMarks} onChangeText={(v) => set('passingMarks', v)} error={errors.passingMarks} />
@@ -289,7 +294,7 @@ export function ExamFormModal({ visible, exam, onSubmit, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10 },
   heading: { fontFamily: fonts.heading, fontSize: 20, color: colors.text },
@@ -324,4 +329,4 @@ const styles = StyleSheet.create({
   save: { backgroundColor: colors.primary },
   saveOff: { opacity: 0.6 },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

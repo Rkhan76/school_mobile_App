@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../../components/ui/Card';
-import { colors, fonts } from '../../../theme/tokens';
-import type { ClassDetail, ClassSection } from './classDetail';
+import { colors, fonts, themed } from '../../../theme/tokens';
+import { MOCK_ATTENDANCE, MOCK_EXAMS, MOCK_FEE, MOCK_HOMEWORK } from './classDetail';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -37,15 +37,15 @@ function Heading({ children }: { children: string }) {
   return <Text style={styles.heading}>{children}</Text>;
 }
 
-export function AttendanceTab({ section }: { section: ClassSection }) {
-  const { present, absent, late } = section.attendance;
+export function AttendanceTab({ sectionName }: { sectionName: string }) {
+  const { present, absent, late } = MOCK_ATTENDANCE;
   const total = present + absent + late;
   const pct = total ? Math.round(((present + late) / total) * 100) : 0;
   return (
     <View style={styles.wrap}>
       <Card style={styles.pctCard}>
         <Text style={styles.pct}>{pct}%</Text>
-        <Text style={styles.statLabel}>Today's attendance • {section.name}</Text>
+        <Text style={styles.statLabel}>Today's attendance • {sectionName}</Text>
         <View style={styles.bar}>
           <View style={[styles.barFill, { width: `${pct}%` }]} />
         </View>
@@ -59,18 +59,8 @@ export function AttendanceTab({ section }: { section: ClassSection }) {
   );
 }
 
-export function SubjectsTab({ subjects }: { subjects: ClassDetail['subjects'] }) {
-  return (
-    <Card style={styles.list}>
-      {subjects.map((s) => (
-        <Row key={s.name} icon="book-outline" title={s.name} sub={s.teacher} right={<Text style={styles.chip}>{s.periodsPerWeek}/wk</Text>} />
-      ))}
-    </Card>
-  );
-}
-
-export function FeeTab({ section }: { section: ClassSection }) {
-  const { collected, pending, dues } = section.fee;
+export function FeeTab() {
+  const { collected, pending, dues } = MOCK_FEE;
   return (
     <View style={styles.wrap}>
       <View style={styles.statRow}>
@@ -87,7 +77,8 @@ export function FeeTab({ section }: { section: ClassSection }) {
   );
 }
 
-export function ExamsTab({ exams }: { exams: ClassDetail['exams'] }) {
+export function ExamsTab() {
+  const exams = MOCK_EXAMS;
   return (
     <Card style={styles.list}>
       {exams.map((e) => (
@@ -97,7 +88,8 @@ export function ExamsTab({ exams }: { exams: ClassDetail['exams'] }) {
   );
 }
 
-export function HomeworkTab({ homework }: { homework: ClassDetail['homework'] }) {
+export function HomeworkTab() {
+  const homework = MOCK_HOMEWORK;
   return (
     <Card style={styles.list}>
       {homework.map((h) => (
@@ -107,7 +99,7 @@ export function HomeworkTab({ homework }: { homework: ClassDetail['homework'] })
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 12 },
   list: { gap: 14, padding: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -125,4 +117,4 @@ const styles = StyleSheet.create({
   pct: { fontFamily: fonts.headingExtra, fontSize: 38, color: colors.primaryDeep },
   bar: { alignSelf: 'stretch', height: 8, borderRadius: 4, backgroundColor: colors.mint, overflow: 'hidden' },
   barFill: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
-});
+}));

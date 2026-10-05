@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, shadow } from '../../theme/tokens';
+import { colors, fonts, shadow, themed } from '../../theme/tokens';
 
 type Props = Omit<TextInputProps, 'style'> & {
   label: string;
@@ -31,7 +31,7 @@ export function FormField({ label, icon, right, error, readOnlyField, ...inputPr
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 8 },
   label: {
     fontFamily: fonts.monoMedium,
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
@@ -55,4 +55,4 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text, padding: 0 },
   mono: { fontFamily: fonts.mono, fontSize: 14 },
   error: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
-});
+}));

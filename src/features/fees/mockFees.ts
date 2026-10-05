@@ -82,7 +82,6 @@ export type CollectResult = { ok: true; receipt: Receipt } | { ok: false; error:
 /* ------------------------------------------------------------------ */
 
 export const TODAY = '2026-10-02';
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** Indian digit grouping: 1234567 -> ₹12,34,567 */
 export function formatINR(n: number): string {
@@ -93,10 +92,7 @@ export function formatINR(n: number): string {
   return `₹${rest},${last3}`;
 }
 
-export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  return `${String(d).padStart(2, '0')} ${MONTHS[(m ?? 1) - 1]} ${y}`;
-}
+export { formatDate } from '../../lib/date';
 
 /** DD/MM/YYYY -> ISO, or null when invalid. */
 export function parseDMY(text: string): string | null {

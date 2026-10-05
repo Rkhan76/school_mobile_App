@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 type Props = { before: Record<string, unknown> | null; after: Record<string, unknown> | null };
 
@@ -75,7 +75,7 @@ export function JsonDiff({ before, after }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   box: { borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.mintSoft, paddingVertical: 8, overflow: 'hidden' },
   brace: { fontFamily: fonts.mono, fontSize: 12, color: colors.textSecondary, paddingHorizontal: 12 },
   line: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 2 },
@@ -86,4 +86,4 @@ const styles = StyleSheet.create({
   delText: { color: colors.danger },
   addText: { color: colors.success },
   none: { fontFamily: fonts.body, fontSize: 13, color: colors.textHint },
-});
+}));

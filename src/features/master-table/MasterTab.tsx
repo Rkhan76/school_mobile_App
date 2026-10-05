@@ -3,7 +3,7 @@ import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { TabConfig } from './config';
 import { FormModal } from './FormModal';
 import { MasterCard } from './MasterCard';
@@ -122,7 +122,7 @@ export function MasterTab<K extends TabKey>({ config, header }: { config: TabCon
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   toolbar: { paddingHorizontal: 16, gap: 10, paddingTop: 14, paddingBottom: 12 },
   toolbarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   count: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.textSecondary },
@@ -134,4 +134,4 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48, gap: 6, paddingHorizontal: 24 },
   emptyTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.text, textAlign: 'center' },
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

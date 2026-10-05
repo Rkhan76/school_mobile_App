@@ -7,8 +7,9 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, spacing } from '../../theme/tokens';
+import { colors, fonts, spacing, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
+import { useAccess, type Access } from '../auth/access';
 import { EmployeeFormSheet } from './EmployeeFormSheet';
 import { FilterSheet, type EmployeeFilters } from './FilterSheet';
 import { CardSkeleton, EmptyState, useDebounced } from './ListStates';
@@ -52,7 +53,14 @@ function confirmBlock(name: string, onConfirm: () => void) {
   );
 }
 
+// Non-teaching staff are only listed for users who can see/manage staff (a teacher sees teachers only).
+const STAFF_ACCESS: Access = {
+  anyOf: ['non-teaching-staff.list.read', 'non-teaching-staff.profile.create', 'non-teaching-staff.profile.update'],
+};
+
 export function EmployeesScreen() {
+  const can = useAccess();
+  const showStaff = can(STAFF_ACCESS);
   const [tab, setTab] = useState<Tab>('Teachers');
   return (
     <ScreenBackground>
@@ -66,10 +74,12 @@ export function EmployeesScreen() {
           </Pressable>
         }
       />
-      <View style={styles.tabs}>
-        <SegmentedTabs options={TABS} value={tab} onChange={setTab} />
-      </View>
-      {tab === 'Teachers' ? <TeachersList /> : <StaffList />}
+      {showStaff && (
+        <View style={styles.tabs}>
+          <SegmentedTabs options={TABS} value={tab} onChange={setTab} />
+        </View>
+      )}
+      {tab === 'Teachers' || !showStaff ? <TeachersList /> : <StaffList />}
     </ScreenBackground>
   );
 }
@@ -271,7 +281,7 @@ function Skeletons() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabs: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
   content: { paddingHorizontal: spacing.lg, paddingTop: 4 },
   header: { gap: spacing.md, paddingBottom: spacing.lg },
@@ -282,4 +292,4 @@ const styles = StyleSheet.create({
   addBtnText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
   footerLoader: { marginVertical: 20 },
   endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
-});
+}));

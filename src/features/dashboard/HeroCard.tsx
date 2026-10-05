@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatHeroDate, greetingFor } from './format';
 import type { HeroData } from './mockData';
 
@@ -61,7 +61,7 @@ export function HeroCard({ hero, userName }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { borderRadius: radius.xl, padding: 16, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1 },
@@ -84,4 +84,4 @@ const styles = StyleSheet.create({
   },
   subValue: { fontFamily: fonts.heading, fontSize: 18, color: colors.white },
   subLabel: { fontFamily: fonts.body, fontSize: 11, color: 'rgba(255,255,255,0.8)' },
-});
+}));

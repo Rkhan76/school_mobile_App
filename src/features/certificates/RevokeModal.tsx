@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../lib/apiClient';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { Certificate } from './types';
 
 type Props = {
@@ -76,7 +76,7 @@ export function RevokeModal({ certificate, onConfirm, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'center', padding: 20 },
   box: { backgroundColor: colors.cardSolid, borderRadius: radius.xl, padding: 20, gap: 8 },
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
@@ -95,4 +95,4 @@ const styles = StyleSheet.create({
   confirm: { backgroundColor: colors.danger },
   confirmText: { fontFamily: fonts.bodySemi, color: colors.white },
   off: { opacity: 0.6 },
-});
+}));

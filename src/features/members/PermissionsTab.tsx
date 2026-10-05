@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../components/ui/Card';
 import { SearchBar } from '../../components/ui/SearchBar';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { EmptyState } from './parts';
 import { usePermissionCatalog } from './useMembers';
 
@@ -58,7 +58,7 @@ export function PermissionsTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 12 },
   card: { padding: 14, gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -67,4 +67,4 @@ const styles = StyleSheet.create({
   row: { gap: 3, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
   code: { fontFamily: fonts.monoMedium, fontSize: 12, color: colors.text },
   label: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

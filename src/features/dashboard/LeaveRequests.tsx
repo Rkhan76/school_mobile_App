@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { SectionHeader } from './SectionHeader';
 import type { LeaveRequest } from './mockData';
 
@@ -42,7 +42,7 @@ export function LeaveRequests({ leaves, pendingCount, onReviewAll, onApprove }: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 4, paddingHorizontal: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   divider: { borderTopWidth: 1, borderTopColor: colors.border },
@@ -50,4 +50,4 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.heading, fontSize: 14, color: colors.text },
   role: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 1 },
   check: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-});
+}));

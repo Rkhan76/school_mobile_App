@@ -2,7 +2,7 @@ import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Badge } from '../../../components/ui/Badge';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { StudentGuardian } from './studentDetail';
 import { SectionCard } from './ui';
 
@@ -47,7 +47,7 @@ export function GuardianCard({ g, title = 'Primary Guardian' }: { g: StudentGuar
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   profile: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   name: { fontFamily: fonts.heading, fontSize: 17, color: colors.text },
   occ: { fontFamily: fonts.body, fontSize: 12.5, color: colors.textSecondary },
@@ -55,4 +55,4 @@ const styles = StyleSheet.create({
   btns: { flexDirection: 'row', gap: 10 },
   btn: { flex: 1, height: 44, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   btnText: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.primaryDeep },
-});
+}));

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { DateInput } from '../../components/ui/DateInput';
 import { EMPTY_FILTERS, parseDMY, type AuditFilters } from './types';
 
 type Props = { visible: boolean; filters: AuditFilters; onClose: () => void; onApply: (f: AuditFilters) => void };
@@ -54,14 +55,11 @@ export function AuditFilterSheet({ visible, filters, onClose, onApply }: Props) 
   const dateField = (label: string, key: 'from' | 'to', err?: string) => (
     <View style={[styles.field, styles.half]}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
+      <DateInput
         value={draft[key]}
         onChangeText={(v) => set(key, v)}
-        placeholder="DD/MM/YYYY"
-        placeholderTextColor={colors.textHint}
+        placeholder="dd/mm/yyyy"
         style={[styles.input, (err || errors.range) ? styles.inputErr : null]}
-        keyboardType="numbers-and-punctuation"
-        maxLength={10}
       />
       {err ? <Text style={styles.err}>{err}</Text> : null}
     </View>
@@ -101,7 +99,7 @@ export function AuditFilterSheet({ visible, filters, onClose, onApply }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: 20, gap: 12, maxHeight: '88%' },
   grab: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
@@ -121,4 +119,4 @@ const styles = StyleSheet.create({
   resetText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   apply: { backgroundColor: colors.primary },
   applyText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

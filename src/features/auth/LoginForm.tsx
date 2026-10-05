@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { ErrorBanner } from './ErrorBanner';
 import { FormField } from './FormField';
 import { SchoolPickerSheet } from './SchoolPickerSheet';
@@ -35,15 +35,15 @@ export function LoginForm() {
     <View style={styles.form}>
       <View style={styles.heading}>
         <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.sub}>Sign in to access your administrative workspace</Text>
+        <Text style={styles.sub}>Sign in to access your workspace</Text>
       </View>
 
       {error ? <ErrorBanner message={error} onDismiss={clearError} /> : null}
 
       <FormField
-        label="ADMINISTRATIVE EMAIL"
+        label="EMAIL"
         icon="mail-outline"
-        placeholder="admin@school.edu"
+        placeholder="name@school.edu"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -124,7 +124,7 @@ export function LoginForm() {
           <ActivityIndicator color={colors.white} />
         ) : (
           <>
-            <Text style={styles.buttonText}>Sign In to Admin Portal</Text>
+            <Text style={styles.buttonText}>Sign In</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.white} />
           </>
         )}
@@ -141,7 +141,7 @@ export function LoginForm() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   form: { gap: 18 },
   heading: { gap: 6 },
   title: { fontFamily: fonts.headingExtra, fontSize: 26, color: colors.text },
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     borderWidth: 1.5,
     borderColor: '#c5d6d3',
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -177,4 +177,4 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.55, elevation: 0, shadowOpacity: 0 },
   buttonText: { fontFamily: fonts.heading, fontSize: 16, color: colors.white },
-});
+}));

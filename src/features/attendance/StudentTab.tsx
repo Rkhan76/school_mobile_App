@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { SearchBar } from '../../components/ui/SearchBar';
-import { colors } from '../../theme/tokens';
+import { colors, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { getClassesMaster } from '../common/api';
 import type { ClassWithSections } from '../common/types';
@@ -215,10 +215,10 @@ function Gap() {
   return <View style={{ height: 10 }} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 190, paddingTop: 4 },
   header: { gap: 12, marginBottom: 12 },
   pickers: { flexDirection: 'row', gap: 10 },
   bulk: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-});
+}));

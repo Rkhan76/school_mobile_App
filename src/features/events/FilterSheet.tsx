@@ -1,6 +1,6 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { EVENT_AUDIENCES, EVENT_STATUSES, type EventAudience, type EventStatus } from './types';
 
 type Props = {
@@ -67,7 +67,7 @@ export function FilterSheet({ visible, status, targetAudience, onChange, onClose
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -90,4 +90,4 @@ const styles = StyleSheet.create({
   resetText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   apply: { backgroundColor: colors.primary },
   applyText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

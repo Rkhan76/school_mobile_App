@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { FilterSheet } from './FilterSheet';
 import { inputToIso } from './types';
 import { ActiveFilterChips, EMPTY_FILTERS, ErrorNotice, activeFilterCount, type Filters } from './parts';
@@ -166,7 +166,7 @@ export function ListShell<T extends { id: string }>({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -188,4 +188,4 @@ const styles = StyleSheet.create({
   emptySub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   footerLoader: { paddingVertical: 20 },
   footerInfo: { textAlign: 'center', paddingVertical: 16, fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

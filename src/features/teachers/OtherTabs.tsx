@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { DocumentRows } from './OverviewTab';
 import { SectionCard } from './parts';
 import type { TeacherDetail } from './teacherDetail';
@@ -89,7 +89,7 @@ export function ReportsTab({ t: _t }: { t: TeacherDetail }) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   list: { gap: 8 },
   grow: { flex: 1, gap: 2 },
   mono: { fontFamily: fonts.monoMedium, fontSize: 12, color: colors.primaryDeep },
@@ -103,4 +103,4 @@ const s = StyleSheet.create({
   classBoxText: { fontFamily: fonts.monoMedium, fontSize: 12, color: colors.primaryDeep },
   comingSoon: { alignItems: 'center', gap: 10, paddingVertical: 20 },
   comingSoonText: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 12 },
-});
+}));

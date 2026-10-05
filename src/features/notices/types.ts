@@ -2,7 +2,8 @@ export type Audience = 'ALL' | 'STUDENTS' | 'TEACHERS' | 'PARENTS' | 'STAFF';
 
 export const AUDIENCES: Audience[] = ['ALL', 'STUDENTS', 'TEACHERS', 'PARENTS', 'STAFF'];
 
-export type NoticeCreatedBy = { id: string; fullName: string } | null;
+/** `fullName` is derived from the backend's firstName/lastName in api.ts (normalizeNotice). */
+export type NoticeCreatedBy = { id: string; fullName: string; role?: string } | null;
 
 /** Raw shape returned by the backend for a notice row (list/detail). */
 export type Notice = {
@@ -43,6 +44,15 @@ export type NoticeListParams = {
   activeOnly?: boolean;
 };
 
+/** 'School Admin [ADMIN]' (name plus the role in capitals inside brackets), or '—' when unknown. */
+export function formatCreator(by: NoticeCreatedBy | undefined): string {
+  if (!by) return '—';
+  const role = by.role
+    ? by.role.replace(/_/g, ' ').toUpperCase()
+    : '';
+  return role ? `${by.fullName} [${role}]` : by.fullName;
+}
+
 /* ---------------- pure helpers (date formatting/validation) ---------------- */
 
 export type NoticeUiStatus = 'Active' | 'Expired' | 'Scheduled';
@@ -55,14 +65,7 @@ export function deriveStatus(publishedAt: string | null, expiresAt: string | nul
   return 'Active';
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-
-/** ISO datetime -> "21 Aug 2026" */
-export function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-}
+export { formatDate } from '../../lib/date';
 
 /** ISO datetime -> "21/08/2026" (date part only, for form inputs). */
 export function isoToInput(iso: string): string {

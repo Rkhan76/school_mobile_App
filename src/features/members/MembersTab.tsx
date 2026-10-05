@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { AddMemberModal } from './AddMemberModal';
 import { MemberCard } from './MemberCard';
@@ -12,6 +12,7 @@ import { AssignRoleSheet } from './MemberSheets';
 import { Chip, EmptyState, SkeletonBlock } from './parts';
 import { canActOnCredentials, ROLE_FILTER_OPTIONS, type SchoolUser, type SchoolUserBaseRole } from './types';
 import { useMembers, useRoles } from './useMembers';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 export function MembersTab() {
   const insets = useSafeAreaInsets();
@@ -138,7 +139,7 @@ export function MembersTab() {
 
       <SearchBar value={search} onChangeText={setSearch} placeholder="Search by name or email..." />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip label="All" on={role === ''} onPress={() => setRole('')} />
         {ROLE_FILTER_OPTIONS.map((r) => (
           <Chip key={r.value} label={r.label} on={role === r.value} onPress={() => setRole(r.value)} />
@@ -223,7 +224,7 @@ export function MembersTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   stats: { flexDirection: 'row', gap: 8 },
   chips: { gap: 8, paddingVertical: 2 },
@@ -237,4 +238,4 @@ const styles = StyleSheet.create({
   addText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
   itemWrap: { paddingHorizontal: 16 },
   skeletons: { gap: 12 },
-});
+}));
