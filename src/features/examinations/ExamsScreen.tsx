@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { ExamListTab } from './ExamListTab';
 import { ExamResultsTab } from './ExamResultsTab';
 
@@ -35,7 +35,7 @@ export function ExamsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabs: {
     flexDirection: 'row', gap: 6, marginHorizontal: 16, marginBottom: 12, padding: 4,
     borderRadius: radius.lg, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
@@ -44,4 +44,4 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.primary },
   tabText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
   tabTextActive: { color: colors.white },
-});
+}));

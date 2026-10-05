@@ -112,8 +112,8 @@ export const mockDashboard: DashboardData = {
   },
   activeNotices: 4,
   notices: [
-    { id: 'n1', author: 'Admin Office', tag: 'Important', tagTone: 'warning', date: '25 Jan', body: 'Annual sports day scheduled for 20 May. All student houses must finalize their relay rosters.' },
-    { id: 'n2', author: 'Kathryn Murphy', tag: 'Meeting', tagTone: 'primary', date: '24 Jan', body: 'Parent-teacher conference rescheduled to next Friday at 4:00 PM in the botanical auditorium.' },
+    { id: 'n1', author: 'Admin Office', tag: 'Important', tagTone: 'warning', date: '25/01/2026', body: 'Annual sports day scheduled for 20 May. All student houses must finalize their relay rosters.' },
+    { id: 'n2', author: 'Kathryn Murphy', tag: 'Meeting', tagTone: 'primary', date: '24/01/2026', body: 'Parent-teacher conference rescheduled to next Friday at 4:00 PM in the botanical auditorium.' },
   ],
   pendingLeaveCount: 5,
   leaves: [

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { formatTime } from './format';
 import { DELETED_TEXT, type UIChatMessage } from './types';
@@ -54,7 +54,7 @@ function MessageBubbleImpl({ message, showSender, canDelete, onLongPress }: Prop
 
 export const MessageBubble = memo(MessageBubbleImpl);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { maxWidth: '82%', marginVertical: 3 },
   rowOwn: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   rowOther: { alignSelf: 'flex-start', alignItems: 'flex-start' },
@@ -68,4 +68,4 @@ const styles = StyleSheet.create({
   textDeleted: { fontStyle: 'italic', color: colors.textHint },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2, marginHorizontal: 4 },
   time: { fontFamily: fonts.body, fontSize: 10.5, color: colors.textHint },
-});
+}));

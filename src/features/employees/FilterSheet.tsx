@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { Gender } from './types';
 
 // GET /teachers and GET /non-teaching-staff only support `search` server-side —
@@ -60,7 +60,7 @@ export function FilterSheet({ visible, title, value, onApply, onClose }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: { backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: 20, maxHeight: '80%' },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 12 },
@@ -80,4 +80,4 @@ const styles = StyleSheet.create({
   resetText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep, fontSize: 14 },
   apply: { backgroundColor: colors.primary },
   applyText: { fontFamily: fonts.bodySemi, color: colors.white, fontSize: 14 },
-});
+}));

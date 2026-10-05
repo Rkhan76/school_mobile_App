@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../../components/ui/Card';
-import { colors, fonts } from '../../../theme/tokens';
+import { colors, fonts, themed } from '../../../theme/tokens';
 import type { ClassDetail, ClassSection } from './classDetail';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -107,7 +107,7 @@ export function HomeworkTab({ homework }: { homework: ClassDetail['homework'] })
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 12 },
   list: { gap: 14, padding: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -125,4 +125,4 @@ const styles = StyleSheet.create({
   pct: { fontFamily: fonts.headingExtra, fontSize: 38, color: colors.primaryDeep },
   bar: { alignSelf: 'stretch', height: 8, borderRadius: 4, backgroundColor: colors.mint, overflow: 'hidden' },
   barFill: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
-});
+}));

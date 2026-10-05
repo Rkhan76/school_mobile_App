@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Card } from '../../../components/ui/Card';
 import { SearchBar } from '../../../components/ui/SearchBar';
-import { colors, fonts } from '../../../theme/tokens';
+import { colors, fonts, themed } from '../../../theme/tokens';
 import type { ClassStudent } from './classDetail';
 
 function StudentRow({ s, onPress }: { s: ClassStudent; onPress: () => void }) {
@@ -58,7 +58,7 @@ export function StudentListTab({ students }: { students: ClassStudent[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18 },
   sl: { width: 24, alignItems: 'center' },
@@ -72,4 +72,4 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: 8, paddingVertical: 28 },
   emptyText: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   footer: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
-});
+}));

@@ -3,7 +3,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { TeacherDetail } from './teacherDetail';
 
 export function telUrl(phone: string): string {
@@ -75,7 +75,7 @@ export function TeacherProfileCard({ t }: { t: TeacherDetail }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 12 },
   top: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   info: { flex: 1, gap: 6 },
@@ -95,4 +95,4 @@ const styles = StyleSheet.create({
   contactText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
   callChip: { backgroundColor: colors.mint, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5 },
   callChipText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.primaryDeep },
-});
+}));

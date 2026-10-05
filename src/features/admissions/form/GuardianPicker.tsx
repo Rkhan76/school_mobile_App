@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { searchGuardians } from '../../common/api';
 import type { GuardianLookupItem } from '../../common/types';
 
@@ -130,7 +130,7 @@ export function GuardianPicker({ value, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 8 },
   label: { fontFamily: fonts.monoMedium, fontSize: 11, letterSpacing: 1.2, color: colors.textSecondary },
   box: {
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 14,
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   selectedText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.primaryDeep },
   change: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primary },
   dropdown: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -168,4 +168,4 @@ const styles = StyleSheet.create({
   rowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
   rowText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
   empty: { fontFamily: fonts.body, fontSize: 12, color: colors.textHint, paddingHorizontal: 2 },
-});
+}));

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { RoleDetail, RoleSummary, UpdateRolePayload } from './types';
 import { Checkbox, FooterButtons, FullModal, formStyles as f } from './parts';
 import type { PermissionCatalogGroup } from './useMembers';
@@ -202,7 +202,7 @@ export function RoleEditorModal({ roleId, roles, sessionPermissions, permissionG
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   pad: { gap: 10 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
@@ -231,4 +231,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder,
   },
   deleteText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.danger },
-});
+}));

@@ -1,16 +1,18 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 
 interface Props {
   academicYear: string;
   hasUnread: boolean;
-  onThemePress?: () => void;
   onBellPress?: () => void;
   onProfilePress?: () => void;
 }
 
-export function AppBar({ academicYear, hasUnread, onThemePress, onBellPress, onProfilePress }: Props) {
+export function AppBar({ academicYear, hasUnread, onBellPress, onProfilePress }: Props) {
+  const { resolved, setMode } = useTheme();
+  const isDark = resolved === 'dark';
   return (
     <View style={styles.row}>
       <View style={styles.brand}>
@@ -27,8 +29,12 @@ export function AppBar({ academicYear, hasUnread, onThemePress, onBellPress, onP
           <Ionicons name="calendar-outline" size={14} color={colors.primaryDeep} />
           <Text style={styles.chipText}>{academicYear}</Text>
         </View>
-        <Pressable style={styles.iconBtn} onPress={onThemePress} accessibilityLabel="Toggle theme">
-          <Ionicons name="moon-outline" size={18} color={colors.textSecondary} />
+        <Pressable
+          style={styles.iconBtn}
+          onPress={() => setMode(isDark ? 'light' : 'dark')}
+          accessibilityLabel={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+        >
+          <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={colors.textSecondary} />
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={onBellPress} accessibilityLabel="Notifications">
           <Ionicons name="notifications-outline" size={18} color={colors.textSecondary} />
@@ -42,7 +48,7 @@ export function AppBar({ academicYear, hasUnread, onThemePress, onBellPress, onP
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logo: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
@@ -63,4 +69,4 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 7, right: 8, width: 8, height: 8, borderRadius: 4,
     backgroundColor: colors.danger, borderWidth: 1.5, borderColor: colors.cardSolid,
   },
-});
+}));

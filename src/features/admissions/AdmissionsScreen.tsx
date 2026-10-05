@@ -7,7 +7,7 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { AdmissionCard } from './AdmissionCard';
 import { BulkBar } from './BulkBar';
@@ -258,7 +258,7 @@ export function AdmissionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 12 },
   stats: { flexDirection: 'row', gap: 10 },
   secondary: { flexDirection: 'row', gap: 10 },
@@ -285,4 +285,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.primary,
   },
   newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
-});
+}));

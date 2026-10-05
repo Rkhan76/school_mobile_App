@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 import { listStamp } from './format';
 import type { UIChatGroup } from './types';
 
@@ -45,7 +45,7 @@ function GroupRowImpl({ group, onPress }: Props) {
 
 export const GroupRow = memo(GroupRowImpl);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12,
     backgroundColor: colors.cardSolid, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
@@ -67,4 +67,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
   },
   badgeText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.white },
-});
+}));

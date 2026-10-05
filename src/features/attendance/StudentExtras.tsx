@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { addDays, daysInMonth, isFuture, monthLabel, monthStart, weekdayIndex } from './dateUtils';
 import { classDayPercent, type AttendanceStatus } from './mockAttendance';
 import { STATUS_META } from './parts';
@@ -126,7 +126,7 @@ export function MonthlyHeat({ classId, sectionId, date }: HeatProps) {
 
 const CELL = `${100 / 7}%` as const;
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   summary: { gap: 12 },
   summaryTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
   pct: { fontFamily: fonts.headingExtra, fontSize: 30, color: colors.primaryDeep },
@@ -146,4 +146,4 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 10, height: 10, borderRadius: 3 },
   legendText: { fontFamily: fonts.body, fontSize: 10, color: colors.textSecondary },
-});
+}));

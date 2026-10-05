@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -37,7 +37,7 @@ export function QuickActions({ onPress }: { onPress?: (id: string) => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   tile: {
     flex: 1, alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 4, borderRadius: 20,
@@ -45,6 +45,6 @@ const styles = StyleSheet.create({
   },
   tileHi: { backgroundColor: colors.mint, borderColor: colors.primary },
   icon: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
-  iconHi: { backgroundColor: colors.white },
+  iconHi: { backgroundColor: colors.cardSolid },
   label: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.text },
-});
+}));

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 export type ViewMode = 'class' | 'teacher';
 
@@ -32,7 +32,7 @@ export function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v:
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: {
     flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: colors.cardSolid,
     borderWidth: 1, borderColor: colors.border,
@@ -44,4 +44,4 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.primary },
   text: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
   textActive: { color: colors.white },
-});
+}));

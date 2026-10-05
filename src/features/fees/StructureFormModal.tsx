@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { Button, OptionSheet, PickerField, form } from './parts';
 import {
   CLASSES, formatINR, type FeeStructure, type FeeType, type StructureInput,
@@ -124,7 +124,7 @@ export function StructureFormModal({ visible, structure, structures, feeTypes, o
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'center', padding: 20 },
   box: { backgroundColor: colors.cardSolid, borderRadius: radius.xl, padding: 20, gap: 12, maxHeight: '90%' },
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
@@ -135,4 +135,4 @@ const styles = StyleSheet.create({
   totalLabel: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
   totalValue: { fontFamily: fonts.headingExtra, fontSize: 18, color: colors.primaryDeep },
   actions: { flexDirection: 'row', gap: 10 },
-});
+}));

@@ -1,7 +1,7 @@
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import type { StudentDetail } from './studentDetail';
 
 /** Sticky bottom bar: Message Parent / Issue Report. */
@@ -24,10 +24,10 @@ export function BottomActions({ s }: { s: StudentDetail }) {
   );
 }
 
-const styles = StyleSheet.create({
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10, backgroundColor: 'rgba(241,251,249,0.96)', borderTopWidth: 1, borderTopColor: colors.border, ...shadow.card },
+const styles = themed(() => StyleSheet.create({
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10, backgroundColor: colors.backgroundGlass, borderTopWidth: 1, borderTopColor: colors.border, ...shadow.card },
   btn: { flex: 1, height: 48, borderRadius: radius.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   outline: { backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.primary },
   filled: { backgroundColor: colors.primaryDeep },
   text: { fontFamily: fonts.bodySemi, fontSize: 14 },
-});
+}));

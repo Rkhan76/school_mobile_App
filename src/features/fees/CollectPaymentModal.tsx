@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { Button, Checkbox, OptionSheet, PickerField, TextField, form } from './parts';
 import {
   STUDENTS, collectPayment, formatDate, formatINR, isOverdue, statusTone, usePendingInvoices,
@@ -189,7 +189,7 @@ export function CollectPaymentModal({ visible, initialStudentId, initialInvoiceI
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 12 },
   close: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
@@ -212,4 +212,4 @@ const styles = StyleSheet.create({
   modeOn: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   modeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
   footer: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.cardSolid },
-});
+}));

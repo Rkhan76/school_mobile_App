@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/tokens';
+import { colors, themed } from '../../theme/tokens';
 
 export function Checkbox({ checked, onPress, label }: { checked: boolean; onPress: () => void; label: string }) {
   return (
@@ -17,10 +17,10 @@ export function Checkbox({ checked, onPress, label }: { checked: boolean; onPres
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   box: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.textHint,
     alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid,
   },
   checked: { backgroundColor: colors.primary, borderColor: colors.primary },
-});
+}));

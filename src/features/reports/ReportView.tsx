@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { ChartCard } from './charts';
 import { formatValue } from './format';
 import type { KpiFormat, ReportKpi, ReportResponse, ReportTable } from './types';
@@ -11,7 +11,7 @@ function DeltaChip({ kpi }: { kpi: ReportKpi }) {
   const dir = kpi.deltaDirection ?? (kpi.delta > 0 ? 'up' : kpi.delta < 0 ? 'down' : 'flat');
   const good = dir === 'flat' ? null : (dir === 'up') !== !!kpi.lowerIsBetter;
   const fg = good === null ? colors.textSecondary : good ? colors.success : colors.danger;
-  const bg = good === null ? '#eef2f1' : good ? colors.successBg : colors.dangerBg;
+  const bg = good === null ? colors.neutralBg : good ? colors.successBg : colors.dangerBg;
   const icon = dir === 'up' ? 'arrow-up' : dir === 'down' ? 'arrow-down' : 'remove';
   const unit = kpi.format === 'percent' ? ' pp' : '%';
   return (
@@ -113,7 +113,7 @@ export function ReportView({ data }: { data: ReportResponse }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   kpi: { width: '48.5%', flexGrow: 1, padding: 14, gap: 4, borderRadius: radius.lg },
   kpiLabel: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
@@ -133,4 +133,4 @@ const styles = StyleSheet.create({
   pair: { width: '50%' },
   pairLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary },
   pairValue: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
-});
+}));

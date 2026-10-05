@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { AttendanceData } from './mockData';
 
-const C = { present: colors.primaryDeep, absent: colors.danger, late: '#9ca3af', half: '#7fd1c7' } as const;
+const C = themed(() => ({ present: colors.primaryDeep, absent: colors.danger, late: '#9ca3af', half: '#7fd1c7' }));
 
 export function AttendanceCard({ data }: { data: AttendanceData }) {
   const segs = [
@@ -43,7 +43,7 @@ export function AttendanceCard({ data }: { data: AttendanceData }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 14 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
   headText: { flex: 1 },
@@ -58,4 +58,4 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, marginRight: 5 },
   legendText: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary },
   legendNum: { fontFamily: fonts.monoMedium, fontSize: 11, color: colors.text },
-});
+}));

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { formatDate, isOverdueRequest } from './dateUtils';
 import { ActionBtn, InfoRow, RoleTag, infoText } from './parts';
 import { ENTITY_LABELS, type DocumentRequestRow } from './types';
@@ -61,7 +61,7 @@ function RequestCardBase({ item, canUpdate, onRemind, onCancel }: Props) {
 
 export const RequestCard = memo(RequestCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 12 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   titles: { flex: 1, gap: 3 },
@@ -72,4 +72,4 @@ const styles = StyleSheet.create({
   docNote: { fontFamily: fonts.body, fontSize: 12, color: colors.textHint },
   rows: { gap: 8 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-});
+}));

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -46,7 +46,7 @@ export function FieldGrid({ children }: { children: ReactNode }) {
   return <View style={styles.grid}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconTile: {
@@ -58,4 +58,4 @@ const styles = StyleSheet.create({
   field: { width: '50%', paddingRight: 8, gap: 2 },
   fieldLabel: { fontFamily: fonts.bodySemi, fontSize: 10, letterSpacing: 0.6, color: colors.textHint, textTransform: 'uppercase' },
   fieldValue: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
-});
+}));

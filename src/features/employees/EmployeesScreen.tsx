@@ -7,7 +7,7 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, spacing } from '../../theme/tokens';
+import { colors, fonts, spacing, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { EmployeeFormSheet } from './EmployeeFormSheet';
 import { FilterSheet, type EmployeeFilters } from './FilterSheet';
@@ -271,7 +271,7 @@ function Skeletons() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabs: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
   content: { paddingHorizontal: spacing.lg, paddingTop: 4 },
   header: { gap: spacing.md, paddingBottom: spacing.lg },
@@ -282,4 +282,4 @@ const styles = StyleSheet.create({
   addBtnText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
   footerLoader: { marginVertical: 20 },
   endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
-});
+}));

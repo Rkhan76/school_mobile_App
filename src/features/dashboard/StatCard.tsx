@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { Sparkline } from './Sparkline';
 import type { StatItem } from './mockData';
 
@@ -27,7 +27,7 @@ export function StatCard({ item }: { item: StatItem }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { flex: 1, padding: 14, gap: 2 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   icon: { width: 34, height: 34, borderRadius: radius.md, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
@@ -37,4 +37,4 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.text },
   caption: { fontFamily: fonts.body, fontSize: 11, color: colors.textHint },
   spark: { marginTop: 8, height: 28 },
-});
+}));

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { Checkbox } from './Checkbox';
 import { SelectField } from './SelectField';
 import {
@@ -64,7 +64,7 @@ function PromotionStudentCardBase({ student, row, selected, onToggle, onDecision
 
 export const PromotionStudentCard = memo(PromotionStudentCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 12, gap: 10, borderRadius: 18 },
   dim: { opacity: 0.6 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -73,4 +73,4 @@ const styles = StyleSheet.create({
   adm: { fontFamily: fonts.mono, fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   selects: { flexDirection: 'row', gap: 10 },
   reason: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

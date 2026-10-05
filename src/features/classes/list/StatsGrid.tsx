@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { StatTile } from '../../../components/ui/StatTile';
-import { colors } from '../../../theme/tokens';
+import { colors, themed } from '../../../theme/tokens';
 import type { ClassStats } from '../mockClasses';
 
 export function StatsGrid({ stats }: { stats: ClassStats }) {
@@ -18,7 +18,7 @@ export function StatsGrid({ stats }: { stats: ClassStats }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   grid: { gap: 10 },
   row: { flexDirection: 'row', gap: 10 },
-});
+}));

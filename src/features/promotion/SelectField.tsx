@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { Option } from './mockPromotion';
 
 type Props = {
@@ -62,7 +62,7 @@ export function SelectField({ label, placeholder, title, value, options, onChang
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { flex: 1, gap: 4 },
   label: { fontFamily: fonts.bodySemi, fontSize: 10, letterSpacing: 0.8, color: colors.textSecondary, textTransform: 'uppercase' },
   field: {
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardSolid,
   },
   compact: { height: 40, paddingHorizontal: 10 },
-  disabled: { opacity: 0.45, backgroundColor: '#eef2f1' },
+  disabled: { opacity: 0.45, backgroundColor: colors.neutralBg },
   value: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
   placeholder: { color: colors.textHint },
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
@@ -88,4 +88,4 @@ const styles = StyleSheet.create({
   optActive: { backgroundColor: colors.mint },
   optText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   optTextActive: { color: colors.primaryDeep, fontFamily: fonts.bodySemi },
-});
+}));

@@ -1,7 +1,7 @@
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../src/components/ui/Screen';
-import { colors } from '../../src/theme/tokens';
+import { colors, themed } from '../../src/theme/tokens';
 import { useSession } from '../../src/features/auth/session';
 import { AppBar } from '../../src/features/dashboard/AppBar';
 import { AttendanceCard } from '../../src/features/dashboard/AttendanceCard';
@@ -57,8 +57,8 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingBottom: 130, gap: 16 },
   grid: { gap: 12 },
   gridRow: { flexDirection: 'row', gap: 12 },
-});
+}));

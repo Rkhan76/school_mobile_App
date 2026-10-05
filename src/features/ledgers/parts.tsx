@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatMoney, isoToInput, parseAmount, titleCase, type CashbookEntry, type LedgerEntry } from './types';
 
 export type Filters = { entryType: string; category: string; from: string; to: string; pageSize: number };
@@ -189,7 +189,7 @@ export function CashbookCard({ item, onDelete }: CashProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   seg: { flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: colors.mint },
   segBtn: { flex: 1, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
   segOn: { backgroundColor: colors.primary },
@@ -221,4 +221,4 @@ const styles = StyleSheet.create({
   actBtn: { flex: 1, height: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.md, backgroundColor: colors.mint },
   actDanger: { backgroundColor: colors.dangerBg },
   actText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
-});
+}));

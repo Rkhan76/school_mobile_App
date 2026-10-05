@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 export function TeacherSubBar({
   active,
@@ -62,7 +62,7 @@ export function TeacherSubBar({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   back: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   backText: { fontFamily: fonts.heading, fontSize: 16, color: colors.primaryDeep },
@@ -81,4 +81,4 @@ const styles = StyleSheet.create({
   dotOff: { backgroundColor: colors.danger },
   pillText: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.5, color: colors.primaryDeep },
   pillTextOff: { color: colors.danger },
-});
+}));

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 
 interface Props {
   page: number;
@@ -53,7 +53,7 @@ export function Pagination({ page, pageSize, total, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { alignItems: 'center', gap: 12, paddingTop: 6 },
   summary: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   bold: { fontFamily: fonts.bodySemi, color: colors.text },
@@ -64,4 +64,4 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSecondary },
   chipTextActive: { color: colors.white },
-});
+}));

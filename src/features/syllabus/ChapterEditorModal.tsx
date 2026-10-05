@@ -3,7 +3,7 @@ import {
   ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { Chapter, ChapterInput } from './types';
 
 type DraftChapter = {
@@ -139,7 +139,7 @@ export function ChapterEditorModal({ visible, title, subtitle, chapters, saving,
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'flex-end' },
   dismiss: { flex: 1 },
@@ -182,4 +182,4 @@ const styles = StyleSheet.create({
   btnPrimary: { backgroundColor: colors.primary },
   btnDisabled: { opacity: 0.6 },
   btnPrimaryText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
-});
+}));

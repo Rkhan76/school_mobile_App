@@ -6,7 +6,7 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { ApiError } from '../../lib/apiClient';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { AUDIENCES, type Audience, type Notice } from './types';
 import { NoticeCard } from './NoticeCard';
@@ -184,7 +184,7 @@ export function NoticesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   chips: { gap: 8, paddingVertical: 2 },
   chip: {
@@ -211,4 +211,4 @@ const styles = StyleSheet.create({
   newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
   footerLoader: { marginVertical: 20 },
   endText: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textHint, marginVertical: 16 },
-});
+}));

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import { formatDate, type AcademicClass } from '../mockClasses';
 
 interface Props {
@@ -52,7 +52,7 @@ function ClassCardBase({ item, onOpen, onEdit, onDelete }: Props) {
 
 export const ClassCard = memo(ClassCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 14, gap: 10, borderRadius: radius.xl },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   name: { flex: 1, fontFamily: fonts.heading, fontSize: 17, color: colors.text },
@@ -69,4 +69,4 @@ const styles = StyleSheet.create({
   },
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mintSoft },
   danger: { backgroundColor: colors.dangerBg },
-});
+}));

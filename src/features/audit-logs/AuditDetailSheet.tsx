@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { ActionPill } from './ActionPill';
 import { JsonDiff } from './JsonDiff';
 import { formatDateTime, type AuditLog } from './types';
@@ -58,7 +58,7 @@ export function AuditDetailSheet({ log, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: 20, gap: 10, maxHeight: '85%' },
   grab: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
@@ -73,4 +73,4 @@ const styles = StyleSheet.create({
   legendText: { fontFamily: fonts.mono, fontSize: 11 },
   close: { height: 46, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mint },
   closeText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
-});
+}));

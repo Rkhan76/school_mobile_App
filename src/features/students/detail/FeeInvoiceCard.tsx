@@ -1,6 +1,6 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { StudentInvoice } from './studentDetail';
 import { formatINR, SectionCard } from './ui';
 
@@ -36,7 +36,7 @@ export function FeeInvoiceCard({ inv }: { inv: StudentInvoice }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   rec: { fontFamily: fonts.mono, fontSize: 11, color: colors.textSecondary },
   box: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.mintSoft, borderRadius: radius.md, padding: 12 },
   title: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
@@ -45,4 +45,4 @@ const styles = StyleSheet.create({
   status: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.4 },
   btn: { height: 42, borderRadius: radius.md, backgroundColor: colors.mintSoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   btnText: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.primaryDeep },
-});
+}));

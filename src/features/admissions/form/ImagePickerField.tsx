@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActionSheetIOS, Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import type { AdmissionFilePart } from '../types';
 
 type Props = {
@@ -121,7 +121,7 @@ export function ImagePickerField({ label, value, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 8, width: '47%' },
   label: { fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 1, color: colors.textSecondary },
   slot: {
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 8,
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardSolid,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -146,4 +146,4 @@ const styles = StyleSheet.create({
   },
   hint: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.textSecondary },
   remove: { padding: 2 },
-});
+}));

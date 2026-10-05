@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 export const TEACHER_TABS = [
   'Overview',
@@ -39,7 +39,7 @@ export function TeacherTabs({ active, onChange }: { active: TeacherTab; onChange
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   scroll: { flexGrow: 0 },
   row: { paddingHorizontal: 16, gap: 8 },
   chip: {
@@ -49,4 +49,4 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   text: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
   textOn: { color: colors.white },
-});
+}));

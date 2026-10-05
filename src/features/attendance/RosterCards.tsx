@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 import { STAFF_STATUSES, type AttendanceStatus, type StaffMember } from './mockAttendance';
 import { StatusControl } from './parts';
 import { STUDENT_STATUSES, type StudentRecord } from './types';
@@ -92,7 +92,7 @@ export const StudentCard = memo(function StudentCard({
   );
 });
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: {
     backgroundColor: colors.cardSolid, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
     padding: 12, gap: 10, ...shadow.card,
@@ -110,4 +110,4 @@ const styles = StyleSheet.create({
     height: 40, paddingHorizontal: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
     backgroundColor: colors.mintSoft, fontFamily: fonts.body, fontSize: 13, color: colors.text,
   },
-});
+}));

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatINR } from './format';
 import type { CashflowData } from './mockData';
 
@@ -61,7 +61,7 @@ export function CashflowCard({ data }: { data: CashflowData }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 14 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   headText: { flex: 1 },
@@ -78,4 +78,4 @@ const styles = StyleSheet.create({
   amount: { fontFamily: fonts.headingExtra, fontSize: 18, color: colors.text },
   caption: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 28, marginTop: 6 },
-});
+}));

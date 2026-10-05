@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { GroupRow } from './GroupRow';
 import { NewGroupModal } from './NewGroupModal';
 import { connectChatSocket, disconnectChatSocket } from './socket';
@@ -143,7 +143,7 @@ export function MessagesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   segment: {
     flexDirection: 'row', padding: 4, backgroundColor: colors.mint, borderRadius: radius.lg,
@@ -166,4 +166,4 @@ const styles = StyleSheet.create({
   planGate: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 32 },
   planTitle: { fontFamily: fonts.heading, fontSize: 18, color: colors.text, textAlign: 'center' },
   planSub: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

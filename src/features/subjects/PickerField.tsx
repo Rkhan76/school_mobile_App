@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 type Props = {
   label: string;
@@ -29,7 +29,7 @@ export function PickerField({ label, value, placeholder, disabled, onPress }: Pr
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { flex: 1, minWidth: 0, gap: 4 },
   label: { fontFamily: fonts.bodySemi, fontSize: 10, letterSpacing: 0.8, color: colors.textSecondary },
   field: {
@@ -39,4 +39,4 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.55, backgroundColor: colors.mintSoft },
   text: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
   placeholder: { color: colors.textHint, fontFamily: fonts.body },
-});
+}));

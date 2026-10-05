@@ -6,7 +6,7 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { ApiError } from '../../lib/apiClient';
 import { useSession } from '../auth/session';
 import { ManageSheet } from './ManageSheet';
@@ -265,7 +265,7 @@ export function SubjectsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   row: { flexDirection: 'row', gap: 10 },
   count: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary, textAlign: 'right' },
@@ -284,4 +284,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.primary,
   },
   newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
-});
+}));

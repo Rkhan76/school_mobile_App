@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { AudiencePill } from './AudiencePill';
 import { deriveStatus, formatDate, type Notice } from './types';
 
@@ -72,7 +72,7 @@ function NoticeCardBase({ item, onView, onSharePdf, onEdit, onDelete, canUpdate,
 
 export const NoticeCard = memo(NoticeCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 0, overflow: 'hidden' },
   body: { padding: 16, gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
@@ -88,4 +88,4 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.mintSoft,
   },
   action: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19 },
-});
+}));

@@ -1,15 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 type Tone = 'success' | 'danger' | 'warning' | 'neutral' | 'primary';
 
-const tones: Record<Tone, { bg: string; fg: string }> = {
+const tones = themed<Record<Tone, { bg: string; fg: string }>>(() => ({
   success: { bg: colors.successBg, fg: colors.success },
   danger: { bg: colors.dangerBg, fg: colors.danger },
   warning: { bg: colors.warningBg, fg: colors.warning },
-  neutral: { bg: '#eef2f1', fg: colors.textSecondary },
+  neutral: { bg: colors.neutralBg, fg: colors.textSecondary },
   primary: { bg: colors.mint, fg: colors.primaryDeep },
-};
+}));
 
 export function Badge({ label, tone = 'neutral' }: { label: string; tone?: Tone }) {
   const t = tones[tone];
@@ -20,7 +20,7 @@ export function Badge({ label, tone = 'neutral' }: { label: string; tone?: Tone 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, alignSelf: 'flex-start' },
   text: { fontFamily: fonts.bodySemi, fontSize: 11 },
-});
+}));

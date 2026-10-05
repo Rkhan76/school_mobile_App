@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { FooterButtons, FullModal } from './parts';
 
 type Props = { visible: boolean; onClose: () => void };
@@ -34,7 +34,7 @@ export function AddMemberModal({ visible, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, gap: 12 },
   iconWrap: {
     width: 72, height: 72, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center',
@@ -42,4 +42,4 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: fonts.heading, fontSize: 17, color: colors.text, textAlign: 'center' },
   body: { fontFamily: fonts.body, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
-});
+}));

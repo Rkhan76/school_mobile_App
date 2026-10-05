@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { SubjectWithAssignments } from './types';
 
 type Props = {
@@ -72,7 +72,7 @@ function SubjectCardBase({ item, canManage, canEdit, canDelete, onView, onManage
 
 export const SubjectCard = memo(SubjectCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   name: { flex: 1, fontFamily: fonts.heading, fontSize: 16, color: colors.text },
@@ -94,4 +94,4 @@ const styles = StyleSheet.create({
     borderRadius: 12, backgroundColor: '#fff1e6', borderWidth: 1, borderColor: '#fed7aa',
   },
   manageText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.orange },
-});
+}));

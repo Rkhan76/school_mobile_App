@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { AdmissionStats, AdmissionStatus } from './types';
 
 export type StatusFilter = AdmissionStatus | 'all';
@@ -28,7 +28,7 @@ export function StatusChips({ value, onChange, stats }: { value: StatusFilter; o
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { gap: 8, paddingHorizontal: 16 },
   chip: {
     height: 36, paddingHorizontal: 14, borderRadius: radius.pill, justifyContent: 'center',
@@ -37,4 +37,4 @@ const styles = StyleSheet.create({
   active: { backgroundColor: colors.primary, borderColor: colors.primary },
   text: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
   activeText: { color: colors.white },
-});
+}));

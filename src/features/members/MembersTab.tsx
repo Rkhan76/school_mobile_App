@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { AddMemberModal } from './AddMemberModal';
 import { MemberCard } from './MemberCard';
@@ -223,7 +223,7 @@ export function MembersTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   stats: { flexDirection: 'row', gap: 8 },
   chips: { gap: 8, paddingVertical: 2 },
@@ -237,4 +237,4 @@ const styles = StyleSheet.create({
   addText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
   itemWrap: { paddingHorizontal: 16 },
   skeletons: { gap: 12 },
-});
+}));

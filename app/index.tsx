@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Redirect } from 'expo-router';
-import { colors } from '../src/theme/tokens';
+import { colors, themed } from '../src/theme/tokens';
 import { useSession } from '../src/features/auth/session';
 
 export default function Index() {
@@ -29,11 +29,11 @@ export default function Index() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-});
+}));

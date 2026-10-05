@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { Milestone } from './mockData';
 
 export function Milestones({ items }: { items: Milestone[] }) {
@@ -25,7 +25,7 @@ export function Milestones({ items }: { items: Milestone[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 12 },
   title: { fontFamily: fonts.heading, fontSize: 16, color: colors.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -35,4 +35,4 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   name: { fontFamily: fonts.heading, fontSize: 14, color: colors.text },
   sub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 1 },
-});
+}));

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../../components/ui/Card';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import { SectionNameModal } from './AddSectionModal';
 import { SectionChips, TabChips, type ClassTabKey } from './Chips';
 import { useClassDetail, type ClassSection } from './classDetail';
@@ -160,7 +160,7 @@ export function ClassDetailScreen({ id }: { id: string | undefined }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   pad: { paddingHorizontal: 16 },
   actions: { gap: 8, paddingHorizontal: 16 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
@@ -170,4 +170,4 @@ const styles = StyleSheet.create({
   nf: { alignItems: 'center', gap: 8, paddingVertical: 36 },
   nfTitle: { fontFamily: fonts.heading, fontSize: 17, color: colors.text },
   nfSub: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { TeacherDetail, TeacherUpdatePayload } from './teacherDetail';
 
 type Props = {
@@ -90,7 +90,7 @@ export function EditTeacherModal({ visible, teacher, busy, onSubmit, onClose }: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'center', padding: 20 },
   box: { backgroundColor: colors.cardSolid, borderRadius: radius.xl, padding: 20, gap: 12 },
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
@@ -107,4 +107,4 @@ const styles = StyleSheet.create({
   save: { backgroundColor: colors.primaryDeep },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
   disabled: { opacity: 0.6 },
-});
+}));

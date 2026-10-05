@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 import { STATUS_META } from './parts';
 import type { AttendanceStatus } from './mockAttendance';
 import type { RosterApi } from './useRoster';
@@ -31,7 +31,7 @@ export function SaveBar({ order, counts, dirty, saving, disabled, onSave }: Prop
           );
         })}
         {counts.NONE > 0 ? (
-          <View style={[styles.chip, { backgroundColor: '#eef2f1' }]}>
+          <View style={[styles.chip, { backgroundColor: colors.neutralBg }]}>
             <Text style={[styles.chipText, { color: colors.textSecondary }]}>Unmarked {counts.NONE}</Text>
           </View>
         ) : null}
@@ -76,7 +76,7 @@ export function useSaveFlow<T extends { id: string; status: AttendanceStatus | n
   }, [save, label]);
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bar: {
     position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 10, gap: 10,
     backgroundColor: colors.cardSolid, borderTopWidth: 1, borderTopColor: colors.border, ...shadow.card,
@@ -87,4 +87,4 @@ const styles = StyleSheet.create({
   save: { height: 48, borderRadius: radius.pill, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   saveOff: { backgroundColor: colors.textHint, opacity: 0.6 },
   saveText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.white },
-});
+}));

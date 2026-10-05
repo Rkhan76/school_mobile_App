@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 
 type Props = {
   visible: boolean;
@@ -52,7 +52,7 @@ export function SectionNameModal({ visible, initialName = '', title = 'Add Secti
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)', justifyContent: 'center', padding: 24 },
   sheet: { backgroundColor: colors.cardSolid, borderRadius: radius.xl, padding: 20, gap: 14 },
   title: { fontFamily: fonts.heading, fontSize: 18, color: colors.text },
@@ -63,4 +63,4 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.primaryDeep },
   ok: { backgroundColor: colors.primaryDeep },
   okText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
-});
+}));

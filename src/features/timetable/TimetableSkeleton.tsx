@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { colors, radius } from '../../theme/tokens';
+import { colors, radius, themed } from '../../theme/tokens';
 
 /** Pulsing placeholder rows shown while the timetable loads. */
 export function TimetableSkeleton() {
@@ -34,7 +34,7 @@ export function TimetableSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 10 },
   card: {
     flexDirection: 'row', gap: 12, padding: 16, borderRadius: radius.lg, backgroundColor: colors.cardSolid,
@@ -43,4 +43,4 @@ const styles = StyleSheet.create({
   left: { width: 76, gap: 6 },
   right: { flex: 1, gap: 8 },
   bar: { height: 11, borderRadius: 6, backgroundColor: colors.border },
-});
+}));

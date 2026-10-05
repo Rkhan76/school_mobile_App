@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { DAYS, type Day } from './types';
 
 type Props = { value: Day; onChange: (d: Day) => void; today?: Day | null };
@@ -29,7 +29,7 @@ export function DaySelector({ value, onChange, today: todayCode }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { paddingHorizontal: 16, gap: 8 },
   chip: {
     minWidth: 62, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', gap: 4,
@@ -42,5 +42,5 @@ const styles = StyleSheet.create({
   dot: { width: 5, height: 5, borderRadius: 3 },
   dotHidden: { backgroundColor: 'transparent' },
   dotToday: { backgroundColor: colors.primary },
-  dotOnActive: { backgroundColor: colors.white },
-});
+  dotOnActive: { backgroundColor: colors.cardSolid },
+}));

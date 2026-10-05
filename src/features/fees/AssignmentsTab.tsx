@@ -7,7 +7,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { BottomSheet, Button, EmptyState, OptionSheet, SkeletonCard } from './parts';
 import { CLASSES, formatINR, useAssignments, type AssignmentRow } from './mockFees';
 
@@ -185,7 +185,7 @@ function Separator() {
   return <View style={{ height: 12 }} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { gap: 12, marginBottom: 14 },
   row: { flexDirection: 'row', gap: 10 },
   filterNote: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
@@ -199,4 +199,4 @@ const styles = StyleSheet.create({
   optOn: { backgroundColor: colors.mintSoft },
   optText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   optSub: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

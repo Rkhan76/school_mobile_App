@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { Chip } from './parts';
 import { ENTITY_LABELS, ENTITY_TYPES, type DocumentType, type EntityType, type RequestStatusFilter } from './types';
 
@@ -71,7 +71,7 @@ export function FilterSheet({ visible, filters, types, onChange, onClose }: Prop
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.4)' },
   sheet: {
     backgroundColor: colors.background, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -87,4 +87,4 @@ const styles = StyleSheet.create({
   resetText: { fontFamily: fonts.bodySemi, color: colors.primaryDeep },
   done: { backgroundColor: colors.primary },
   doneText: { fontFamily: fonts.bodySemi, color: colors.white },
-});
+}));

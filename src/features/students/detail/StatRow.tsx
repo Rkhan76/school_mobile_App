@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius, shadow } from '../../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { formatINR, type IconName } from './ui';
 import type { StudentDetail } from './studentDetail';
 
@@ -40,7 +40,7 @@ export function StatRow({ s }: { s: StudentDetail }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   tile: { flex: 1, minWidth: 0, backgroundColor: colors.cardSolid, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 4, ...shadow.card },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -49,4 +49,4 @@ const styles = StyleSheet.create({
   value: { fontFamily: fonts.headingExtra, fontSize: 18, color: colors.primaryDeep },
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   note: { flexShrink: 1, fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.textSecondary },
-});
+}));

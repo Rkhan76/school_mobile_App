@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { DateCtl } from './DateBar';
 import { addDays, dmyToIso, isFuture, isoToDmy, TODAY_ISO } from './dateUtils';
 import { confirmDiscard } from './guards';
@@ -110,7 +110,7 @@ export function AttendanceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabs: {
     flexDirection: 'row', marginHorizontal: 16, marginBottom: 10, padding: 4, borderRadius: radius.pill,
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
@@ -118,4 +118,4 @@ const styles = StyleSheet.create({
   tab: { flex: 1, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.pill },
   tabOn: { backgroundColor: colors.primary },
   tabText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
-});
+}));

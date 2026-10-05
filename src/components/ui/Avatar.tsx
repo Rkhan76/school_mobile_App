@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 
 const palette = [colors.primary, colors.blue, colors.indigo, colors.purple, colors.orange];
 
@@ -19,7 +19,7 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   box: { alignItems: 'center', justifyContent: 'center' },
   text: { color: colors.white, fontFamily: fonts.heading },
-});
+}));

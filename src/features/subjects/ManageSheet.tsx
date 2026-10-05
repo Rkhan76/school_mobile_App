@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { ClassWithSections } from '../common/types';
 import type { SubjectWithAssignments } from './types';
 
@@ -94,7 +94,7 @@ export function ManageSheet({ subject, classes, activeYearId, activeYearLabel, o
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
@@ -124,4 +124,4 @@ const styles = StyleSheet.create({
   saveDisabled: { opacity: 0.5 },
   saveText: { fontFamily: fonts.bodySemi, color: colors.white },
   warn: { fontFamily: fonts.body, fontSize: 12, color: colors.danger, marginTop: 8 },
-});
+}));

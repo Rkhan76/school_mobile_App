@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { CollectPaymentModal } from './CollectPaymentModal';
 import { InvoiceCard } from './InvoiceCard';
 import { InvoiceDetailSheet } from './InvoiceDetailSheet';
@@ -161,7 +161,7 @@ function Separator() {
   return <View style={{ height: 12 }} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { gap: 12, marginBottom: 14 },
   row: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   collectBtn: {
@@ -174,4 +174,4 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
   },
-});
+}));

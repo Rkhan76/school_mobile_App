@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { NewRoleModal } from './NewRoleModal';
 import { RoleEditorModal } from './RoleEditorModal';
@@ -85,7 +85,7 @@ export function RolesTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 12 },
   toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   count: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -101,4 +101,4 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontFamily: fonts.heading, fontSize: 16, color: colors.text, flexShrink: 1 },
   desc: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

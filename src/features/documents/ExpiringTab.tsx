@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 import { daysFromToday, formatDate } from './dateUtils';
 import { ActionBtn, Chip, EmptyState, InfoRow, RoleTag, SkeletonList, infoText } from './parts';
 import { ENTITY_LABELS, type EntityDocument } from './types';
@@ -95,7 +95,7 @@ export function ExpiringTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   seg: { flexDirection: 'row', gap: 8 },
   count: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
@@ -103,4 +103,4 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   name: { fontFamily: fonts.heading, fontSize: 15, color: colors.text },
   actions: { flexDirection: 'row', justifyContent: 'flex-end' },
-});
+}));

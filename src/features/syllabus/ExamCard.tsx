@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { ExamSyllabusItem } from './types';
 import { examStatusLabel, formatDate } from './utils';
 
@@ -51,7 +51,7 @@ function ExamCardBase({ item, onEdit }: Props) {
 
 export const ExamCard = memo(ExamCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { gap: 8 },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   title: { flex: 1, fontFamily: fonts.heading, fontSize: 16, color: colors.text },
@@ -79,4 +79,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
   },
   editText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primaryDeep },
-});
+}));

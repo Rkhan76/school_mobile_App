@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 type Props = { page: number; pageSize: number; total: number; shown: number; onChange: (p: number) => void };
 
@@ -21,7 +21,7 @@ export function Pagination({ page, pageSize, total, shown, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { alignItems: 'center', gap: 10, paddingVertical: 12 },
   info: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -29,4 +29,4 @@ const styles = StyleSheet.create({
   off: { opacity: 0.4 },
   btnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primaryDeep },
   page: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.text },
-});
+}));

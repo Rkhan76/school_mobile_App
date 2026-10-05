@@ -1,11 +1,11 @@
 import { StyleSheet, View, type ViewProps } from 'react-native';
-import { colors, radius, shadow } from '../../theme/tokens';
+import { colors, radius, shadow, themed } from '../../theme/tokens';
 
 export function Card({ style, ...rest }: ViewProps) {
   return <View style={[styles.card, style]} {...rest} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.xl,
@@ -14,4 +14,4 @@ const styles = StyleSheet.create({
     padding: 16,
     ...shadow.card,
   },
-});
+}));

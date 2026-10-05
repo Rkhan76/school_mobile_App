@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 
 type Props = { title: string; subtitle?: string; back?: boolean; right?: ReactNode };
 
@@ -31,11 +31,11 @@ export function ScreenHeader({ title, subtitle, back, right }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
   back: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardSolid },
   titles: { flex: 1 },
   title: { fontFamily: fonts.heading, fontSize: 22, color: colors.text },
   subtitle: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 1 },
   right: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-});
+}));

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { ActionBtn, EmptyState, RoleTag, SkeletonList } from './parts';
 import { TypeFormModal } from './TypeFormModal';
@@ -106,7 +106,7 @@ export function TypesTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 10, paddingBottom: 4 },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   count: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
@@ -124,4 +124,4 @@ const styles = StyleSheet.create({
   applies: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   appliesLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-});
+}));

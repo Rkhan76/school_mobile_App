@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { ReportError } from './types';
 
 function Bone({ style }: { style: object }) {
@@ -89,7 +89,7 @@ export function ErrorState({ error, onRetry }: { error: ReportError; onRetry: ()
   return <Notice icon="alert-circle-outline" tint={colors.danger} title="Could not load report" message={error.message} action="Retry" onAction={onRetry} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bone: { backgroundColor: '#dcebe8', borderRadius: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   kpi: { width: '48.5%', flexGrow: 1, gap: 10, padding: 14 },
@@ -99,4 +99,4 @@ const styles = StyleSheet.create({
   noticeMsg: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 8, lineHeight: 19 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, height: 42, paddingHorizontal: 20, borderRadius: radius.pill, backgroundColor: colors.primaryDeep },
   btnText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
-});
+}));

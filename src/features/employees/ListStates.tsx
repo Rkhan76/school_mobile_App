@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 
 export function useDebounced<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -52,7 +52,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   skel: { backgroundColor: colors.cardSolid, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   block: { backgroundColor: colors.mint, borderRadius: 6 },
@@ -61,4 +61,4 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
   retry: { marginTop: 8, paddingHorizontal: 20, height: 42, borderRadius: radius.lg, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   retryText: { fontFamily: fonts.bodySemi, color: colors.white, fontSize: 14 },
-});
+}));

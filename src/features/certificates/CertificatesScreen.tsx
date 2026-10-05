@@ -6,7 +6,7 @@ import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
 import { CertificateCard } from './CertificateCard';
 import { CertificatePreview } from './CertificatePreview';
@@ -167,7 +167,7 @@ export function CertificatesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerWrap: { paddingHorizontal: 16, gap: 12, paddingBottom: 4 },
   stats: { flexDirection: 'row', gap: 10 },
   itemWrap: { paddingHorizontal: 16 },
@@ -186,4 +186,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, backgroundColor: colors.primary,
   },
   newText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.white },
-});
+}));

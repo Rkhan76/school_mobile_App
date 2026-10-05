@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius } from '../../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import { getClassesMaster } from '../../common/api';
 import type { ClassWithSections, SectionLite } from '../../common/types';
 
@@ -103,7 +103,7 @@ export function StudentFilterSheet({ visible, value, onClose, onApply }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,51,48,0.45)' },
   sheet: {
     backgroundColor: colors.cardSolid, borderTopLeftRadius: 28, borderTopRightRadius: 28,
@@ -128,4 +128,4 @@ const styles = StyleSheet.create({
   resetText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.primaryDeep },
   apply: { backgroundColor: colors.primary },
   applyText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
-});
+}));

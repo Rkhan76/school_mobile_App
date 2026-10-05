@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { AuditFilters } from './types';
 
 type Key = 'entityType' | 'action' | 'userId' | 'from' | 'to';
@@ -33,8 +33,8 @@ export function ActiveFilterChips({ filters, onClear }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { gap: 8, paddingVertical: 2 },
   chip: { height: 32, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radius.pill, backgroundColor: colors.mint },
   text: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.primaryDeep },
-});
+}));

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatDate, formatINR, isOverdue, statusTone, type Invoice } from './mockFees';
 
 type Props = { invoice: Invoice; onPress: (id: string) => void };
@@ -49,7 +49,7 @@ function InvoiceCardBase({ invoice: i, onPress }: Props) {
 
 export const InvoiceCard = memo(InvoiceCardBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   no: { fontFamily: fonts.monoMedium, fontSize: 14, color: colors.primaryDeep },
   student: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -61,4 +61,4 @@ const styles = StyleSheet.create({
   amt: { flex: 1, minWidth: 0, gap: 2 },
   amtLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.textSecondary },
   amtValue: { fontFamily: fonts.heading, fontSize: 14, color: colors.text },
-});
+}));

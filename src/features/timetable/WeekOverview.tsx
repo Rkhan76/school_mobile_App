@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { DAY_TO_DOW, DAYS, subjectColor, type Day, type Period, type TimetableSlot } from './types';
 
 type Props = { periods: Period[]; slots: TimetableSlot[]; today?: Day | null };
@@ -52,7 +52,7 @@ export function WeekOverview({ periods, slots, today }: Props) {
 }
 
 const CELL_W = 62;
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   scroll: {
     borderRadius: radius.lg, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
   },
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
     width: (CELL_W + 4) * 6 - 4, paddingVertical: 4, borderRadius: 8, alignItems: 'center', backgroundColor: '#ffedd5',
   },
   breakText: { fontFamily: fonts.bodySemi, fontSize: 10.5, color: '#c2410c' },
-});
+}));

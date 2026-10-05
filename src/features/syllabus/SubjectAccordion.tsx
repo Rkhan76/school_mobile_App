@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
-import { colors, fonts, radius } from '../../theme/tokens';
+import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { SubjectEntry } from './types';
 
 type Props = {
@@ -78,7 +78,7 @@ function SubjectAccordionBase({ item, expanded, reviewedIds, onToggleExpand, onT
 
 export const SubjectAccordion = memo(SubjectAccordionBase);
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   card: { padding: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -105,4 +105,4 @@ const styles = StyleSheet.create({
   chTitle: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   chDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
   topics: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

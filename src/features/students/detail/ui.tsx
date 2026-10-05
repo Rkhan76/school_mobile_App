@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../../components/ui/Card';
-import { colors, fonts } from '../../../theme/tokens';
+import { colors, fonts, themed } from '../../../theme/tokens';
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -35,7 +35,7 @@ export function formatINR(n: number): string {
   return '₹' + n.toLocaleString('en-IN');
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 16, gap: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: { width: 30, height: 30, borderRadius: 10, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
@@ -43,4 +43,4 @@ const styles = StyleSheet.create({
   lv: { flex: 1, gap: 2 },
   label: { fontFamily: fonts.bodyMedium, fontSize: 10.5, letterSpacing: 0.6, color: colors.textSecondary, textTransform: 'uppercase' },
   value: { fontFamily: fonts.bodyMedium, fontSize: 13.5, color: colors.text },
-});
+}));

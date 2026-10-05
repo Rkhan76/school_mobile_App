@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius, shadow } from '../../theme/tokens';
+import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
 
 type Props = {
   value: string;
@@ -40,7 +40,7 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search', onFilte
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   field: {
     flex: 1,
@@ -66,4 +66,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
   },
   filterText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primaryDeep },
-});
+}));

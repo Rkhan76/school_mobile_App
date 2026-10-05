@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 
 export function LoginFooter() {
   return (
@@ -17,11 +17,11 @@ export function LoginFooter() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { gap: 12, alignItems: 'center' },
   row: { alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between' },
   ssl: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sslText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
   version: { fontFamily: fonts.mono, fontSize: 11, color: colors.textHint },
   links: { fontFamily: fonts.body, fontSize: 12, color: colors.textHint },
-});
+}));

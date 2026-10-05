@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '../../theme/tokens';
+import { colors, fonts, themed } from '../../theme/tokens';
 
 export function BrandHeader() {
   return (
@@ -15,7 +15,7 @@ export function BrandHeader() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   center: { alignItems: 'center', gap: 6 },
   logo: {
     width: 84,
@@ -43,4 +43,4 @@ const styles = StyleSheet.create({
   dot: { width: 16, height: 16, borderRadius: 8, backgroundColor: colors.primaryDeep },
   title: { fontFamily: fonts.headingExtra, fontSize: 34, color: colors.text },
   subtitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
-});
+}));

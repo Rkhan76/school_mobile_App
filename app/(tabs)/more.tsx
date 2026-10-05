@@ -5,8 +5,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../src/components/ui/Screen';
 import { Card } from '../../src/components/ui/Card';
 import { ScreenHeader } from '../../src/components/ui/ScreenHeader';
-import { colors, fonts } from '../../src/theme/tokens';
+import { colors, fonts, themed } from '../../src/theme/tokens';
 import { useSession } from '../../src/features/auth/session';
+import { useTheme, type ThemeMode } from '../../src/theme/ThemeProvider';
+
+const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { mode: 'system', label: 'System', icon: 'phone-portrait-outline' },
+  { mode: 'light', label: 'Light', icon: 'sunny-outline' },
+  { mode: 'dark', label: 'Dark', icon: 'moon-outline' },
+];
 
 type Item = { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; href?: Href };
 type Group = { title: string; items: Item[] };
@@ -69,6 +76,7 @@ const groups: Group[] = [
 export default function MoreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { mode, setMode } = useTheme();
   return (
     <ScreenBackground>
       <ScreenHeader title="More" />
@@ -99,6 +107,29 @@ export default function MoreScreen() {
           </View>
         ))}
         <View style={styles.group}>
+          <Text style={styles.groupTitle}>APPEARANCE</Text>
+          <Card style={styles.card}>
+            <View style={styles.themeRow}>
+              {THEME_OPTIONS.map((o) => {
+                const active = mode === o.mode;
+                return (
+                  <Pressable
+                    key={o.mode}
+                    onPress={() => setMode(o.mode)}
+                    style={[styles.themeOption, active && styles.themeOptionActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${o.label} theme`}
+                  >
+                    <Ionicons name={o.icon} size={16} color={active ? colors.white : colors.textSecondary} />
+                    <Text style={[styles.themeLabel, active && styles.themeLabelActive]}>{o.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Card>
+        </View>
+        <View style={styles.group}>
           <Card style={styles.card}>
             <Pressable
               onPress={async () => {
@@ -119,7 +150,7 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 18 },
   group: { gap: 8 },
   groupTitle: { fontFamily: fonts.monoMedium, fontSize: 11, letterSpacing: 1, color: colors.textHint, paddingLeft: 4 },
@@ -129,5 +160,13 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   iconTile: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
   label: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
+  themeRow: { flexDirection: 'row', gap: 6, padding: 4 },
+  themeOption: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    height: 40, borderRadius: 12,
+  },
+  themeOptionActive: { backgroundColor: colors.primary },
+  themeLabel: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSecondary },
+  themeLabelActive: { color: colors.white },
   soon: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.textHint },
-});
+}));
