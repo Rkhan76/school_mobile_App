@@ -315,21 +315,23 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
   }
 
   const st = STATUS[data.status];
-  const name = data.personalInfo.fullName || 'Admission';
+  // Some records come back without personalInfo; render them with blanks instead of crashing.
+  const personal: Partial<AdmissionDetail['personalInfo']> = data.personalInfo ?? {};
+  const name = personal.fullName || 'Admission';
   const subtitle = data.status === 'enrolled' ? data.admissionNumber ?? data.applicationNumber : data.applicationNumber;
   const rollNumber = data.rollNumber ?? data.academicInfo?.rollNumber;
 
   const primaryGuardian = data.parentGuardianInfo?.primaryGuardian === 'other' ? 'guardian' : data.parentGuardianInfo?.primaryGuardian;
 
   const personalRows: { label: string; value?: string | null }[] = [
-    { label: 'Gender', value: data.personalInfo.gender },
-    { label: 'Date of Birth', value: formatDate(data.personalInfo.dateOfBirth) },
-    { label: 'Category', value: data.personalInfo.category },
-    { label: 'Subcategory', value: data.personalInfo.subcategory },
-    { label: 'Religion', value: data.personalInfo.religion },
-    { label: 'Phone', value: data.personalInfo.phone },
-    { label: 'Email', value: data.personalInfo.email },
-    { label: 'Aadhar Number', value: data.personalInfo.aadharNumber },
+    { label: 'Gender', value: personal.gender },
+    { label: 'Date of Birth', value: formatDate(personal.dateOfBirth) },
+    { label: 'Category', value: personal.category },
+    { label: 'Subcategory', value: personal.subcategory },
+    { label: 'Religion', value: personal.religion },
+    { label: 'Phone', value: personal.phone },
+    { label: 'Email', value: personal.email },
+    { label: 'Aadhar Number', value: personal.aadharNumber },
   ];
 
   const documents = data.documents ?? [];
