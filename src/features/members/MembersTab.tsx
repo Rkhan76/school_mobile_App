@@ -12,6 +12,7 @@ import { AssignRoleSheet } from './MemberSheets';
 import { Chip, EmptyState, SkeletonBlock } from './parts';
 import { canActOnCredentials, ROLE_FILTER_OPTIONS, type SchoolUser, type SchoolUserBaseRole } from './types';
 import { useMembers, useRoles } from './useMembers';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 export function MembersTab() {
   const insets = useSafeAreaInsets();
@@ -138,7 +139,7 @@ export function MembersTab() {
 
       <SearchBar value={search} onChangeText={setSearch} placeholder="Search by name or email..." />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip label="All" on={role === ''} onPress={() => setRole('')} />
         {ROLE_FILTER_OPTIONS.map((r) => (
           <Chip key={r.value} label={r.label} on={role === r.value} onPress={() => setRole(r.value)} />

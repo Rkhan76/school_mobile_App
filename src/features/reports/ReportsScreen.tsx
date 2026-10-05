@@ -156,7 +156,8 @@ export function ReportsScreen() {
 }
 
 const styles = themed(() => StyleSheet.create({
-  rowScroll: { flexGrow: 0, marginBottom: 8 },
+  // flexShrink 0: the vertical ScrollView below would otherwise squeeze these rows and clip the chips.
+  rowScroll: { flexGrow: 0, flexShrink: 0, marginBottom: 8 },
   row: { gap: 8, paddingHorizontal: 16 },
   chip: { height: 38, paddingHorizontal: 16, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border },
   chipSmall: { height: 32, paddingHorizontal: 12, backgroundColor: colors.mintSoft },

@@ -14,6 +14,7 @@ import { useSession } from '../auth/session';
 import { formatDate, LeaveRequestCard } from './LeaveRequestCard';
 import { useLeaveRequests } from './useLeaveRequests';
 import { APPLICANT_ROLES, LEAVE_STATUSES, type ApplicantRoleFilter, type LeaveApplication, type LeaveStatus } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 const STATUS_LABEL: Record<LeaveStatus, string> = {
   PENDING: 'Pending',
@@ -215,14 +216,14 @@ export function LeaveRequestsScreen() {
   const header = useMemo(
     () => (
       <View style={styles.headerWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           <Chip label="All" active={statusFilter === 'ALL'} onPress={() => setStatusFilter('ALL')} />
           {LEAVE_STATUSES.map((s) => (
             <Chip key={s} label={STATUS_LABEL[s]} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
           ))}
         </ScrollView>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           <Chip label="All roles" active={roleFilter === 'ALL'} onPress={() => setRoleFilter('ALL')} />
           {APPLICANT_ROLES.map((r) => (
             <Chip key={r} label={ROLE_LABEL[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />

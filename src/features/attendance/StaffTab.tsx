@@ -11,6 +11,7 @@ import { ActionButton, EmptyState, HistorySheet, ListSkeleton, STATUS_META, coun
 import { StaffCard } from './RosterCards';
 import { SaveBar, useSaveFlow } from './SaveBar';
 import { useStaffRoster } from './useRoster';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type Props = { ctl: DateCtl; onDirtyChange: (d: boolean) => void };
 type Filter = 'All' | 'Teaching' | 'Non-teaching' | StaffCategory;
@@ -74,7 +75,7 @@ export function StaffTab({ ctl, onDirtyChange }: Props) {
           }
         />
       </Card>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {FILTERS.map((f) => {
           const on = f === filter;
           return (

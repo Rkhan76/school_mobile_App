@@ -9,6 +9,7 @@ import { formatRange } from './dateUtils';
 import { STATUS_TONE } from './EventCard';
 import { useEventMedia } from './useEvents';
 import type { EventMedia, EventMediaResourceType, MediaAsset, SchoolEvent } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type Props = {
   event: SchoolEvent | null;
@@ -141,7 +142,7 @@ export function EventDetailSheet({ event, onClose, onEdit, onDelete, canEdit = t
                 <Text style={styles.mediaText}>No media</Text>
               </View>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
+              <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
                 {media.map((m) => (
                   <MediaThumb key={m.id} item={m} canRemove={canRemoveMedia} onRemove={() => onRemoveMedia(m)} />
                 ))}

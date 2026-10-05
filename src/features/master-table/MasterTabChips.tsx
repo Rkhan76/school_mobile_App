@@ -3,10 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { CONFIGS, TAB_ORDER } from './config';
 import type { TabKey } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 export function MasterTabChips({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {TAB_ORDER.map((k) => {
         const on = k === active;
         const c = CONFIGS[k];

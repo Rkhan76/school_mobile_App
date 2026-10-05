@@ -10,6 +10,7 @@ import { ExpiringTab } from './ExpiringTab';
 import { RequestsTab } from './RequestsTab';
 import { ReviewTab } from './ReviewTab';
 import { TypesTab } from './TypesTab';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type TabKey = 'review' | 'requests' | 'expiring' | 'types';
 
@@ -60,7 +61,7 @@ export function DocumentsScreen() {
       ) : (
         <>
           <View style={styles.tabsWrap}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+            <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
               {TABS.map((t) => {
                 const on = t.key === tab;
                 return (

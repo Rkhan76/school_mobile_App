@@ -8,10 +8,13 @@ import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { DateCtl } from './DateBar';
 import { addDays, dmyToIso, isFuture, isoToDmy, TODAY_ISO } from './dateUtils';
 import { confirmDiscard } from './guards';
+import { useAccess, type Access } from '../auth/access';
 import { StaffTab } from './StaffTab';
 import { StudentTab } from './StudentTab';
 
 type TabKey = 'student' | 'staff';
+
+const STAFF_TAB_ACCESS: Access = { hideForRoles: ['TEACHER'] };
 
 const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'student', label: 'Student', icon: 'school-outline' },
@@ -20,7 +23,10 @@ const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }
 
 export function AttendanceScreen() {
   const navigation = useNavigation();
-  const [tab, setTab] = useState<TabKey>('staff');
+  // Staff attendance is an admin view (hardcoded off for teachers); everyone else keeps it as the default tab.
+  const can = useAccess();
+  const tabs = can(STAFF_TAB_ACCESS) ? TABS : TABS.filter((t) => t.key !== 'staff');
+  const [tab, setTab] = useState<TabKey>(can(STAFF_TAB_ACCESS) ? 'staff' : 'student');
   const [text, setText] = useState(isoToDmy(TODAY_ISO));
   const [loaded, setLoaded] = useState(TODAY_ISO);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +90,7 @@ export function AttendanceScreen() {
     <ScreenBackground>
       <ScreenHeader title="Attendance" back />
       <View style={styles.tabs}>
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const on = t.key === tab;
           return (
             <Pressable key={t.key} onPress={() => switchTab(t.key)} style={[styles.tab, on && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: on }}>

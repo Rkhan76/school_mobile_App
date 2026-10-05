@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, shadow, themed } from '../../theme/tokens';
+import { useAccess, type Access } from '../auth/access';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -9,19 +10,23 @@ interface Action {
   label: string;
   icon: IconName;
   highlighted?: boolean;
+  access?: Access;
 }
 
 const actions: Action[] = [
-  { id: 'attendance', label: 'Attendance', icon: 'checkmark-done' },
-  { id: 'admission', label: 'Admission', icon: 'person-add', highlighted: true },
-  { id: 'fee', label: 'Collect Fee', icon: 'card' },
-  { id: 'notice', label: 'Add Notice', icon: 'megaphone' },
+  { id: 'attendance', label: 'Attendance', icon: 'checkmark-done', access: { anyOf: ['attendance.record.create'] } },
+  { id: 'admission', label: 'Admission', icon: 'person-add', highlighted: true, access: { anyOf: ['admission.application.create'] } },
+  { id: 'fee', label: 'Collect Fee', icon: 'card', access: { hideForRoles: ['TEACHER'] } },
+  { id: 'notice', label: 'Add Notice', icon: 'megaphone', access: { anyOf: ['notice.record.create'] } },
 ];
 
 export function QuickActions({ onPress }: { onPress?: (id: string) => void }) {
+  const can = useAccess();
+  const visible = actions.filter((a) => can(a.access));
+  if (visible.length === 0) return null;
   return (
     <View style={styles.row}>
-      {actions.map((a) => (
+      {visible.map((a) => (
         <Pressable
           key={a.id}
           style={[styles.tile, a.highlighted && styles.tileHi]}

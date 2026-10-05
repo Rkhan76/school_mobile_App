@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { DocumentCategory } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type Props = {
   categories: DocumentCategory[];
@@ -16,7 +17,7 @@ type Props = {
  */
 export function CategoryChips({ categories, selectedId, onSelect }: Props) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {categories.map((c) => {
         const on = c.id === selectedId;
         return (

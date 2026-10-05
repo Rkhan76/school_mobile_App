@@ -9,7 +9,8 @@ const lightColors = {
   backgroundGlass: 'rgba(241,251,249,0.96)',
   topTint: '#e6f8f4',
   bottomTint: '#f7fffd',
-  card: 'rgba(255,255,255,0.92)',
+  // Opaque on purpose: Android draws the elevation shadow through a translucent background, which shows as an inner box.
+  card: '#fefffe',
   cardSolid: '#ffffff',
   border: '#e3efed',
   neutralBg: '#eef2f1',
@@ -41,7 +42,7 @@ const darkColors: Palette = {
   backgroundGlass: 'rgba(12,21,20,0.96)',
   topTint: '#10211f',
   bottomTint: '#0c1514',
-  card: 'rgba(22,35,33,0.92)',
+  card: '#152220',
   cardSolid: '#162321',
   border: '#26393a',
   neutralBg: '#1f2d2b',

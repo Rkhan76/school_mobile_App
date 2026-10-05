@@ -2,6 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import type { AuditFilters } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type Key = 'entityType' | 'action' | 'userId' | 'from' | 'to';
 type Props = { filters: AuditFilters; onClear: (k: Key) => void };
@@ -22,7 +23,7 @@ export function ActiveFilterChips({ filters, onClear }: Props) {
   const active = LABELS.filter((l) => filters[l.key].trim() !== '');
   if (active.length === 0) return null;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {active.map((a) => (
         <Pressable key={a.key} style={styles.chip} onPress={() => onClear(a.key)} accessibilityLabel={`Clear ${a.label} filter`}>
           <Text style={styles.text}>{a.label}: {filters[a.key]}</Text>

@@ -4,6 +4,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { formatMoney, isoToInput, parseAmount, titleCase, type CashbookEntry, type LedgerEntry } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 export type Filters = { entryType: string; category: string; from: string; to: string; pageSize: number };
 export const EMPTY_FILTERS: Filters = { entryType: '', category: '', from: '', to: '', pageSize: 20 };
@@ -56,7 +57,7 @@ export function ActiveFilterChips({ filters, typeLabel, categoryLabel, onClear }
   if (filters.pageSize !== 20) chips.push({ key: 'pageSize', text: `${filters.pageSize} rows` });
   if (chips.length === 0) return null;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
       {chips.map((c) => (
         <Pressable key={c.key} style={styles.chip} onPress={() => onClear(c.key)} accessibilityLabel={`Clear ${c.text}`}>
           <Text style={styles.chipText}>{c.text}</Text>

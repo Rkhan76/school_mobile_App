@@ -2,6 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, themed } from '../../../theme/tokens';
 import type { IconName } from './ui';
+import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
 export type TabKey = 'overview' | 'guardians' | 'attendance' | 'fees' | 'bank' | 'hostel' | 'documents' | 'reports' | 'history';
 
@@ -19,7 +20,7 @@ export const TABS: { key: TabKey; label: string; icon: IconName }[] = [
 
 export function TabChips({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {TABS.map((t) => {
         const on = t.key === active;
         return (

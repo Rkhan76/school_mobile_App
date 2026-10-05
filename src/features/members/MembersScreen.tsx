@@ -8,6 +8,7 @@ import { MembersTab } from './MembersTab';
 import { PermissionsTab } from './PermissionsTab';
 import { RolesTab } from './RolesTab';
 import type { IconName } from './parts';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type TabKey = 'members' | 'roles' | 'permissions';
 const TABS: { key: TabKey; label: string; icon: IconName }[] = [
@@ -23,7 +24,7 @@ export function MembersScreen() {
     <ScreenBackground>
       <ScreenHeader title="Members & Access" subtitle="Manage people, roles and permissions" back />
       <View style={styles.tabsWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+        <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
           {TABS.map((t) => {
             const on = t.key === tab;
             return (

@@ -51,7 +51,7 @@ const styles = themed(() => StyleSheet.create({
   top: { gap: 14 },
   title: { fontFamily: fonts.heading, fontSize: 24, color: colors.text, marginTop: 4 },
   // negative margin lets the chip row bleed to the screen edges while the list keeps its 16px padding
-  chipScroll: { marginHorizontal: -16 },
+  chipScroll: { marginHorizontal: -16, flexGrow: 0, flexShrink: 0 },
   chips: { gap: 8, paddingHorizontal: 16 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: radius.pill,

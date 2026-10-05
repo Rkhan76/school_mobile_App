@@ -16,6 +16,7 @@ import {
   buildPromotionChunks, defaultTarget, initialRow, submitPromotion, toOutcome, usePromotionStudents,
   type Decision, type PromoteItem, type PromotionResult, type PromotionRow,
 } from './mockPromotion';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 const BULK_DECISIONS = DECISIONS.filter((d) => CAN_SKIP_CLASS || d.value !== 'skip');
 
@@ -129,7 +130,7 @@ export function PromotionScreen() {
             <Text style={styles.count}>{selectedIds.length} of {students.length} selected</Text>
           </View>
           <Text style={styles.setLabel}>Set selected to</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {BULK_DECISIONS.map((d) => (
               <Pressable
                 key={d.value}

@@ -1,13 +1,14 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
 import { DAYS, type Day } from './types';
+import { hScrollFixed } from '../../components/ui/scrollStyles';
 
 type Props = { value: Day; onChange: (d: Day) => void; today?: Day | null };
 
 /** Horizontally scrollable MON-SAT chips; today's weekday gets a dot. */
 export function DaySelector({ value, onChange, today: todayCode }: Props) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal style={hScrollFixed} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {DAYS.map((d) => {
         const active = d === value;
         const today = d === todayCode;

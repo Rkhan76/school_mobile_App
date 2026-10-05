@@ -40,7 +40,7 @@ export function TeacherTabs({ active, onChange }: { active: TeacherTab; onChange
 }
 
 const styles = themed(() => StyleSheet.create({
-  scroll: { flexGrow: 0 },
+  scroll: { flexGrow: 0, flexShrink: 0 },
   row: { paddingHorizontal: 16, gap: 8 },
   chip: {
     height: 38, paddingHorizontal: 16, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center',

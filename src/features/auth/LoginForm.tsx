@@ -35,15 +35,15 @@ export function LoginForm() {
     <View style={styles.form}>
       <View style={styles.heading}>
         <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.sub}>Sign in to access your administrative workspace</Text>
+        <Text style={styles.sub}>Sign in to access your workspace</Text>
       </View>
 
       {error ? <ErrorBanner message={error} onDismiss={clearError} /> : null}
 
       <FormField
-        label="ADMINISTRATIVE EMAIL"
+        label="EMAIL"
         icon="mail-outline"
-        placeholder="admin@school.edu"
+        placeholder="name@school.edu"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -124,7 +124,7 @@ export function LoginForm() {
           <ActivityIndicator color={colors.white} />
         ) : (
           <>
-            <Text style={styles.buttonText}>Sign In to Admin Portal</Text>
+            <Text style={styles.buttonText}>Sign In</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.white} />
           </>
         )}

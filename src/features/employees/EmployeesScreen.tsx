@@ -9,6 +9,7 @@ import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
 import { colors, fonts, spacing, themed } from '../../theme/tokens';
 import { useSession } from '../auth/session';
+import { useAccess, type Access } from '../auth/access';
 import { EmployeeFormSheet } from './EmployeeFormSheet';
 import { FilterSheet, type EmployeeFilters } from './FilterSheet';
 import { CardSkeleton, EmptyState, useDebounced } from './ListStates';
@@ -52,7 +53,14 @@ function confirmBlock(name: string, onConfirm: () => void) {
   );
 }
 
+// Non-teaching staff are only listed for users who can see/manage staff (a teacher sees teachers only).
+const STAFF_ACCESS: Access = {
+  anyOf: ['non-teaching-staff.list.read', 'non-teaching-staff.profile.create', 'non-teaching-staff.profile.update'],
+};
+
 export function EmployeesScreen() {
+  const can = useAccess();
+  const showStaff = can(STAFF_ACCESS);
   const [tab, setTab] = useState<Tab>('Teachers');
   return (
     <ScreenBackground>
@@ -66,10 +74,12 @@ export function EmployeesScreen() {
           </Pressable>
         }
       />
-      <View style={styles.tabs}>
-        <SegmentedTabs options={TABS} value={tab} onChange={setTab} />
-      </View>
-      {tab === 'Teachers' ? <TeachersList /> : <StaffList />}
+      {showStaff && (
+        <View style={styles.tabs}>
+          <SegmentedTabs options={TABS} value={tab} onChange={setTab} />
+        </View>
+      )}
+      {tab === 'Teachers' || !showStaff ? <TeachersList /> : <StaffList />}
     </ScreenBackground>
   );
 }
