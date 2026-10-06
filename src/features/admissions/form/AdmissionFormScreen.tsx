@@ -19,6 +19,7 @@ import { Card } from '../../../components/ui/Card';
 import { DateInput } from '../../../components/ui/DateInput';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
+import { showToast } from '../../../components/ui/Toast';
 import { ApiError } from '../../../lib/apiClient';
 import { parseDisplayDate, toDisplayDate } from '../../../lib/date';
 import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
@@ -40,16 +41,21 @@ type Props = { mode: 'create' } | { mode: 'edit'; admissionId: string };
 
 type GenderOption = 'Male' | 'Female' | 'Other';
 type PrimaryGuardianOption = 'father' | 'mother' | 'other';
-type GuardianBlockForm = { name: string; phone: string; email: string; occupation: string; aadharNumber: string };
+type GuardianBlockForm = {
+  name: string; phone: string; email: string; occupation: string; aadharNumber: string;
+  /** Guardian block only. */
+  relation: string; mobileNumber: string; address: string;
+};
 
-const emptyGuardianBlock = (): GuardianBlockForm => ({ name: '', phone: '', email: '', occupation: '', aadharNumber: '' });
+const emptyGuardianBlock = (): GuardianBlockForm => ({
+  name: '', phone: '', email: '', occupation: '', aadharNumber: '', relation: '', mobileNumber: '', address: '',
+});
 
 type FormState = {
   academicYear: string;
   classId: string;
   className: string;
   rollNumber: string;
-  admissionNumber: string;
 
   fullName: string;
   gender: GenderOption | null;
@@ -99,7 +105,6 @@ const initialForm: FormState = {
   classId: '',
   className: '',
   rollNumber: '',
-  admissionNumber: '',
   fullName: '',
   gender: null,
   dateOfBirth: '',
@@ -142,6 +147,9 @@ function blockFrom(b?: GuardianBlock | null): GuardianBlockForm {
     email: b?.email ?? '',
     occupation: b?.occupation ?? '',
     aadharNumber: b?.aadharNumber ?? '',
+    relation: b?.relation ?? '',
+    mobileNumber: b?.mobileNumber ?? '',
+    address: b?.address ?? '',
   };
 }
 
@@ -152,7 +160,6 @@ function formFromDetail(detail: AdmissionDetail): FormState {
     classId: detail.academicInfo?.class ?? '',
     className: detail.className ?? '',
     rollNumber: detail.academicInfo?.rollNumber ?? detail.rollNumber ?? '',
-    admissionNumber: detail.academicInfo?.admissionNumber ?? '',
     fullName: detail.personalInfo?.fullName ?? '',
     gender: detail.personalInfo?.gender ?? null,
     dateOfBirth: toDisplayDate(detail.personalInfo?.dateOfBirth),
@@ -197,7 +204,6 @@ function buildPayload(form: FormState): AdmissionPayload {
       year: form.academicYear || undefined,
       class: form.classId || undefined,
       rollNumber: val(form.rollNumber) ?? null,
-      admissionNumber: val(form.admissionNumber) ?? null,
     },
     personalInfo: {
       fullName: val(form.fullName),
@@ -235,6 +241,9 @@ function buildPayload(form: FormState): AdmissionPayload {
               email: val(form.guardian.email),
               occupation: val(form.guardian.occupation),
               aadharNumber: val(form.guardian.aadharNumber),
+              relation: val(form.guardian.relation),
+              mobileNumber: val(form.guardian.mobileNumber),
+              address: val(form.guardian.address),
             },
           }
         : {}),
@@ -532,14 +541,28 @@ export function AdmissionFormScreen(props: Props) {
       return;
     }
 
+    const digitsOnly = (s: string) => !s.trim() || /^\d+$/.test(s.trim());
+    const phones = [form.phone, form.father.phone, form.mother.phone, form.guardian.phone, form.guardian.mobileNumber];
+    const aadhars = [form.aadharNumber, form.father.aadharNumber, form.mother.aadharNumber, form.guardian.aadharNumber];
+    if (!phones.every(digitsOnly)) {
+      Alert.alert('Invalid phone number', 'Phone numbers must contain digits only.');
+      return;
+    }
+    if (!aadhars.every((a) => digitsOnly(a) && a.trim().length <= 20)) {
+      Alert.alert('Invalid Aadhar number', 'Aadhar numbers must contain digits only (max 20).');
+      return;
+    }
+
     const payload = buildPayload(form);
     setSubmitting(true);
     try {
       if (mode === 'create') {
         const result = await createAdmission(payload, files);
+        showToast('Application submitted');
         router.replace(`/admissions/${result.id}`);
       } else if (admissionId) {
         await updateAdmission(admissionId, payload, files);
+        showToast('Changes saved');
         router.back();
       }
     } catch (err) {
@@ -627,12 +650,7 @@ export function AdmissionFormScreen(props: Props) {
             </Pressable>
           </View>
           <Field label="Roll Number" value={form.rollNumber} onChangeText={(t) => setField('rollNumber', t)} placeholder="Optional" />
-          <Field
-            label="Admission Number"
-            value={form.admissionNumber}
-            onChangeText={(t) => setField('admissionNumber', t)}
-            placeholder="Assigned later if left blank"
-          />
+          <Text style={styles.toggleHint}>The admission number is generated automatically when the application is approved.</Text>
         </SectionCard>
 
         <SectionCard title="Personal Info" icon="person-outline">
@@ -736,10 +754,13 @@ export function AdmissionFormScreen(props: Props) {
             <>
               <Text style={styles.subHeading}>Guardian</Text>
               {form.linked.guardian ? <Text style={styles.linkedNote}>Linked guardian: edit these details from the guardian profile.</Text> : null}
+              <Field label="Relation" value={form.guardian.relation} onChangeText={(t) => setGuardianBlockField('guardian', 'relation', t)} placeholder="e.g. Uncle" disabled={form.linked.guardian} />
               <Field label="Name" value={form.guardian.name} onChangeText={(t) => setGuardianBlockField('guardian', 'name', t)} disabled={form.linked.guardian} />
               <Field label="Phone" value={form.guardian.phone} onChangeText={(t) => setGuardianBlockField('guardian', 'phone', t)} keyboardType="phone-pad" disabled={form.linked.guardian} />
               <Field label="Email" value={form.guardian.email} onChangeText={(t) => setGuardianBlockField('guardian', 'email', t)} keyboardType="email-address" disabled={form.linked.guardian} />
+              <Field label="Mobile Number" value={form.guardian.mobileNumber} onChangeText={(t) => setGuardianBlockField('guardian', 'mobileNumber', t)} keyboardType="phone-pad" disabled={form.linked.guardian} />
               <Field label="Occupation" value={form.guardian.occupation} onChangeText={(t) => setGuardianBlockField('guardian', 'occupation', t)} disabled={form.linked.guardian} />
+              <Field label="Address" value={form.guardian.address} onChangeText={(t) => setGuardianBlockField('guardian', 'address', t)} multiline disabled={form.linked.guardian} />
               <Field
                 label="Aadhar Number"
                 value={form.guardian.aadharNumber}

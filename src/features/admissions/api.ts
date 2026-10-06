@@ -1,4 +1,5 @@
-import { apiRequest } from '../../lib/apiClient';
+import { API_BASE_URL } from '../../config';
+import { ApiError, apiRequest, getAccessToken } from '../../lib/apiClient';
 import type { PaginatedResult } from '../common/types';
 import type {
   AdmissionDetail,
@@ -131,7 +132,7 @@ export async function approveAdmission(id: string): Promise<AdmissionDetail> {
   return normalizeAdmission(
     await apiRequest<AdmissionDetail>(`/admissions/${id}/approve`, {
       method: 'PATCH',
-      body: {},
+      body: { id },
     })
   );
 }
@@ -164,4 +165,32 @@ export async function deleteAdmission(id: string): Promise<void> {
   return apiRequest<void>(`/admissions/${id}`, {
     method: 'DELETE',
   });
+}
+
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/** GET /admissions/export is a binary .xlsx download, so it can't go through apiRequest (JSON only). */
+export async function exportAdmissions(
+  academicYearId: string
+): Promise<{ blob: ArrayBuffer; fileName: string; mimeType: string }> {
+  const token = getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/admissions/export?academicYearId=${encodeURIComponent(academicYearId)}`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    let body: { message?: string | string[] } | undefined;
+    try { body = await response.json(); } catch { /* binary/empty error body */ }
+    const message = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    throw new ApiError(response.status, message ?? 'Could not export admissions.', body);
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  return {
+    blob: await response.arrayBuffer(),
+    fileName: match?.[1] ? decodeURIComponent(match[1]) : 'admissions.xlsx',
+    mimeType: response.headers.get('content-type') ?? XLSX_MIME,
+  };
 }

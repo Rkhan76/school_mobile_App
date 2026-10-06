@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { showToast } from '../../components/ui/Toast';
 import { ApiError } from '../../lib/apiClient';
 import {
   approveAdmission,
@@ -16,6 +17,8 @@ type Params = {
   search: string;
   className: string;
   classId: string;
+  /** Academic year id, or 'all'. Waits (no fetch) while empty so the default active year can load first. */
+  academicYearId: string;
   status: AdmissionStatus | 'all';
   pageSize: number;
 };
@@ -40,16 +43,18 @@ export function useAdmissions(params: Params) {
   const requestId = useRef(0);
 
   const fetchStats = useCallback(async () => {
+    if (!params.academicYearId) return;
     try {
-      const s = await getAdmissionStats();
+      const s = await getAdmissionStats(params.academicYearId === 'all' ? undefined : params.academicYearId);
       setStats(s);
     } catch (err) {
       Alert.alert('Error', errorMessage(err));
     }
-  }, []);
+  }, [params.academicYearId]);
 
   // Reset and fetch page 1 whenever the filters change.
   useEffect(() => {
+    if (!params.academicYearId) return;
     const id = ++requestId.current;
     setIsLoading(true);
     setPage(1);
@@ -61,6 +66,7 @@ export function useAdmissions(params: Params) {
           limit: params.pageSize,
           status: params.status,
           classId: params.classId || 'all',
+        academicYearId: params.academicYearId,
           search: params.search,
         });
         if (requestId.current !== id) return;
@@ -76,7 +82,7 @@ export function useAdmissions(params: Params) {
     })();
     fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.pageSize, params.status, params.classId, params.search]);
+  }, [params.pageSize, params.status, params.classId, params.academicYearId, params.search]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || isLoadingMore || !hasMore) return;
@@ -89,6 +95,7 @@ export function useAdmissions(params: Params) {
         limit: params.pageSize,
         status: params.status,
         classId: params.classId || 'all',
+        academicYearId: params.academicYearId,
         search: params.search,
       });
       if (requestId.current !== id) return;
@@ -100,9 +107,10 @@ export function useAdmissions(params: Params) {
     } finally {
       if (requestId.current === id) setIsLoadingMore(false);
     }
-  }, [isLoading, isLoadingMore, hasMore, page, params.pageSize, params.status, params.classId, params.search]);
+  }, [isLoading, isLoadingMore, hasMore, page, params.pageSize, params.status, params.classId, params.academicYearId, params.search]);
 
   const refetch = useCallback(() => {
+    if (!params.academicYearId) return;
     const id = ++requestId.current;
     setIsLoading(true);
     (async () => {
@@ -112,6 +120,7 @@ export function useAdmissions(params: Params) {
           limit: params.pageSize,
           status: params.status,
           classId: params.classId || 'all',
+        academicYearId: params.academicYearId,
           search: params.search,
         });
         if (requestId.current !== id) return;
@@ -126,15 +135,19 @@ export function useAdmissions(params: Params) {
       }
     })();
     fetchStats();
-  }, [params.pageSize, params.status, params.classId, params.search, fetchStats]);
+  }, [params.pageSize, params.status, params.classId, params.academicYearId, params.search, fetchStats]);
 
   const approve = useCallback(
     async (ids: string[]) => {
       try {
         if (ids.length === 1) {
           await approveAdmission(ids[0]);
+          showToast('Application approved');
         } else {
           const result = await bulkApproveAdmissions(ids);
+          if (result.succeeded.length > 0) {
+            showToast(`${result.succeeded.length} application${result.succeeded.length > 1 ? 's' : ''} approved`);
+          }
           if (result.failed.length > 0) {
             Alert.alert(
               'Some approvals failed',
@@ -161,6 +174,8 @@ export function useAdmissions(params: Params) {
           failed.push({ id, error: errorMessage(err) });
         }
       }
+      const done = ids.length - failed.length;
+      if (done > 0) showToast(`${done} application${done > 1 ? 's' : ''} rejected`);
       if (failed.length > 0) {
         Alert.alert(
           'Some rejections failed',
@@ -176,6 +191,7 @@ export function useAdmissions(params: Params) {
     async (id: string) => {
       try {
         await cancelAdmission(id);
+        showToast('Application cancelled');
       } catch (err) {
         Alert.alert('Error', errorMessage(err));
       } finally {
@@ -189,6 +205,7 @@ export function useAdmissions(params: Params) {
     async (id: string) => {
       try {
         await deleteAdmission(id);
+        showToast('Application deleted');
       } catch (err) {
         Alert.alert('Error', errorMessage(err));
       } finally {

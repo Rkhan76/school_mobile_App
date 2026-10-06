@@ -49,6 +49,10 @@ function extractMessage(body: unknown): string | undefined {
   ) {
     return (body as { message: string }).message;
   }
+  // NestJS validation errors come back as a string array.
+  if (body && typeof body === 'object' && Array.isArray((body as { message?: unknown }).message)) {
+    return ((body as { message: unknown[] }).message).map(String).join(', ');
+  }
   return undefined;
 }
 

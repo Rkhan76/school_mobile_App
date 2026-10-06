@@ -2,12 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenBackground } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { showToast } from '../../components/ui/Toast';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { StatTile } from '../../components/ui/StatTile';
+import { ApiError } from '../../lib/apiClient';
 import { colors, fonts, radius, themed } from '../../theme/tokens';
+import { getAcademicYearsMaster } from '../common/api';
+import type { AcademicYearLean } from '../common/types';
+import { exportAdmissions } from './api';
 import { useSession } from '../auth/session';
 import { AdmissionCard } from './AdmissionCard';
 import { BulkBar } from './BulkBar';
@@ -35,6 +42,10 @@ export function AdmissionsScreen() {
   const [selected, setSelected] = useState<string[]>([]);
   const [rejectIds, setRejectIds] = useState<string[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [years, setYears] = useState<AcademicYearLean[]>([]);
+  // '' = still resolving the default (active) year; the list waits for it.
+  const [yearId, setYearId] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const canCreate = permissions.includes('admission.application.create');
   const canUpdate = permissions.includes('admission.application.update');
@@ -42,6 +53,16 @@ export function AdmissionsScreen() {
   const canRejectPerm = permissions.includes('admission.rejection.update');
   const canCancelPerm = permissions.includes('admission.cancellation.update');
   const canDeletePerm = permissions.includes('admission.application.delete');
+  const canExport = permissions.includes('admission.export.read');
+
+  useEffect(() => {
+    getAcademicYearsMaster()
+      .then((list) => {
+        setYears(list);
+        setYearId(list.find((y) => y.isActive)?.id ?? 'all');
+      })
+      .catch(() => setYearId('all'));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -51,12 +72,37 @@ export function AdmissionsScreen() {
   }, [search]);
 
   const { data, stats, isLoading, isLoadingMore, hasMore, loadMore, refetch, approve, reject, cancelOne, remove } = useAdmissions({
-    search: debounced, className: classOption?.name ?? 'All', classId: classOption?.id ?? 'all', status, pageSize: PAGE_SIZE,
+    search: debounced, className: classOption?.name ?? 'All', classId: classOption?.id ?? 'all', academicYearId: yearId, status, pageSize: PAGE_SIZE,
   });
 
   useEffect(() => {
     if (!isLoading) setRefreshing(false);
   }, [isLoading]);
+
+  const exportExcel = useCallback(async () => {
+    if (exporting) return;
+    if (!yearId || yearId === 'all') {
+      Alert.alert('Select an academic year', 'Pick a specific academic year in the filters to export its admissions.');
+      return;
+    }
+    setExporting(true);
+    try {
+      const { blob, fileName, mimeType } = await exportAdmissions(yearId);
+      const file = new File(Paths.cache, fileName);
+      if (file.exists) file.delete();
+      file.write(new Uint8Array(blob));
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, { mimeType, dialogTitle: fileName });
+        showToast('Export ready');
+      } else {
+        Alert.alert('Export saved', `Saved to ${file.uri}`);
+      }
+    } catch (err) {
+      Alert.alert('Export failed', err instanceof ApiError ? err.message : 'Could not export admissions. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, yearId]);
 
   const selectionMode = selected.length > 0;
   const toggle = useCallback((a: AdmissionListItem) => {
@@ -133,13 +179,19 @@ export function AdmissionsScreen() {
           <Ionicons name="list-outline" size={16} color={colors.primaryDeep} />
           <Text style={styles.secText} numberOfLines={1}>Generate Roll Numbers</Text>
         </Pressable>
+        {canExport && (
+          <Pressable style={styles.secBtn} onPress={exportExcel} disabled={exporting}>
+            {exporting ? <ActivityIndicator size="small" color={colors.primaryDeep} /> : <Ionicons name="download-outline" size={16} color={colors.primaryDeep} />}
+            <Text style={styles.secText} numberOfLines={1}>Export Excel</Text>
+          </Pressable>
+        )}
       </View>
       <SearchBar
         value={search}
         onChangeText={setSearch}
         placeholder="Search applications..."
         onFilterPress={() => setSheetOpen(true)}
-        filterCount={classOption ? 1 : undefined}
+        filterCount={(classOption ? 1 : 0) + (yearId && yearId !== 'all' && yearId !== years.find((y) => y.isActive)?.id ? 1 : 0) || undefined}
       />
     </View>
   );
@@ -243,8 +295,10 @@ export function AdmissionsScreen() {
       <ClassFilterSheet
         visible={sheetOpen}
         value={classOption}
+        years={years}
+        yearId={yearId || 'all'}
         onClose={() => setSheetOpen(false)}
-        onApply={(v) => { setClassOption(v); setSheetOpen(false); }}
+        onApply={(v, y) => { setClassOption(v); setYearId(y); setSheetOpen(false); }}
       />
       <RejectModal
         visible={rejectIds !== null}

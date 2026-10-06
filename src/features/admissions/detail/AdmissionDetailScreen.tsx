@@ -9,6 +9,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
 import { ScreenBackground } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
+import { showToast } from '../../../components/ui/Toast';
 import { ApiError } from '../../../lib/apiClient';
 import { formatDate as sharedFormatDate, formatDateTime as sharedFormatDateTime } from '../../../lib/date';
 import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
@@ -206,6 +207,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
             try {
               const updated = await approveAdmission(id);
               setData(updated);
+              showToast('Application approved');
             } catch (err) {
               Alert.alert('Could not approve', err instanceof Error ? err.message : 'Something went wrong.');
             } finally {
@@ -224,6 +226,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
       const updated = await rejectAdmission(id, reason);
       setData(updated);
       setRejectOpen(false);
+      showToast('Application rejected');
     } catch (err) {
       Alert.alert('Could not reject', err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -243,6 +246,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
           try {
             const updated = await cancelAdmission(id);
             setData(updated);
+            showToast('Application cancelled');
           } catch (err) {
             Alert.alert('Could not cancel', err instanceof Error ? err.message : 'Something went wrong.');
           } finally {
@@ -264,6 +268,7 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
           setBusy('delete');
           try {
             await deleteAdmission(id);
+            showToast('Application deleted');
             router.back();
           } catch (err) {
             Alert.alert('Could not delete', err instanceof Error ? err.message : 'Something went wrong.');
