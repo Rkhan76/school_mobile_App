@@ -114,11 +114,11 @@ function DetailSheet({ item, onClose }: { item: LeaveApplication | null; onClose
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Leave type</Text>
-              <Text style={styles.detailValue}>{item.leaveTypeName ?? item.leaveTypeId}</Text>
+              <Text style={styles.detailValue}>{item.leaveTypeName ?? 'Leave'}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Dates</Text>
-              <Text style={styles.detailValue}>{formatDate(item.startDate)} – {formatDate(item.endDate)}</Text>
+              <Text style={styles.detailValue}>{formatDate(item.startDate)} – {formatDate(item.endDate)}{item.totalDays ? ` (${item.totalDays} day${item.totalDays > 1 ? 's' : ''})` : ''}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Applied on</Text>
@@ -133,7 +133,7 @@ function DetailSheet({ item, onClose }: { item: LeaveApplication | null; onClose
             {item.status !== 'PENDING' && item.reviewedAt ? (
               <View style={styles.detailBlock}>
                 <Text style={styles.detailLabel}>
-                  {item.status === 'APPROVED' ? 'Approved' : 'Reviewed'} on {formatDate(item.reviewedAt)}
+                  {item.status === 'APPROVED' ? 'Approved' : 'Reviewed'}{item.approvedBy?.name ? ` by ${item.approvedBy.name}` : ''} on {formatDate(item.reviewedAt)}
                 </Text>
                 {item.reviewComments ? <Text style={styles.detailBlockValue}>{item.reviewComments}</Text> : null}
               </View>

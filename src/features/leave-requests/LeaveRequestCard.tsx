@@ -49,11 +49,11 @@ function LeaveRequestCardBase({ item, canDecide, onPress, onApprove, onReject }:
 
         <View style={styles.metaRow}>
           <Ionicons name="pricetag-outline" size={14} color={colors.textHint} />
-          <Text style={styles.metaText} numberOfLines={1}>{item.leaveTypeName ?? item.leaveTypeId}</Text>
+          <Text style={styles.metaText} numberOfLines={1}>{item.leaveTypeName ?? 'Leave'}</Text>
         </View>
         <View style={styles.metaRow}>
           <Ionicons name="calendar-outline" size={14} color={colors.textHint} />
-          <Text style={styles.metaText}>{formatDate(item.startDate)} – {formatDate(item.endDate)}</Text>
+          <Text style={styles.metaText}>{formatDate(item.startDate)} – {formatDate(item.endDate)}{item.totalDays ? ` · ${item.totalDays} day${item.totalDays > 1 ? 's' : ''}` : ''}</Text>
         </View>
 
         {showActions ? (

@@ -17,12 +17,17 @@ export type LeaveApplication = {
   applicantName: string;
   applicantRole: string;
   leaveTypeId: string;
+  /** The API sends the type as a nested { id, name }; the name is also copied to leaveTypeName on load. */
+  leaveType?: { id: string; name: string } | null;
   leaveTypeName?: string;
   startDate: string;
   endDate: string;
+  totalDays?: number;
   reason?: string;
   status: LeaveStatus;
   reviewedById?: string | null;
+  /** Reviewer, as { id, name } (null while pending). */
+  approvedBy?: { id: string; name: string } | null;
   reviewedAt?: string | null;
   reviewComments?: string | null;
   createdAt: string;
