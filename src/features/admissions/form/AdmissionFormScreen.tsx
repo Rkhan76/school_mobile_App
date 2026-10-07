@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -26,36 +25,19 @@ import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { getAcademicYearsMaster, getClassesMaster } from '../../common/api';
 import type { AcademicYearLean, ClassWithSections } from '../../common/types';
 import { createAdmission, getAdmission, updateAdmission } from '../api';
-import type {
-  AdmissionDetail,
-  AdmissionFileField,
-  AdmissionFilePart,
-  AdmissionFiles,
-  AdmissionPayload,
-  GuardianBlock,
-} from '../types';
-import { GuardianPicker } from './GuardianPicker';
-import { ImagePickerField } from './ImagePickerField';
+import type { AdmissionDetail, AdmissionPayload, GuardianBlock } from '../types';
 
 type Props = { mode: 'create' } | { mode: 'edit'; admissionId: string };
 
 type GenderOption = 'Male' | 'Female' | 'Other';
-type PrimaryGuardianOption = 'father' | 'mother' | 'other';
-type GuardianBlockForm = {
-  name: string; phone: string; email: string; occupation: string; aadharNumber: string;
-  /** Guardian block only. */
-  relation: string; mobileNumber: string; address: string;
-};
+type ParentForm = { name: string; phone: string; occupation: string; aadharNumber: string };
 
-const emptyGuardianBlock = (): GuardianBlockForm => ({
-  name: '', phone: '', email: '', occupation: '', aadharNumber: '', relation: '', mobileNumber: '', address: '',
-});
+const emptyParent = (): ParentForm => ({ name: '', phone: '', occupation: '', aadharNumber: '' });
 
 type FormState = {
   academicYear: string;
   classId: string;
   className: string;
-  rollNumber: string;
 
   fullName: string;
   gender: GenderOption | null;
@@ -67,15 +49,8 @@ type FormState = {
   email: string;
   aadharNumber: string;
 
-  isGuardianExist: boolean;
-  guardianId: string | null;
-
-  primaryGuardian: PrimaryGuardianOption;
-  father: GuardianBlockForm;
-  mother: GuardianBlockForm;
-  guardian: GuardianBlockForm;
-  /** Parent/guardian already exists as a guardian profile: its details are edited there, not here. */
-  linked: { father: boolean; mother: boolean; guardian: boolean };
+  father: ParentForm;
+  mother: ParentForm;
 
   bloodGroup: string;
   height: string;
@@ -95,8 +70,6 @@ type FormState = {
   hostelName: string;
   roomNumber: string;
 
-  documentName: string;
-
   additionalDetails: string;
 };
 
@@ -104,7 +77,6 @@ const initialForm: FormState = {
   academicYear: '',
   classId: '',
   className: '',
-  rollNumber: '',
   fullName: '',
   gender: null,
   dateOfBirth: '',
@@ -114,13 +86,8 @@ const initialForm: FormState = {
   phone: '',
   email: '',
   aadharNumber: '',
-  isGuardianExist: false,
-  guardianId: null,
-  primaryGuardian: 'father',
-  father: emptyGuardianBlock(),
-  linked: { father: false, mother: false, guardian: false },
-  mother: emptyGuardianBlock(),
-  guardian: emptyGuardianBlock(),
+  father: emptyParent(),
+  mother: emptyParent(),
   bloodGroup: '',
   height: '',
   weight: '',
@@ -134,22 +101,17 @@ const initialForm: FormState = {
   permanentAddress: '',
   hostelName: '',
   roomNumber: '',
-  documentName: '',
   additionalDetails: '',
 };
 
 const val = (s: string): string | undefined => (s.trim() ? s.trim() : undefined);
 
-function blockFrom(b?: GuardianBlock | null): GuardianBlockForm {
+function parentFrom(b?: GuardianBlock | null): ParentForm {
   return {
     name: b?.name ?? '',
     phone: b?.phone ?? '',
-    email: b?.email ?? '',
     occupation: b?.occupation ?? '',
     aadharNumber: b?.aadharNumber ?? '',
-    relation: b?.relation ?? '',
-    mobileNumber: b?.mobileNumber ?? '',
-    address: b?.address ?? '',
   };
 }
 
@@ -159,7 +121,6 @@ function formFromDetail(detail: AdmissionDetail): FormState {
     academicYear: detail.academicInfo?.year ?? '',
     classId: detail.academicInfo?.class ?? '',
     className: detail.className ?? '',
-    rollNumber: detail.academicInfo?.rollNumber ?? detail.rollNumber ?? '',
     fullName: detail.personalInfo?.fullName ?? '',
     gender: detail.personalInfo?.gender ?? null,
     dateOfBirth: toDisplayDate(detail.personalInfo?.dateOfBirth),
@@ -169,17 +130,8 @@ function formFromDetail(detail: AdmissionDetail): FormState {
     phone: detail.personalInfo?.phone ?? '',
     email: detail.personalInfo?.email ?? '',
     aadharNumber: detail.personalInfo?.aadharNumber ?? '',
-    isGuardianExist: detail.isGuardianExist ?? false,
-    guardianId: detail.guardianId ?? null,
-    primaryGuardian: pgi?.primaryGuardian ?? 'father',
-    linked: {
-      father: !!pgi?.father?.isLinkedGuardian,
-      mother: !!pgi?.mother?.isLinkedGuardian,
-      guardian: !!pgi?.guardian?.isLinkedGuardian,
-    },
-    father: blockFrom(pgi?.father),
-    mother: blockFrom(pgi?.mother),
-    guardian: blockFrom(pgi?.guardian),
+    father: parentFrom(pgi?.father),
+    mother: parentFrom(pgi?.mother),
     bloodGroup: detail.medicalDetails?.bloodGroup ?? '',
     height: detail.medicalDetails?.height ?? '',
     weight: detail.medicalDetails?.weight ?? '',
@@ -193,80 +145,88 @@ function formFromDetail(detail: AdmissionDetail): FormState {
     permanentAddress: detail.address?.permanentAddress ?? '',
     hostelName: detail.hostelDetails?.hostelName ?? '',
     roomNumber: detail.hostelDetails?.roomNumber ?? '',
-    documentName: detail.documents?.[0]?.documentName ?? '',
     additionalDetails: detail.additionalDetails ?? '',
   };
 }
 
-function buildPayload(form: FormState): AdmissionPayload {
-  const payload: AdmissionPayload = {
-    academicInfo: {
-      year: form.academicYear || undefined,
-      class: form.classId || undefined,
-      rollNumber: val(form.rollNumber) ?? null,
-    },
+/** Drops empty values: the API never clears a field from "" or null, and empty keys only add noise. */
+function compact<T extends object>(o: T): T | undefined {
+  const out = Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+  return Object.keys(out).length ? (out as T) : undefined;
+}
+
+/** The request body for the current form values, section by section. */
+function buildSections(form: FormState): AdmissionPayload {
+  const parent = (p: ParentForm) =>
+    compact({ name: val(p.name), phone: val(p.phone), aadharNumber: val(p.aadharNumber), occupation: val(p.occupation) });
+  const father = parent(form.father);
+  const mother = parent(form.mother);
+  return {
+    academicInfo: compact({ year: form.academicYear || undefined, class: form.classId || undefined }),
     personalInfo: {
-      fullName: val(form.fullName),
       gender: (form.gender ?? 'Male') as GenderOption,
-      dateOfBirth: val(parseDisplayDate(form.dateOfBirth) ?? form.dateOfBirth),
-      category: val(form.category),
-      subcategory: val(form.subcategory) ?? null,
-      religion: val(form.religion),
-      phone: val(form.phone),
-      email: val(form.email),
-      aadharNumber: val(form.aadharNumber),
+      ...compact({
+        fullName: val(form.fullName),
+        dateOfBirth: val(parseDisplayDate(form.dateOfBirth) ?? form.dateOfBirth),
+        category: val(form.category),
+        subcategory: val(form.subcategory),
+        religion: val(form.religion),
+        phone: val(form.phone),
+        email: val(form.email),
+        aadharNumber: val(form.aadharNumber),
+      }),
     },
-    isGuardianExist: form.isGuardianExist,
-    parentGuardianInfo: {
-      primaryGuardian: form.primaryGuardian,
-      father: {
-        name: val(form.father.name),
-        phone: val(form.father.phone),
-        email: val(form.father.email),
-        occupation: val(form.father.occupation),
-        aadharNumber: val(form.father.aadharNumber),
-      },
-      mother: {
-        name: val(form.mother.name),
-        phone: val(form.mother.phone),
-        email: val(form.mother.email),
-        occupation: val(form.mother.occupation),
-        aadharNumber: val(form.mother.aadharNumber),
-      },
-      ...(form.primaryGuardian === 'other'
-        ? {
-            guardian: {
-              name: val(form.guardian.name),
-              phone: val(form.guardian.phone),
-              email: val(form.guardian.email),
-              occupation: val(form.guardian.occupation),
-              aadharNumber: val(form.guardian.aadharNumber),
-              relation: val(form.guardian.relation),
-              mobileNumber: val(form.guardian.mobileNumber),
-              address: val(form.guardian.address),
-            },
-          }
-        : {}),
-    },
-    medicalDetails: { bloodGroup: val(form.bloodGroup), height: val(form.height), weight: val(form.weight) },
-    bankDetails: {
-      accountNumber: val(form.accountNumber),
-      bankName: val(form.bankName),
-      bankBranch: val(form.bankBranch),
-      ifscCode: val(form.ifscCode),
-    },
-    previousSchoolDetails: { schoolName: val(form.prevSchoolName), address: val(form.prevSchoolAddress) },
-    address: { currentAddress: val(form.currentAddress), permanentAddress: val(form.permanentAddress) },
-    hostelDetails: { hostelName: val(form.hostelName) ?? null, roomNumber: val(form.roomNumber) ?? null },
-    documents: form.documentName.trim() ? [{ documentName: form.documentName.trim() }] : undefined,
+    parentGuardianInfo: father || mother ? { ...(father ? { father } : {}), ...(mother ? { mother } : {}) } : undefined,
+    medicalDetails: compact({ bloodGroup: val(form.bloodGroup), height: val(form.height), weight: val(form.weight) }),
+    bankDetails: compact({ accountNumber: val(form.accountNumber), bankName: val(form.bankName), bankBranch: val(form.bankBranch), ifscCode: val(form.ifscCode) }),
+    previousSchoolDetails: compact({ schoolName: val(form.prevSchoolName), address: val(form.prevSchoolAddress) }),
+    address: compact({ currentAddress: val(form.currentAddress), permanentAddress: val(form.permanentAddress) }),
+    hostelDetails: compact({ hostelName: val(form.hostelName), roomNumber: val(form.roomNumber) }),
     additionalDetails: val(form.additionalDetails),
   };
+}
 
-  if (form.isGuardianExist && form.guardianId) {
-    payload.guardianId = form.guardianId;
+/**
+ * Create sends everything. Edit sends only the sections that changed: the API replaces an object section whole,
+ * so a changed section goes out complete and the untouched ones are left alone.
+ */
+function buildPayload(form: FormState, original?: FormState): Partial<AdmissionPayload> {
+  const next = buildSections(form);
+  if (!original) return next;
+  const prev = buildSections(original);
+  const keys = (Object.keys(next) as (keyof AdmissionPayload)[]).filter((k) => JSON.stringify(next[k]) !== JSON.stringify(prev[k]));
+  return Object.fromEntries(keys.filter((k) => next[k] !== undefined).map((k) => [k, next[k]]));
+}
+
+/** Matches an API validation message (they are plain strings) to the form field it is about. */
+const FIELD_HINTS: [string, RegExp][] = [
+  ['father.name', /father.*name/i], ['father.phone', /father.*phone/i], ['father.aadharNumber', /father.*aadhar/i], ['father.occupation', /father.*occupation/i],
+  ['mother.name', /mother.*name/i], ['mother.phone', /mother.*phone/i], ['mother.aadharNumber', /mother.*aadhar/i], ['mother.occupation', /mother.*occupation/i],
+  ['gender', /gender/i], ['fullName', /fullName/i], ['dateOfBirth', /dateOfBirth|birth/i], ['category', /^(personalInfo\.)?category/i],
+  ['subcategory', /subcategory/i], ['religion', /religion/i], ['phone', /phone/i], ['email', /email/i], ['aadharNumber', /aadhar/i],
+  ['classId', /class/i], ['academicYear', /year/i],
+  ['bloodGroup', /bloodGroup/i], ['height', /height/i], ['weight', /weight/i],
+  ['accountNumber', /accountNumber/i], ['bankName', /bankName/i], ['bankBranch', /bankBranch/i], ['ifscCode', /ifsc/i],
+  ['prevSchoolName', /schoolName/i], ['prevSchoolAddress', /previousSchool.*address/i],
+  ['currentAddress', /currentAddress/i], ['permanentAddress', /permanentAddress/i],
+  ['hostelName', /hostelName/i], ['roomNumber', /roomNumber/i], ['additionalDetails', /additionalDetails/i],
+];
+
+type FieldErrors = { byField: Record<string, string>; general: string[] };
+
+function splitErrors(err: unknown): FieldErrors {
+  const byField: Record<string, string> = {};
+  const general: string[] = [];
+  const raw = err instanceof ApiError ? (err.body as { message?: unknown } | undefined)?.message : undefined;
+  const messages = Array.isArray(raw)
+    ? raw.map(String)
+    : [err instanceof ApiError ? err.message : 'Something went wrong. Please try again.'];
+  for (const m of messages) {
+    const hit = FIELD_HINTS.find(([, re]) => re.test(m));
+    if (hit && !byField[hit[0]]) byField[hit[0]] = m;
+    else general.push(m);
   }
-
-  return payload;
+  return { byField, general };
 }
 
 function SectionCard({ title, icon, children }: { title: string; icon: keyof typeof Ionicons.glyphMap; children: ReactNode }) {
@@ -290,7 +250,7 @@ function Field({
   multiline,
   required,
   isDate,
-  disabled,
+  error,
 }: {
   label: string;
   value: string;
@@ -300,8 +260,8 @@ function Field({
   multiline?: boolean;
   required?: boolean;
   isDate?: boolean;
-  /** Read-only (e.g. a linked guardian whose details are edited from the guardian profile). */
-  disabled?: boolean;
+  /** Validation message from the API for this field. */
+  error?: string;
 }) {
   return (
     <View style={styles.field}>
@@ -319,10 +279,10 @@ function Field({
         placeholderTextColor={colors.textHint}
         keyboardType={keyboardType}
         multiline={multiline}
-        editable={!disabled}
-        style={[styles.input, multiline && styles.inputMultiline, disabled && styles.inputDisabled]}
+        style={[styles.input, multiline && styles.inputMultiline, error && styles.inputError]}
       />
       )}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 }
@@ -451,8 +411,9 @@ export function AdmissionFormScreen(props: Props) {
   const admissionId = props.mode === 'edit' ? props.admissionId : undefined;
 
   const [form, setForm] = useState<FormState>(initialForm);
-  const [files, setFiles] = useState<AdmissionFiles>({});
-  const [existingDocumentUrl, setExistingDocumentUrl] = useState<string | null>(null);
+  /** The form as loaded for editing, so only the sections that changed are sent. */
+  const [original, setOriginal] = useState<FormState | undefined>(undefined);
+  const [errors, setErrors] = useState<FieldErrors>({ byField: {}, general: [] });
 
   const [classes, setClasses] = useState<ClassWithSections[]>([]);
   const [years, setYears] = useState<AcademicYearLean[]>([]);
@@ -482,8 +443,9 @@ export function AdmissionFormScreen(props: Props) {
           if (detailRes.status !== 'pending') {
             setBlockedStatus(detailRes.status);
           } else {
-            setForm(formFromDetail(detailRes));
-            setExistingDocumentUrl(detailRes.documents?.[0]?.file ?? null);
+            const loaded = formFromDetail(detailRes);
+            setForm(loaded);
+            setOriginal(loaded);
           }
         } else {
           const active = yearsRes.find((y) => y.isActive);
@@ -505,22 +467,16 @@ export function AdmissionFormScreen(props: Props) {
     setForm((f) => ({ ...f, [key]: value }));
   };
 
-  const setGuardianBlockField = (which: 'father' | 'mother' | 'guardian', key: keyof GuardianBlockForm, value: string) => {
+  const setParentField = (which: 'father' | 'mother', key: keyof ParentForm, value: string) => {
     setForm((f) => ({ ...f, [which]: { ...f[which], [key]: value } }));
   };
 
-  const setFile = (field: AdmissionFileField, part: AdmissionFilePart | null) => {
-    setFiles((prev) => {
-      const next = { ...prev };
-      if (part) next[field] = part;
-      else delete next[field];
-      return next;
-    });
-  };
+  // Fields that are pickers/chips have no inline slot, so their messages (and unmatched ones) go in the banner.
+  const bannerErrors = [...errors.general, ...['gender', 'category', 'classId', 'academicYear'].map((k) => errors.byField[k]).filter(Boolean)];
 
   const canSubmit = useMemo(
-    () => !submitting && !!form.gender && !!form.classId && (!form.isGuardianExist || !!form.guardianId),
-    [submitting, form.gender, form.classId, form.isGuardianExist, form.guardianId]
+    () => !submitting && !!form.gender && !!form.classId,
+    [submitting, form.gender, form.classId]
   );
 
   const submit = async () => {
@@ -532,18 +488,14 @@ export function AdmissionFormScreen(props: Props) {
       Alert.alert('Class required', 'Please select a class for this application.');
       return;
     }
-    if (form.isGuardianExist && !form.guardianId) {
-      Alert.alert('Guardian required', 'Search and select the existing guardian, or turn the toggle off.');
-      return;
-    }
     if (form.dateOfBirth.trim() && !parseDisplayDate(form.dateOfBirth)) {
       Alert.alert('Invalid date', 'Enter the date of birth as dd/mm/yyyy.');
       return;
     }
 
-    const digitsOnly = (s: string) => !s.trim() || /^\d+$/.test(s.trim());
-    const phones = [form.phone, form.father.phone, form.mother.phone, form.guardian.phone, form.guardian.mobileNumber];
-    const aadhars = [form.aadharNumber, form.father.aadharNumber, form.mother.aadharNumber, form.guardian.aadharNumber];
+    const digitsOnly = (v: string) => !v.trim() || /^\d+$/.test(v.trim());
+    const phones = [form.phone, form.father.phone, form.mother.phone];
+    const aadhars = [form.aadharNumber, form.father.aadharNumber, form.mother.aadharNumber];
     if (!phones.every(digitsOnly)) {
       Alert.alert('Invalid phone number', 'Phone numbers must contain digits only.');
       return;
@@ -552,22 +504,41 @@ export function AdmissionFormScreen(props: Props) {
       Alert.alert('Invalid Aadhar number', 'Aadhar numbers must contain digits only (max 20).');
       return;
     }
+    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      Alert.alert('Invalid email', 'Enter a valid email address.');
+      return;
+    }
+    const dob = parseDisplayDate(form.dateOfBirth);
+    if (dob && dob > new Date().toISOString().slice(0, 10)) {
+      Alert.alert('Invalid date', 'Date of birth cannot be in the future.');
+      return;
+    }
 
-    const payload = buildPayload(form);
+    setErrors({ byField: {}, general: [] });
     setSubmitting(true);
     try {
       if (mode === 'create') {
-        const result = await createAdmission(payload, files);
+        const result = await createAdmission(buildPayload(form) as AdmissionPayload);
         showToast('Application submitted');
         router.replace(`/admissions/${result.id}`);
       } else if (admissionId) {
-        await updateAdmission(admissionId, payload, files);
+        const payload = buildPayload(form, original);
+        if (Object.keys(payload).length === 0) {
+          router.back();
+          return;
+        }
+        await updateAdmission(admissionId, payload);
         showToast('Changes saved');
         router.back();
       }
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Something went wrong. Please try again.';
-      Alert.alert('Could not save', message);
+      const split = splitErrors(err);
+      setErrors(split);
+      if (err instanceof ApiError && err.statusCode === 400) {
+        showToast('Please fix the highlighted fields');
+      } else {
+        Alert.alert('Could not save', err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -628,6 +599,13 @@ export function AdmissionFormScreen(props: Props) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {bannerErrors.length > 0 ? (
+          <View style={styles.errorBanner}>
+            {bannerErrors.map((m) => (
+              <Text key={m} style={styles.errorText}>{m}</Text>
+            ))}
+          </View>
+        ) : null}
         <SectionCard title="Academic Info" icon="school-outline">
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Academic Year</Text>
@@ -649,12 +627,10 @@ export function AdmissionFormScreen(props: Props) {
               <Ionicons name="chevron-down" size={18} color={colors.textHint} />
             </Pressable>
           </View>
-          <Field label="Roll Number" value={form.rollNumber} onChangeText={(t) => setField('rollNumber', t)} placeholder="Optional" />
-          <Text style={styles.toggleHint}>The admission number is generated automatically when the application is approved.</Text>
         </SectionCard>
 
         <SectionCard title="Personal Info" icon="person-outline">
-          <Field label="Full Name" value={form.fullName} onChangeText={(t) => setField('fullName', t)} placeholder="Student's full name" />
+          <Field label="Full Name" value={form.fullName} onChangeText={(t) => setField('fullName', t)} placeholder="Student's full name" error={errors.byField.fullName} />
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>
               Gender<Text style={styles.required}> *</Text>
@@ -674,7 +650,7 @@ export function AdmissionFormScreen(props: Props) {
             value={form.dateOfBirth}
             onChangeText={(t) => setField('dateOfBirth', t)}
             placeholder="dd/mm/yyyy"
-            isDate
+            isDate error={errors.byField.dateOfBirth}
           />
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Category</Text>
@@ -685,134 +661,46 @@ export function AdmissionFormScreen(props: Props) {
               <Ionicons name="chevron-down" size={18} color={colors.textHint} />
             </Pressable>
           </View>
-          <Field label="Subcategory" value={form.subcategory} onChangeText={(t) => setField('subcategory', t)} />
-          <Field label="Religion" value={form.religion} onChangeText={(t) => setField('religion', t)} />
-          <Field label="Phone" value={form.phone} onChangeText={(t) => setField('phone', t)} keyboardType="phone-pad" />
-          <Field label="Email" value={form.email} onChangeText={(t) => setField('email', t)} keyboardType="email-address" />
-          <Field label="Aadhar Number" value={form.aadharNumber} onChangeText={(t) => setField('aadharNumber', t)} keyboardType="number-pad" />
+          <Field label="Subcategory" value={form.subcategory} onChangeText={(t) => setField('subcategory', t)} error={errors.byField.subcategory} />
+          <Field label="Religion" value={form.religion} onChangeText={(t) => setField('religion', t)} error={errors.byField.religion} />
+          <Field label="Phone" value={form.phone} onChangeText={(t) => setField('phone', t)} keyboardType="phone-pad" error={errors.byField.phone} />
+          <Field label="Email" value={form.email} onChangeText={(t) => setField('email', t)} keyboardType="email-address" error={errors.byField.email} />
+          <Field label="Aadhar Number" value={form.aadharNumber} onChangeText={(t) => setField('aadharNumber', t)} keyboardType="number-pad" error={errors.byField.aadharNumber} />
         </SectionCard>
 
-        <SectionCard title="Parent/Guardian Info" icon="people-outline">
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleTextWrap}>
-              <Text style={styles.fieldLabel}>Guardian already exists in system?</Text>
-              <Text style={styles.toggleHint}>Turn on to link an existing guardian record instead of entering details below.</Text>
+        <SectionCard title="Parents" icon="people-outline">
+          {(['father', 'mother'] as const).map((who) => (
+            <View key={who} style={styles.sectionBody}>
+              <Text style={styles.subHeading}>{who === 'father' ? 'Father' : 'Mother'}</Text>
+              <Field label="Name" value={form[who].name} onChangeText={(t) => setParentField(who, 'name', t)} error={errors.byField[`${who}.name`]} />
+              <Field label="Phone" value={form[who].phone} onChangeText={(t) => setParentField(who, 'phone', t)} keyboardType="phone-pad" error={errors.byField[`${who}.phone`]} />
+              <Field label="Occupation" value={form[who].occupation} onChangeText={(t) => setParentField(who, 'occupation', t)} error={errors.byField[`${who}.occupation`]} />
+              <Field label="Aadhar Number" value={form[who].aadharNumber} onChangeText={(t) => setParentField(who, 'aadharNumber', t)} keyboardType="number-pad" error={errors.byField[`${who}.aadharNumber`]} />
             </View>
-            <Switch
-              value={form.isGuardianExist}
-              onValueChange={(v) => setField('isGuardianExist', v)}
-              trackColor={{ true: colors.primary, false: colors.border }}
-              thumbColor={colors.white}
-            />
-          </View>
-          {form.isGuardianExist ? <GuardianPicker value={form.guardianId} onChange={(id) => setField('guardianId', id)} /> : null}
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Primary Guardian</Text>
-            <ChipRow
-              options={[
-                { key: 'father' as PrimaryGuardianOption, label: 'Father' },
-                { key: 'mother' as PrimaryGuardianOption, label: 'Mother' },
-                { key: 'other' as PrimaryGuardianOption, label: 'Other' },
-              ]}
-              value={form.primaryGuardian}
-              onChange={(v) => setField('primaryGuardian', v)}
-            />
-          </View>
-
-          <Text style={styles.subHeading}>Father</Text>
-          {form.linked.father ? <Text style={styles.linkedNote}>Linked guardian: edit these details from the guardian profile.</Text> : null}
-          <Field label="Name" value={form.father.name} onChangeText={(t) => setGuardianBlockField('father', 'name', t)} disabled={form.linked.father} />
-          <Field label="Phone" value={form.father.phone} onChangeText={(t) => setGuardianBlockField('father', 'phone', t)} keyboardType="phone-pad" disabled={form.linked.father} />
-          <Field label="Email" value={form.father.email} onChangeText={(t) => setGuardianBlockField('father', 'email', t)} keyboardType="email-address" disabled={form.linked.father} />
-          <Field label="Occupation" value={form.father.occupation} onChangeText={(t) => setGuardianBlockField('father', 'occupation', t)} disabled={form.linked.father} />
-          <Field
-            label="Aadhar Number"
-            value={form.father.aadharNumber}
-            onChangeText={(t) => setGuardianBlockField('father', 'aadharNumber', t)}
-            keyboardType="number-pad"
-            disabled={form.linked.father}
-          />
-          <ImagePickerField label="FATHER PHOTO" value={files.fatherPhoto ?? null} onChange={(p) => setFile('fatherPhoto', p)} />
-
-          <Text style={styles.subHeading}>Mother</Text>
-          {form.linked.mother ? <Text style={styles.linkedNote}>Linked guardian: edit these details from the guardian profile.</Text> : null}
-          <Field label="Name" value={form.mother.name} onChangeText={(t) => setGuardianBlockField('mother', 'name', t)} disabled={form.linked.mother} />
-          <Field label="Phone" value={form.mother.phone} onChangeText={(t) => setGuardianBlockField('mother', 'phone', t)} keyboardType="phone-pad" disabled={form.linked.mother} />
-          <Field label="Email" value={form.mother.email} onChangeText={(t) => setGuardianBlockField('mother', 'email', t)} keyboardType="email-address" disabled={form.linked.mother} />
-          <Field label="Occupation" value={form.mother.occupation} onChangeText={(t) => setGuardianBlockField('mother', 'occupation', t)} disabled={form.linked.mother} />
-          <Field
-            label="Aadhar Number"
-            value={form.mother.aadharNumber}
-            onChangeText={(t) => setGuardianBlockField('mother', 'aadharNumber', t)}
-            keyboardType="number-pad"
-            disabled={form.linked.mother}
-          />
-          <ImagePickerField label="MOTHER PHOTO" value={files.motherPhoto ?? null} onChange={(p) => setFile('motherPhoto', p)} />
-
-          {form.primaryGuardian === 'other' ? (
-            <>
-              <Text style={styles.subHeading}>Guardian</Text>
-              {form.linked.guardian ? <Text style={styles.linkedNote}>Linked guardian: edit these details from the guardian profile.</Text> : null}
-              <Field label="Relation" value={form.guardian.relation} onChangeText={(t) => setGuardianBlockField('guardian', 'relation', t)} placeholder="e.g. Uncle" disabled={form.linked.guardian} />
-              <Field label="Name" value={form.guardian.name} onChangeText={(t) => setGuardianBlockField('guardian', 'name', t)} disabled={form.linked.guardian} />
-              <Field label="Phone" value={form.guardian.phone} onChangeText={(t) => setGuardianBlockField('guardian', 'phone', t)} keyboardType="phone-pad" disabled={form.linked.guardian} />
-              <Field label="Email" value={form.guardian.email} onChangeText={(t) => setGuardianBlockField('guardian', 'email', t)} keyboardType="email-address" disabled={form.linked.guardian} />
-              <Field label="Mobile Number" value={form.guardian.mobileNumber} onChangeText={(t) => setGuardianBlockField('guardian', 'mobileNumber', t)} keyboardType="phone-pad" disabled={form.linked.guardian} />
-              <Field label="Occupation" value={form.guardian.occupation} onChangeText={(t) => setGuardianBlockField('guardian', 'occupation', t)} disabled={form.linked.guardian} />
-              <Field label="Address" value={form.guardian.address} onChangeText={(t) => setGuardianBlockField('guardian', 'address', t)} multiline disabled={form.linked.guardian} />
-              <Field
-                label="Aadhar Number"
-                value={form.guardian.aadharNumber}
-                onChangeText={(t) => setGuardianBlockField('guardian', 'aadharNumber', t)}
-                keyboardType="number-pad"
-            disabled={form.linked.guardian}
-              />
-              <ImagePickerField label="GUARDIAN PHOTO" value={files.guardianPhoto ?? null} onChange={(p) => setFile('guardianPhoto', p)} />
-            </>
-          ) : null}
+          ))}
         </SectionCard>
 
         <SectionCard title="Medical Details" icon="medkit-outline">
-          <Field label="Blood Group" value={form.bloodGroup} onChangeText={(t) => setField('bloodGroup', t)} placeholder="e.g. O+" />
-          <Field label="Height" value={form.height} onChangeText={(t) => setField('height', t)} placeholder="e.g. 150cm" />
-          <Field label="Weight" value={form.weight} onChangeText={(t) => setField('weight', t)} placeholder="e.g. 45kg" />
+          <Field label="Blood Group" value={form.bloodGroup} onChangeText={(t) => setField('bloodGroup', t)} placeholder="e.g. O+" error={errors.byField.bloodGroup} />
+          <Field label="Height" value={form.height} onChangeText={(t) => setField('height', t)} placeholder="e.g. 150cm" error={errors.byField.height} />
+          <Field label="Weight" value={form.weight} onChangeText={(t) => setField('weight', t)} placeholder="e.g. 45kg" error={errors.byField.weight} />
         </SectionCard>
 
         <SectionCard title="Bank Details" icon="card-outline">
-          <Field label="Account Number" value={form.accountNumber} onChangeText={(t) => setField('accountNumber', t)} keyboardType="number-pad" />
-          <Field label="Bank Name" value={form.bankName} onChangeText={(t) => setField('bankName', t)} />
-          <Field label="Bank Branch" value={form.bankBranch} onChangeText={(t) => setField('bankBranch', t)} />
-          <Field label="IFSC Code" value={form.ifscCode} onChangeText={(t) => setField('ifscCode', t.toUpperCase())} />
+          <Field label="Account Number" value={form.accountNumber} onChangeText={(t) => setField('accountNumber', t)} keyboardType="number-pad" error={errors.byField.accountNumber} />
+          <Field label="Bank Name" value={form.bankName} onChangeText={(t) => setField('bankName', t)} error={errors.byField.bankName} />
+          <Field label="Bank Branch" value={form.bankBranch} onChangeText={(t) => setField('bankBranch', t)} error={errors.byField.bankBranch} />
+          <Field label="IFSC Code" value={form.ifscCode} onChangeText={(t) => setField('ifscCode', t.toUpperCase())} error={errors.byField.ifscCode} />
         </SectionCard>
 
         <SectionCard title="Previous School" icon="business-outline">
-          <Field label="School Name" value={form.prevSchoolName} onChangeText={(t) => setField('prevSchoolName', t)} />
-          <Field label="Address" value={form.prevSchoolAddress} onChangeText={(t) => setField('prevSchoolAddress', t)} multiline />
+          <Field label="School Name" value={form.prevSchoolName} onChangeText={(t) => setField('prevSchoolName', t)} error={errors.byField.prevSchoolName} />
+          <Field label="Address" value={form.prevSchoolAddress} onChangeText={(t) => setField('prevSchoolAddress', t)} multiline error={errors.byField.prevSchoolAddress} />
         </SectionCard>
 
         <SectionCard title="Address" icon="location-outline">
-          <Field label="Current Address" value={form.currentAddress} onChangeText={(t) => setField('currentAddress', t)} multiline />
-          <Field label="Permanent Address" value={form.permanentAddress} onChangeText={(t) => setField('permanentAddress', t)} multiline />
-        </SectionCard>
-
-        <SectionCard title="Documents" icon="document-text-outline">
-          <View style={styles.imageGrid}>
-            <ImagePickerField label="PROFILE PHOTO" value={files.profileImage ?? null} onChange={(p) => setFile('profileImage', p)} />
-            <ImagePickerField label="AADHAR CARD" value={files.aadharImage ?? null} onChange={(p) => setFile('aadharImage', p)} />
-            <ImagePickerField label="TRANSFER CERTIFICATE" value={files.tcImage ?? null} onChange={(p) => setFile('tcImage', p)} />
-            <ImagePickerField
-              label="BIRTH CERTIFICATE"
-              value={files.birthCertificateImage ?? null}
-              onChange={(p) => setFile('birthCertificateImage', p)}
-            />
-          </View>
-          <Text style={styles.subHeading}>Supporting Document</Text>
-          <Text style={styles.toggleHint}>
-            Only one supporting document file can be attached — the name below is just for your records.
-          </Text>
-          <Field label="Document Name" value={form.documentName} onChangeText={(t) => setField('documentName', t)} placeholder="e.g. Caste certificate" />
-          <ImagePickerField label="DOCUMENT FILE" value={files.documentFile ?? existingDocumentUrl} onChange={(p) => setFile('documentFile', p)} />
+          <Field label="Current Address" value={form.currentAddress} onChangeText={(t) => setField('currentAddress', t)} multiline error={errors.byField.currentAddress} />
+          <Field label="Permanent Address" value={form.permanentAddress} onChangeText={(t) => setField('permanentAddress', t)} multiline error={errors.byField.permanentAddress} />
         </SectionCard>
 
         <SectionCard title="Additional Details" icon="create-outline">
@@ -821,7 +709,7 @@ export function AdmissionFormScreen(props: Props) {
             value={form.additionalDetails}
             onChangeText={(t) => setField('additionalDetails', t)}
             multiline
-            placeholder="Anything else worth noting"
+            placeholder="Anything else worth noting" error={errors.byField.additionalDetails}
           />
         </SectionCard>
       </ScrollView>
@@ -881,8 +769,9 @@ const styles = themed(() => StyleSheet.create({
     color: colors.text,
   },
   inputMultiline: { height: 90, paddingTop: 12, textAlignVertical: 'top' },
-  inputDisabled: { opacity: 0.6 },
-  linkedNote: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
+  inputError: { borderColor: colors.danger },
+  errorText: { fontFamily: fonts.body, fontSize: 12, color: colors.danger },
+  errorBanner: { backgroundColor: colors.cardSolid, borderColor: colors.danger, borderWidth: 1, borderRadius: radius.md, padding: 12, gap: 4 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     height: 38,

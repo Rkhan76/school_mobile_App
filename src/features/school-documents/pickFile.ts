@@ -27,9 +27,19 @@ function mimeFromExtension(ext: string): string {
   return 'image/jpeg';
 }
 
+export type PickOptions = {
+  /** Size cap in bytes (default: MAX_FILE_BYTES). */
+  maxBytes?: number;
+  /** Only offer pdf + jpeg/png/webp in the document picker (no Word/Excel). */
+  pdfAndImagesOnly?: boolean;
+};
+
+let activeOptions: PickOptions = {};
+
 function tooLarge(bytes?: number): boolean {
-  if (bytes !== undefined && bytes > MAX_FILE_BYTES) {
-    Alert.alert('File too large', 'Choose a file under 25 MB.');
+  const max = activeOptions.maxBytes ?? MAX_FILE_BYTES;
+  if (bytes !== undefined && bytes > max) {
+    Alert.alert('File too large', `Choose a file under ${Math.round(max / (1024 * 1024))} MB.`);
     return true;
   }
   return false;
@@ -73,7 +83,7 @@ async function pickFromLibrary(): Promise<FilePart | null> {
 
 async function pickDocumentFile(): Promise<FilePart | null> {
   const result = await DocumentPicker.getDocumentAsync({
-    type: [...DOC_MIME_TYPES, ...IMAGE_MIME_TYPES],
+    type: activeOptions.pdfAndImagesOnly ? ['application/pdf', ...IMAGE_MIME_TYPES] : [...DOC_MIME_TYPES, ...IMAGE_MIME_TYPES],
     copyToCacheDirectory: true,
     multiple: false,
   });
@@ -88,8 +98,9 @@ async function pickDocumentFile(): Promise<FilePart | null> {
  * or any of the supported document formats (pdf/doc/docx/xls/xlsx/images), per the
  * 25MB limit documented for `/school-documents/upload`.
  */
-export function pickSchoolDocumentFile(onPicked: (file: FilePart) => void): void {
+export function pickSchoolDocumentFile(onPicked: (file: FilePart) => void, options: PickOptions = {}): void {
   const run = async (source: 'camera' | 'library' | 'document') => {
+    activeOptions = options;
     const part =
       source === 'camera' ? await pickFromCamera() : source === 'library' ? await pickFromLibrary() : await pickDocumentFile();
     if (part) onPicked(part);

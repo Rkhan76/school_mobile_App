@@ -11,6 +11,7 @@ import type {
   MediaUploadIntent,
   SchoolEvent,
 } from './types';
+import { appendFile } from '../../lib/formFile';
 
 function buildQuery(params: Record<string, unknown>): string {
   const qs = new URLSearchParams();
@@ -103,10 +104,7 @@ export async function uploadToCloudinary(
   Object.entries(fields).forEach(([key, value]) => {
     if (value !== undefined && value !== null) form.append(key, String(value));
   });
-  // React Native's FormData accepts a { uri, name, type } object for file parts at
-  // runtime, but lib.dom's typing only knows about string | Blob — cast through
-  // `unknown` to satisfy TS here (same pattern used for admission file uploads).
-  form.append('file', file as unknown as Blob);
+  appendFile(form, 'file', file);
 
   const response = await fetch(uploadUrl, { method: 'POST', body: form });
   const body = await response.json().catch(() => null);

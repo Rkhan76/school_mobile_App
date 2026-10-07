@@ -140,6 +140,10 @@ export function StudentListScreen() {
         </Pressable>
       </View>
       <StatsGrid stats={stats} />
+      <Pressable style={styles.secBtn} onPress={() => Alert.alert('Generate Roll Numbers', 'Coming soon.')}>
+        <Ionicons name="list-outline" size={16} color={colors.primaryDeep} />
+        <Text style={styles.secText} numberOfLines={1}>Generate Roll Numbers</Text>
+      </Pressable>
       <View style={styles.segment}>
         {([false, true] as const).map((isBlocked) => (
           <Pressable
@@ -237,6 +241,11 @@ const styles = themed(() => StyleSheet.create({
   header: { gap: 14, marginBottom: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   title: { fontFamily: fonts.heading, fontSize: 24, color: colors.text },
+  secBtn: {
+    height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderRadius: radius.lg, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,
+  },
+  secText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.primaryDeep },
   refresh: {
     flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12,
     borderRadius: radius.pill, backgroundColor: colors.cardSolid, borderWidth: 1, borderColor: colors.border,

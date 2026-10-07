@@ -1,14 +1,16 @@
 /** Mirrors the backend's entity-document actors (MOBILE_API_DOCS.md §15). Note this
  * module has no separate "Teacher" concept — teaching and non-teaching staff both
  * live under STAFF here. */
-export type EntityType = 'STUDENT' | 'STAFF' | 'GUARDIAN';
+export type EntityType = 'STUDENT' | 'STAFF' | 'GUARDIAN' | 'APPLICANT';
 
+/** Entity types a document type can apply to / that the review screens filter by (APPLICANT only exists for admissions). */
 export const ENTITY_TYPES: EntityType[] = ['STUDENT', 'STAFF', 'GUARDIAN'];
 
 export const ENTITY_LABELS: Record<EntityType, string> = {
   STUDENT: 'Student',
   STAFF: 'Staff',
   GUARDIAN: 'Guardian',
+  APPLICANT: 'Applicant',
 };
 
 /* ----------------------------- document types ----------------------------- */

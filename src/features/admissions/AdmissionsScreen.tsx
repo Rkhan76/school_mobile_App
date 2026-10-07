@@ -25,7 +25,6 @@ import { useAdmissions } from './useAdmissions';
 import type { AdmissionListItem } from './types';
 
 const PAGE_SIZE = 20;
-const soon = (what: string) => Alert.alert(what, 'Coming soon.');
 
 function SkeletonCard() {
   return <View style={styles.skeleton} />;
@@ -175,10 +174,6 @@ export function AdmissionsScreen() {
         <StatTile label="Rejected" value={String(stats.rejected)} icon="close-circle-outline" tint={colors.danger} />
       </View>
       <View style={styles.secondary}>
-        <Pressable style={styles.secBtn} onPress={() => soon('Generate Roll Numbers')}>
-          <Ionicons name="list-outline" size={16} color={colors.primaryDeep} />
-          <Text style={styles.secText} numberOfLines={1}>Generate Roll Numbers</Text>
-        </Pressable>
         {canExport && (
           <Pressable style={styles.secBtn} onPress={exportExcel} disabled={exporting}>
             {exporting ? <ActivityIndicator size="small" color={colors.primaryDeep} /> : <Ionicons name="download-outline" size={16} color={colors.primaryDeep} />}

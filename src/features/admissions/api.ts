@@ -3,32 +3,12 @@ import { ApiError, apiRequest, getAccessToken } from '../../lib/apiClient';
 import type { PaginatedResult } from '../common/types';
 import type {
   AdmissionDetail,
-  AdmissionFiles,
   AdmissionListItem,
   AdmissionListParams,
   AdmissionPayload,
   AdmissionStats,
   BulkApproveResult,
 } from './types';
-
-function buildAdmissionFormData(payload: unknown, files?: AdmissionFiles): FormData {
-  const form = new FormData();
-  form.append('data', JSON.stringify(payload));
-
-  if (files) {
-    (Object.keys(files) as (keyof AdmissionFiles)[]).forEach((field) => {
-      const part = files[field];
-      if (part) {
-        // React Native's FormData accepts a { uri, name, type } object for file
-        // uploads at runtime, but lib.dom's FormData.append typing only knows
-        // about string | Blob — cast through `unknown` to satisfy TS here.
-        form.append(field, part as unknown as Blob);
-      }
-    });
-  }
-
-  return form;
-}
 
 /**
  * The admissions endpoints return a flat record (fullName, gender, fatherInfo, addressInfo, previousSchoolName...),
@@ -103,29 +83,12 @@ export async function getAdmission(id: string): Promise<AdmissionDetail> {
   return normalizeAdmission(await apiRequest<AdmissionDetail>(`/admissions/${id}`));
 }
 
-export async function createAdmission(
-  payload: AdmissionPayload,
-  files?: AdmissionFiles
-): Promise<AdmissionDetail> {
-  return normalizeAdmission(
-    await apiRequest<AdmissionDetail>('/admissions', {
-      method: 'POST',
-      body: buildAdmissionFormData(payload, files),
-    })
-  );
+export async function createAdmission(payload: AdmissionPayload): Promise<AdmissionDetail> {
+  return normalizeAdmission(await apiRequest<AdmissionDetail>('/admissions', { method: 'POST', body: payload }));
 }
 
-export async function updateAdmission(
-  id: string,
-  payload: Partial<AdmissionPayload>,
-  files?: AdmissionFiles
-): Promise<AdmissionDetail> {
-  return normalizeAdmission(
-    await apiRequest<AdmissionDetail>(`/admissions/${id}`, {
-      method: 'PATCH',
-      body: buildAdmissionFormData(payload, files),
-    })
-  );
+export async function updateAdmission(id: string, payload: Partial<AdmissionPayload>): Promise<AdmissionDetail> {
+  return normalizeAdmission(await apiRequest<AdmissionDetail>(`/admissions/${id}`, { method: 'PATCH', body: payload }));
 }
 
 export async function approveAdmission(id: string): Promise<AdmissionDetail> {

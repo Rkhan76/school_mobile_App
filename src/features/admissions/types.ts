@@ -40,41 +40,43 @@ export type GuardianBlock = {
   address?: string;
 };
 
+/** Father/mother as the create/update API accepts them (no email, photo or linked-guardian fields). */
+export type ParentPayload = { name?: string; phone?: string; aadharNumber?: string; occupation?: string };
+
 export type AdmissionPayload = {
-  academicInfo?: { year?: string; class?: string; rollNumber?: string | null; admissionNumber?: string | null };
+  academicInfo?: { year?: string; class?: string; rollNumber?: string; admissionNumber?: string };
   personalInfo: {
     fullName?: string;
     gender: 'Male' | 'Female' | 'Other';
     dateOfBirth?: string;
     category?: string;
-    subcategory?: string | null;
+    subcategory?: string;
     religion?: string;
     phone?: string;
     email?: string;
     aadharNumber?: string;
   };
-  isGuardianExist?: boolean;
-  guardianId?: string | null;
+  parentGuardianInfo?: { father?: ParentPayload; mother?: ParentPayload };
+  medicalDetails?: { bloodGroup?: string; height?: string; weight?: string };
+  bankDetails?: { accountNumber?: string; bankName?: string; bankBranch?: string; ifscCode?: string };
+  previousSchoolDetails?: { schoolName?: string; address?: string };
+  address?: { currentAddress?: string; permanentAddress?: string };
+  hostelDetails?: { hostelName?: string; roomNumber?: string };
+  additionalDetails?: string;
+  /** Re-admission of an already enrolled student. */
+  studentId?: string;
+};
+
+/** What the API returns (read-only fields such as guardian blocks and documents are never sent back). */
+export type AdmissionDetail = Omit<AdmissionPayload, 'parentGuardianInfo'> & {
   parentGuardianInfo?: {
     father?: GuardianBlock;
     mother?: GuardianBlock;
     guardian?: GuardianBlock;
     primaryGuardian?: 'father' | 'mother' | 'other';
   };
-  medicalDetails?: { bloodGroup?: string; height?: string; weight?: string };
-  bankDetails?: { accountNumber?: string; bankName?: string; bankBranch?: string; ifscCode?: string };
-  previousSchoolDetails?: { schoolName?: string; address?: string };
-  address?: { currentAddress?: string; permanentAddress?: string };
-  hostelDetails?: { hostelName?: string | null; roomNumber?: string | null };
+  guardianId?: string | null;
   documents?: { documentName: string; file?: string | null }[];
-  additionalDetails?: string;
-};
-
-export type AdmissionFileField = 'profileImage' | 'aadharImage' | 'tcImage' | 'birthCertificateImage' | 'fatherPhoto' | 'motherPhoto' | 'guardianPhoto' | 'documentFile';
-export type AdmissionFilePart = { uri: string; name: string; type: string };
-export type AdmissionFiles = Partial<Record<AdmissionFileField, AdmissionFilePart>>;
-
-export type AdmissionDetail = AdmissionPayload & {
   id: string;
   applicationNumber: string;
   admissionNumber: string | null;

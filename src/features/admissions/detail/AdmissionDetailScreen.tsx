@@ -16,6 +16,7 @@ import { colors, fonts, radius, shadow, themed } from '../../../theme/tokens';
 import { useSession } from '../../auth/session';
 import { approveAdmission, cancelAdmission, deleteAdmission, getAdmission, rejectAdmission } from '../api';
 import { RejectModal } from '../RejectModal';
+import { ApplicantDocuments } from './ApplicantDocuments';
 import type { AdmissionDetail, AdmissionStatus, GuardianBlock } from '../types';
 import { hScrollFixed } from '../../../components/ui/scrollStyles';
 
@@ -457,6 +458,8 @@ export function AdmissionDetailScreen({ id }: { id: string | undefined }) {
             <Row label="Permanent Address" value={data.address?.permanentAddress} />
           </Section>
         )}
+
+        {(data.status === 'pending' || data.status === 'approved') && (can('entity-document.record.create') || can('entity-document.record.read')) ? <ApplicantDocuments admissionId={data.id} canView={can('entity-document.record.read')} canUpload={can('entity-document.record.create')} /> : null}
 
         {documents.length > 0 && (
           <Section icon="document-text-outline" title="Documents">

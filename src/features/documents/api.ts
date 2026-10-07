@@ -17,6 +17,7 @@ import type {
   UploadFilePart,
   UploadOnBehalfParams,
 } from './types';
+import { appendFile } from '../../lib/formFile';
 
 /* ----------------------------- document types -----------------------------
  * Small settings-screen catalog (auto-seeded, lazily, per school) — like
@@ -81,10 +82,7 @@ export async function uploadOnBehalf(params: UploadOnBehalfParams, file: UploadF
   if (params.expiryDate) query.set('expiryDate', params.expiryDate);
 
   const form = new FormData();
-  // React Native's FormData accepts a { uri, name, type } object for file
-  // uploads at runtime, but lib.dom's FormData.append typing only knows
-  // about string | Blob — cast through `unknown` to satisfy TS here.
-  form.append('file', file as unknown as Blob);
+  appendFile(form, 'file', file);
 
   return apiRequest<EntityDocument>(`/entity-documents/upload?${query.toString()}`, {
     method: 'POST',

@@ -10,6 +10,7 @@ import type {
   UploadDocumentPayload,
   UploadVersionPayload,
 } from './types';
+import { appendFile } from '../../lib/formFile';
 
 function buildQuery(params: Record<string, string | undefined>): string {
   const query = new URLSearchParams();
@@ -23,10 +24,7 @@ function buildQuery(params: Record<string, string | undefined>): string {
 /** Upload mechanics here: metadata in the query string, one file part (any field name). */
 function buildFileForm(file: FilePart): FormData {
   const form = new FormData();
-  // React Native's FormData accepts a { uri, name, type } object for file uploads
-  // at runtime, but lib.dom's FormData.append typing only knows about
-  // string | Blob — cast through `unknown` to satisfy TS here.
-  form.append('file', file as unknown as Blob);
+  appendFile(form, 'file', file);
   return form;
 }
 
